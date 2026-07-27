@@ -6,3 +6,119 @@ generator client {
 datasource db {
   provider = "mysql"
 }
+
+enum Role {
+  HR
+  INTERVIEWER
+  MANAGEMENT
+}
+
+enum VacancyStatus {
+  OPEN
+  CLOSED
+  ON_HOLD
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  REJECTED
+  IN_PROGRESS
+  HIRED
+  ON_HOLD
+}
+
+enum Recommendation {
+  HIRE
+  REJECT
+  NEXT_STAGE
+  HOLD
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  department   String?
+  createdAt    DateTime @default(now())
+
+  interviewsAsInterviewer Interview[] @relation("InterviewerInterviews")
+  feedbackGiven           Feedback[]
+}
+
+model Vacancy {
+  id          Int           @id @default(autoincrement())
+  title       String
+  department  String
+  description String        @db.Text
+  status      VacancyStatus @default(OPEN)
+  createdAt   DateTime      @default(now())
+
+  stages       VacancyStage[]
+  applications CandidateApplication[]
+}
+
+model VacancyStage {
+  id        Int    @id @default(autoincrement())
+  vacancyId Int
+  vacancy   Vacancy @relation(fields: [vacancyId], references: [id])
+  name      String
+  order     Int
+
+  interviews Interview[]
+
+  @@unique([vacancyId, order])
+}
+
+model Candidate {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  cvUrl     String
+  createdAt DateTime @default(now())
+
+  applications CandidateApplication[]
+}
+
+model CandidateApplication {
+  id          Int               @id @default(autoincrement())
+  candidateId Int
+  candidate   Candidate         @relation(fields: [candidateId], references: [id])
+  vacancyId   Int
+  vacancy     Vacancy           @relation(fields: [vacancyId], references: [id])
+  status      ApplicationStatus @default(APPLIED)
+  appliedAt   DateTime          @default(now())
+
+  interviews Interview[]
+
+  @@unique([candidateId, vacancyId])
+}
+
+model Interview {
+  id            Int      @id @default(autoincrement())
+  applicationId Int
+  application   CandidateApplication @relation(fields: [applicationId], references: [id])
+  stageId       Int
+  stage         VacancyStage @relation(fields: [stageId], references: [id])
+  interviewerId Int
+  interviewer   User     @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
+  scheduledAt   DateTime
+  createdAt     DateTime @default(now())
+
+  feedback Feedback?
+}
+
+model Feedback {
+  id             Int             @id @default(autoincrement())
+  interviewId    Int             @unique
+  interview      Interview       @relation(fields: [interviewId], references: [id])
+  interviewerId  Int
+  interviewer    User            @relation(fields: [interviewerId], references: [id])
+  score          Int
+  comments       String          @db.Text
+  recommendation Recommendation
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
