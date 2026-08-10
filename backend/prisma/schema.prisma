@@ -11,6 +11,9 @@ enum Role {
   HR
   INTERVIEWER
   MANAGEMENT
+  HIRING_MANAGER
+  IT_ADMIN
+  LEADERSHIP_MANAGEMENT
 }
 
 enum VacancyStatus {
@@ -42,6 +45,7 @@ model User {
   passwordHash String
   role         Role
   department   String?
+  isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   interviewsAsInterviewer Interview[] @relation("InterviewerInterviews")
@@ -49,19 +53,21 @@ model User {
 }
 
 model Vacancy {
-  id          Int           @id @default(autoincrement())
-  title       String
-  department  String
-  description String        @db.Text
-  status      VacancyStatus @default(OPEN)
-  createdAt   DateTime      @default(now())
+  id              Int           @id @default(autoincrement())
+  title           String
+  department      String
+  description     String        @db.Text
+  requirements    String?
+  preferredSkills String?
+  status          VacancyStatus @default(OPEN)
+  createdAt       DateTime      @default(now())
 
   stages       VacancyStage[]
   applications CandidateApplication[]
 }
 
 model VacancyStage {
-  id        Int    @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   vacancyId Int
   vacancy   Vacancy @relation(fields: [vacancyId], references: [id])
   name      String
@@ -97,28 +103,28 @@ model CandidateApplication {
 }
 
 model Interview {
-  id            Int      @id @default(autoincrement())
+  id            Int                  @id @default(autoincrement())
   applicationId Int
   application   CandidateApplication @relation(fields: [applicationId], references: [id])
   stageId       Int
-  stage         VacancyStage @relation(fields: [stageId], references: [id])
+  stage         VacancyStage         @relation(fields: [stageId], references: [id])
   interviewerId Int
-  interviewer   User     @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
+  interviewer   User                 @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
   scheduledAt   DateTime
-  createdAt     DateTime @default(now())
+  createdAt     DateTime             @default(now())
 
   feedback Feedback?
 }
 
 model Feedback {
-  id             Int             @id @default(autoincrement())
-  interviewId    Int             @unique
-  interview      Interview       @relation(fields: [interviewId], references: [id])
+  id             Int            @id @default(autoincrement())
+  interviewId    Int            @unique
+  interview      Interview      @relation(fields: [interviewId], references: [id])
   interviewerId  Int
-  interviewer    User            @relation(fields: [interviewerId], references: [id])
+  interviewer    User           @relation(fields: [interviewerId], references: [id])
   score          Int
-  comments       String          @db.Text
+  comments       String         @db.Text
   recommendation Recommendation
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
