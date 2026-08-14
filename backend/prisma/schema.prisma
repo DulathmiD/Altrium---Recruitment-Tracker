@@ -28,14 +28,11 @@ enum ApplicationStatus {
   REJECTED
   IN_PROGRESS
   HIRED
-  ON_HOLD
 }
 
-enum Recommendation {
+enum HiringDecision {
   HIRE
   REJECT
-  NEXT_STAGE
-  HOLD
 }
 
 model User {
@@ -48,8 +45,9 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  interviewsAsInterviewer Interview[] @relation("InterviewerInterviews")
-  feedbackGiven           Feedback[]
+  feedbackGiven Feedback[]
+  panelistOn    InterviewPanelist[]
+  decisionsMade CandidateApplication[] @relation("DecidedBy")
 }
 
 model Vacancy {
@@ -82,6 +80,7 @@ model Candidate {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
+  phoneNumber String?
   cvUrl     String
   createdAt DateTime @default(now())
 
@@ -97,6 +96,11 @@ model CandidateApplication {
   status      ApplicationStatus @default(APPLIED)
   appliedAt   DateTime          @default(now())
 
+  hiringDecision  HiringDecision?
+  decidedByUserId Int?
+  decidedBy       User?           @relation("DecidedBy", fields: [decidedByUserId], references: [id])
+  decidedAt       DateTime?
+
   interviews Interview[]
 
   @@unique([candidateId, vacancyId])
@@ -108,23 +112,32 @@ model Interview {
   application   CandidateApplication @relation(fields: [applicationId], references: [id])
   stageId       Int
   stage         VacancyStage         @relation(fields: [stageId], references: [id])
-  interviewerId Int
-  interviewer   User                 @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
   scheduledAt   DateTime
   createdAt     DateTime             @default(now())
 
-  feedback Feedback?
+  panelists InterviewPanelist[]
+  feedback  Feedback[]
+}
+
+model InterviewPanelist {
+  id          Int       @id @default(autoincrement())
+  interviewId Int
+  interview   Interview @relation(fields: [interviewId], references: [id])
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@unique([interviewId, userId])
 }
 
 model Feedback {
-  id             Int            @id @default(autoincrement())
-  interviewId    Int            @unique
-  interview      Interview      @relation(fields: [interviewId], references: [id])
-  interviewerId  Int
-  interviewer    User           @relation(fields: [interviewerId], references: [id])
-  score          Int
-  comments       String         @db.Text
-  recommendation Recommendation
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id            Int       @id @default(autoincrement())
+  interviewId   Int
+  interview     Interview @relation(fields: [interviewId], references: [id])
+  interviewerId Int
+  interviewer   User      @relation(fields: [interviewerId], references: [id])
+  score         Int
+  comments      String    @db.Text
+  createdAt     DateTime  @default(now())
+
+  @@unique([interviewId, interviewerId])
 }
