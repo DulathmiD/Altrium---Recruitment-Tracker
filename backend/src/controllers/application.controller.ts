@@ -101,6 +101,20 @@ export async function recordHiringDecision(req: Request, res: Response) {
       return res.status(404).json({ error: "Application not found" });
     }
 
+    if (existing.stage === "HIRED" || existing.stage === "REJECTED") {
+      return res.status(400).json({ error: "This application has already reached a final outcome" });
+    }
+
+    // Hiring can only be confirmed once a candidate has completed the full
+    // interview pipeline -- consistent with the no-skip rule enforced in
+    // updateApplicationStage (US-31). Rejection has no such restriction: it's
+    // a valid outcome from any stage (US-05/US-31).
+    if (hiringDecision === "HIRE" && existing.stage !== "FINAL_INTERVIEW") {
+      return res.status(400).json({
+        error: `Cannot hire from ${STAGE_LABELS[existing.stage as keyof typeof STAGE_LABELS]} -- candidate must reach Final Interview first`,
+      });
+    }
+
     const application = await transitionApplicationStage(
       id,
       hiringDecision === "HIRE" ? "HIRED" : "REJECTED",
