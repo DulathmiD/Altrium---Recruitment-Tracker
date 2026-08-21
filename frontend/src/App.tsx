@@ -3,6 +3,12 @@ import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import RoleDashboard from "./pages/dashboards/RoleDashboard";
+import HRLayout from "./pages/hr/HRLayout";
+import VacanciesPage from "./pages/hr/VacanciesPage";
+
+function ComingSoon({ label }: { label: string }) {
+  return <div style={{ padding: 8 }}><h1 style={{ fontSize: 22, fontWeight: 600 }}>{label}</h1><p style={{ color: "#64748b" }}>Coming soon.</p></div>;
+}
 
 export default function App() {
   return (
@@ -12,7 +18,13 @@ export default function App() {
       <Route path="/admin" element={<AdminLogin />} />
 
       <Route element={<ProtectedRoute allowedRoles={["HR"]} />}>
-        <Route path="/hr/dashboard" element={<RoleDashboard label="HR Officer Dashboard" />} />
+        <Route element={<HRLayout />}>
+          <Route path="/hr/vacancies" element={<VacanciesPage />} />
+          <Route path="/hr/candidates" element={<ComingSoon label="Candidates" />} />
+          <Route path="/hr/interviews" element={<ComingSoon label="Interviews" />} />
+          <Route path="/hr/follow-ups" element={<ComingSoon label="Follow Ups" />} />
+          <Route path="/hr/dashboard" element={<Navigate to="/hr/vacancies" replace />} />
+        </Route>
       </Route>
       <Route element={<ProtectedRoute allowedRoles={["HIRING_MANAGER"]} />}>
         <Route path="/hiring-manager/dashboard" element={<RoleDashboard label="Hiring Manager Dashboard" />} />

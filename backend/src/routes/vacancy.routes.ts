@@ -11,7 +11,10 @@ import {
 import {
   applyCandidateToVacancy,
   listApplicationsForVacancy,
+  compareApplicationsForVacancy,
 } from "../controllers/application.controller.js";
+import { listFeedbackForVacancy } from "../controllers/feedback.controller.js";
+import { getVacancyReport, getVacancyReportPdf } from "../controllers/reports.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { requireRole } from "../middleware/requireRole.middleware.js";
 import { Role } from "../../generated/prisma/index.js";
@@ -32,3 +35,8 @@ vacancyRouter.delete("/:id/stages/:stageId", requireRole(Role.HR), deleteStage);
 
 vacancyRouter.get("/:id/applications", listApplicationsForVacancy);
 vacancyRouter.post("/:id/applications", requireRole(Role.HR), applyCandidateToVacancy);
+
+vacancyRouter.get("/:id/feedback", listFeedbackForVacancy);
+vacancyRouter.get("/:id/comparison", compareApplicationsForVacancy);
+vacancyRouter.get("/:id/report", getVacancyReport);
+vacancyRouter.get("/:id/report/pdf", getVacancyReportPdf);

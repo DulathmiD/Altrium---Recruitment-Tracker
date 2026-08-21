@@ -36,18 +36,23 @@ enum HiringDecision {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role
-  department   String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id                  Int       @id @default(autoincrement())
+  name                String
+  email               String    @unique
+  passwordHash        String
+  role                Role
+  department          String?
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  resetTokenHash      String?
+  resetTokenExpiresAt DateTime?
 
-  feedbackGiven Feedback[]
-  panelistOn    InterviewPanelist[]
-  decisionsMade CandidateApplication[] @relation("DecidedBy")
+  feedbackGiven      Feedback[]
+  panelistOn         InterviewPanelist[]
+  decisionsMade      CandidateApplication[] @relation("DecidedBy")
+  feedbackEdits      FeedbackAuditLog[]
+  cvReviews          Candidate[]            @relation("LastCvReviewedBy")
+  assignedHmOn       CandidateApplication[] @relation("AssignedHiringManager")
 }
 
 model Vacancy {
@@ -71,7 +76,8 @@ model VacancyStage {
   name      String
   order     Int
 
-  interviews Interview[]
+  interviews          Interview[]
+  applicationsAtStage CandidateApplication[]
 
   @@unique([vacancyId, order])
 }
@@ -83,6 +89,10 @@ model Candidate {
   phoneNumber String?
   cvUrl     String
   createdAt DateTime @default(now())
+
+  lastCvReviewedByUserId Int?
+  lastCvReviewedBy       User?     @relation("LastCvReviewedBy", fields: [lastCvReviewedByUserId], references: [id])
+  lastCvReviewedAt       DateTime?
 
   applications CandidateApplication[]
 }
@@ -96,10 +106,16 @@ model CandidateApplication {
   status      ApplicationStatus @default(APPLIED)
   appliedAt   DateTime          @default(now())
 
+  currentStageId Int?
+  currentStage   VacancyStage? @relation(fields: [currentStageId], references: [id])
+
   hiringDecision  HiringDecision?
   decidedByUserId Int?
   decidedBy       User?           @relation("DecidedBy", fields: [decidedByUserId], references: [id])
   decidedAt       DateTime?
+
+  hiringManagerId Int?
+  hiringManager   User? @relation("AssignedHiringManager", fields: [hiringManagerId], references: [id])
 
   interviews Interview[]
 
@@ -139,5 +155,21 @@ model Feedback {
   comments      String    @db.Text
   createdAt     DateTime  @default(now())
 
+  auditLog FeedbackAuditLog[]
+
   @@unique([interviewId, interviewerId])
+}
+
+model FeedbackAuditLog {
+  id               Int      @id @default(autoincrement())
+  feedbackId       Int
+  feedback         Feedback @relation(fields: [feedbackId], references: [id])
+  editedByUserId   Int
+  editedBy         User     @relation(fields: [editedByUserId], references: [id])
+  previousScore    Int
+  previousComments String   @db.Text
+  newScore         Int
+  newComments      String   @db.Text
+  reason           String   @db.Text
+  editedAt         DateTime @default(now())
 }

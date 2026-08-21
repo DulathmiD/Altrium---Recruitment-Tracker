@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { prisma } from "../prisma.js";
+import { sendEmail } from "../utils/mailer.js";
 
 export async function scheduleInterview(req: Request, res: Response) {
   const applicationId = Number(req.params.id);
@@ -29,8 +30,38 @@ export async function scheduleInterview(req: Request, res: Response) {
           create: panelistUserIds.map((userId) => ({ userId })),
         },
       },
-      include: { panelists: { include: { user: true } } },
+      include: {
+        panelists: { include: { user: true } },
+        stage: true,
+        application: { include: { candidate: true, vacancy: true } },
+      },
     });
+
+    // Email failures must never block the scheduling action itself -- log and move on.
+    try {
+      const { candidate, vacancy } = interview.application;
+      const when = interview.scheduledAt.toLocaleString("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+
+      for (const panelist of interview.panelists) {
+        await sendEmail({
+          to: panelist.user.email,
+          subject: `Interview scheduled: ${candidate.name} for ${vacancy.title}`,
+          body: `Hi ${panelist.user.name},\n\nYou've been assigned to interview ${candidate.name} for the ${vacancy.title} role (${interview.stage.name} stage).\n\nScheduled for: ${when}\n\nCandidate CV: ${candidate.cvUrl}`,
+        });
+      }
+
+      await sendEmail({
+        to: candidate.email,
+        subject: `Your interview for ${vacancy.title} at Altrium`,
+        body: `Hi ${candidate.name},\n\nYour ${interview.stage.name} interview for the ${vacancy.title} role has been scheduled.\n\nDate/time: ${when}\n\nWe'll be in touch with further details. If you have any questions, reply to this email.`,
+      });
+    } catch (emailErr) {
+      console.error("Interview scheduled but notification email(s) failed:", emailErr);
+    }
+
     res.status(201).json(interview);
   } catch (err: any) {
     if (err.code === "P2003") {

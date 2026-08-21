@@ -6,4 +6,17 @@ import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 const mariadbUrl = process.env["DATABASE_URL"]!.replace(/^mysql:\/\//, "mariadb://");
 const adapter = new PrismaMariaDb(mariadbUrl);
 
-export const prisma = new PrismaClient({ adapter });
+// Global omit: every query returns User rows without these fields, no matter which
+// controller nests a user in via `include`. This is a deliberate single point of
+// enforcement -- fixing it per-controller (adding `select` everywhere a user is
+// nested) would rely on every future include site remembering to do the same thing.
+export const prisma = new PrismaClient({
+  adapter,
+  omit: {
+    user: {
+      passwordHash: true,
+      resetTokenHash: true,
+      resetTokenExpiresAt: true,
+    },
+  },
+});

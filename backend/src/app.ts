@@ -5,6 +5,8 @@ import { vacancyRouter } from "./routes/vacancy.routes.js";
 import { candidateRouter } from "./routes/candidate.routes.js";
 import { applicationRouter } from "./routes/application.routes.js";
 import { interviewRouter } from "./routes/interview.routes.js";
+import { feedbackRouter } from "./routes/feedback.routes.js";
+import { reportsRouter } from "./routes/reports.routes.js";
 
 export const app = express();
 
@@ -16,6 +18,8 @@ app.use("/api/vacancies", vacancyRouter);
 app.use("/api/candidates", candidateRouter);
 app.use("/api/applications", applicationRouter);
 app.use("/api/interviews", interviewRouter);
+app.use("/api/feedback", feedbackRouter);
+app.use("/api/reports", reportsRouter);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
