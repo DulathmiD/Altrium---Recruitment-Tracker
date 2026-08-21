@@ -22,7 +22,10 @@ export async function createVacancy(req: Request, res: Response) {
       data: { title, department, description, requirements, preferredSkills },
     });
     res.status(201).json(vacancy);
-  } catch (err) {
+  } catch (err: any) {
+    if (err.code === "P2002") {
+      return res.status(409).json({ error: "A vacancy with this title and department already exists" });
+    }
     console.error(err);
     res.status(500).json({ error: "Could not create vacancy" });
   }
@@ -56,7 +59,7 @@ export async function getVacancy(req: Request, res: Response) {
   try {
     const vacancy = await prisma.vacancy.findUnique({
       where: { id },
-      include: { stages: { orderBy: { order: "asc" } } },
+      include: { interviewers: { include: { user: true } } },
     });
 
     if (!vacancy) {
@@ -99,85 +102,87 @@ export async function updateVacancy(req: Request, res: Response) {
     if (err.code === "P2025") {
       return res.status(404).json({ error: "Vacancy not found" });
     }
+    if (err.code === "P2002") {
+      return res.status(409).json({ error: "A vacancy with this title and department already exists" });
+    }
     console.error(err);
     res.status(500).json({ error: "Could not update vacancy" });
   }
 }
 
-export async function addStage(req: Request, res: Response) {
+// US-10/US-11: HR assigns interviewers/management personnel to a vacancy as a
+// standing pool ahead of scheduling any specific interview session.
+export async function assignInterviewerToVacancy(req: Request, res: Response) {
   const vacancyId = Number(req.params.id);
   if (Number.isNaN(vacancyId)) {
     return res.status(400).json({ error: "Invalid vacancy id" });
   }
 
-  const { name, order } = req.body as { name?: string; order?: number };
-
-  if (!name || order === undefined) {
-    return res.status(400).json({ error: "name and order are required" });
+  const { userId } = req.body as { userId?: number };
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required" });
   }
 
   try {
-    const stage = await prisma.vacancyStage.create({
-      data: { vacancyId, name, order },
+    const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!targetUser || !["INTERVIEWER", "MANAGEMENT", "HIRING_MANAGER"].includes(targetUser.role)) {
+      return res.status(400).json({
+        error: "userId must belong to an Interviewer, Management, or Hiring Manager user",
+      });
+    }
+
+    const assignment = await prisma.vacancyInterviewer.create({
+      data: { vacancyId, userId },
+      include: { user: true },
     });
-    res.status(201).json(stage);
+    res.status(201).json(assignment);
   } catch (err: any) {
     if (err.code === "P2002") {
-      return res.status(409).json({ error: "A stage with this order already exists for this vacancy" });
+      return res.status(409).json({ error: "This user is already assigned to this vacancy" });
     }
     if (err.code === "P2003") {
       return res.status(404).json({ error: "Vacancy not found" });
     }
     console.error(err);
-    res.status(500).json({ error: "Could not create stage" });
+    res.status(500).json({ error: "Could not assign interviewer to vacancy" });
   }
 }
 
-export async function updateStage(req: Request, res: Response) {
-  const stageId = Number(req.params.stageId);
-  if (Number.isNaN(stageId)) {
-    return res.status(400).json({ error: "Invalid stage id" });
+export async function removeInterviewerFromVacancy(req: Request, res: Response) {
+  const vacancyId = Number(req.params.id);
+  const userId = Number(req.params.userId);
+  if (Number.isNaN(vacancyId) || Number.isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid vacancy or user id" });
   }
 
-  const { name, order } = req.body as { name?: string; order?: number };
-
   try {
-    const stage = await prisma.vacancyStage.update({
-      where: { id: stageId },
-      data: { name, order },
+    await prisma.vacancyInterviewer.delete({
+      where: { vacancyId_userId: { vacancyId, userId } },
     });
-    res.json(stage);
-  } catch (err: any) {
-    if (err.code === "P2025") {
-      return res.status(404).json({ error: "Stage not found" });
-    }
-    if (err.code === "P2002") {
-      return res.status(409).json({ error: "A stage with this order already exists for this vacancy" });
-    }
-    console.error(err);
-    res.status(500).json({ error: "Could not update stage" });
-  }
-}
-
-export async function deleteStage(req: Request, res: Response) {
-  const stageId = Number(req.params.stageId);
-  if (Number.isNaN(stageId)) {
-    return res.status(400).json({ error: "Invalid stage id" });
-  }
-
-  try {
-    await prisma.vacancyStage.delete({ where: { id: stageId } });
     res.status(204).send();
   } catch (err: any) {
     if (err.code === "P2025") {
-      return res.status(404).json({ error: "Stage not found" });
-    }
-    if (err.code === "P2003" || err.code === "P2014") {
-      return res
-        .status(409)
-        .json({ error: "Cannot delete a stage that already has interviews scheduled against it" });
+      return res.status(404).json({ error: "This user is not assigned to this vacancy" });
     }
     console.error(err);
-    res.status(500).json({ error: "Could not delete stage" });
+    res.status(500).json({ error: "Could not remove interviewer from vacancy" });
+  }
+}
+
+export async function listVacancyInterviewers(req: Request, res: Response) {
+  const vacancyId = Number(req.params.id);
+  if (Number.isNaN(vacancyId)) {
+    return res.status(400).json({ error: "Invalid vacancy id" });
+  }
+
+  try {
+    const interviewers = await prisma.vacancyInterviewer.findMany({
+      where: { vacancyId },
+      include: { user: true },
+    });
+    res.json(interviewers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not list vacancy interviewers" });
   }
 }

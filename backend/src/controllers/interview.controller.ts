@@ -1,6 +1,9 @@
 import type { Request, Response } from "express";
 import { prisma } from "../prisma.js";
 import { sendEmail } from "../utils/mailer.js";
+import { STAGE_LABELS } from "../utils/stageTransition.js";
+
+const INTERVIEW_STAGES = ["INTERVIEW_1", "INTERVIEW_2", "FINAL_INTERVIEW"] as const;
 
 export async function scheduleInterview(req: Request, res: Response) {
   const applicationId = Number(req.params.id);
@@ -8,31 +11,67 @@ export async function scheduleInterview(req: Request, res: Response) {
     return res.status(400).json({ error: "Invalid application id" });
   }
 
-  const { stageId, scheduledAt, panelistUserIds } = req.body as {
-    stageId?: number;
+  const { stage, scheduledAt, panelistUserIds } = req.body as {
+    stage?: string;
     scheduledAt?: string;
     panelistUserIds?: number[];
   };
 
-  if (!stageId || !scheduledAt || !panelistUserIds || panelistUserIds.length === 0) {
+  if (!stage || !scheduledAt || !panelistUserIds || panelistUserIds.length === 0) {
     return res
       .status(400)
-      .json({ error: "stageId, scheduledAt, and at least one panelistUserIds entry are required" });
+      .json({ error: "stage, scheduledAt, and at least one panelistUserIds entry are required" });
+  }
+  if (!INTERVIEW_STAGES.includes(stage as (typeof INTERVIEW_STAGES)[number])) {
+    return res.status(400).json({ error: `stage must be one of: ${INTERVIEW_STAGES.join(", ")}` });
   }
 
   try {
+    const application = await prisma.candidateApplication.findUnique({ where: { id: applicationId } });
+    if (!application) {
+      return res.status(404).json({ error: "Application not found" });
+    }
+
+    // US-10: panelists must already be assigned to this vacancy's interviewer pool.
+    const assignedInterviewers = await prisma.vacancyInterviewer.findMany({
+      where: { vacancyId: application.vacancyId, userId: { in: panelistUserIds } },
+    });
+    if (assignedInterviewers.length !== panelistUserIds.length) {
+      return res.status(400).json({
+        error: "One or more panelists are not assigned to this vacancy. Assign them via POST /vacancies/:id/interviewers first.",
+      });
+    }
+
+    // US-11: reject if any panelist already has another interview at this exact time.
+    const scheduledDate = new Date(scheduledAt);
+    const conflicting = await prisma.interview.findFirst({
+      where: {
+        scheduledAt: scheduledDate,
+        panelists: { some: { userId: { in: panelistUserIds } } },
+      },
+      include: { panelists: { include: { user: true } } },
+    });
+    if (conflicting) {
+      const conflictingNames = conflicting.panelists
+        .filter((p) => panelistUserIds.includes(p.userId))
+        .map((p) => p.user.name)
+        .join(", ");
+      return res.status(409).json({
+        error: `Scheduling conflict: ${conflictingNames} already has another interview at this exact time`,
+      });
+    }
+
     const interview = await prisma.interview.create({
       data: {
         applicationId,
-        stageId,
-        scheduledAt: new Date(scheduledAt),
+        stage: stage as any,
+        scheduledAt: scheduledDate,
         panelists: {
           create: panelistUserIds.map((userId) => ({ userId })),
         },
       },
       include: {
         panelists: { include: { user: true } },
-        stage: true,
         application: { include: { candidate: true, vacancy: true } },
       },
     });
@@ -40,6 +79,7 @@ export async function scheduleInterview(req: Request, res: Response) {
     // Email failures must never block the scheduling action itself -- log and move on.
     try {
       const { candidate, vacancy } = interview.application;
+      const stageLabel = STAGE_LABELS[interview.stage];
       const when = interview.scheduledAt.toLocaleString("en-GB", {
         dateStyle: "medium",
         timeStyle: "short",
@@ -49,14 +89,14 @@ export async function scheduleInterview(req: Request, res: Response) {
         await sendEmail({
           to: panelist.user.email,
           subject: `Interview scheduled: ${candidate.name} for ${vacancy.title}`,
-          body: `Hi ${panelist.user.name},\n\nYou've been assigned to interview ${candidate.name} for the ${vacancy.title} role (${interview.stage.name} stage).\n\nScheduled for: ${when}\n\nCandidate CV: ${candidate.cvUrl}`,
+          body: `Hi ${panelist.user.name},\n\nYou've been assigned to interview ${candidate.name} for the ${vacancy.title} role (${stageLabel} stage).\n\nScheduled for: ${when}\n\nCandidate CV: ${candidate.cvUrl}`,
         });
       }
 
       await sendEmail({
         to: candidate.email,
         subject: `Your interview for ${vacancy.title} at Altrium`,
-        body: `Hi ${candidate.name},\n\nYour ${interview.stage.name} interview for the ${vacancy.title} role has been scheduled.\n\nDate/time: ${when}\n\nWe'll be in touch with further details. If you have any questions, reply to this email.`,
+        body: `Hi ${candidate.name},\n\nYour ${stageLabel} interview for the ${vacancy.title} role has been scheduled.\n\nDate/time: ${when}\n\nWe'll be in touch with further details. If you have any questions, reply to this email.`,
       });
     } catch (emailErr) {
       console.error("Interview scheduled but notification email(s) failed:", emailErr);
@@ -65,7 +105,7 @@ export async function scheduleInterview(req: Request, res: Response) {
     res.status(201).json(interview);
   } catch (err: any) {
     if (err.code === "P2003") {
-      return res.status(404).json({ error: "Application, stage, or one of the panelists was not found" });
+      return res.status(404).json({ error: "Application or one of the panelists was not found" });
     }
     if (err.code === "P2002") {
       return res.status(409).json({ error: "Duplicate panelist in the list" });
@@ -84,7 +124,7 @@ export async function listInterviewsForApplication(req: Request, res: Response) 
   try {
     const interviews = await prisma.interview.findMany({
       where: { applicationId },
-      include: { stage: true, panelists: { include: { user: true } } },
+      include: { panelists: { include: { user: true } } },
       orderBy: { scheduledAt: "asc" },
     });
     res.json(interviews);
@@ -104,7 +144,6 @@ export async function getInterview(req: Request, res: Response) {
     const interview = await prisma.interview.findUnique({
       where: { id },
       include: {
-        stage: true,
         application: { include: { candidate: true, vacancy: true } },
         panelists: { include: { user: true } },
       },
@@ -128,7 +167,6 @@ export async function listMyInterviews(req: Request, res: Response) {
     const interviews = await prisma.interview.findMany({
       where: { panelists: { some: { userId } } },
       include: {
-        stage: true,
         application: { include: { candidate: true, vacancy: true } },
       },
       orderBy: { scheduledAt: "asc" },

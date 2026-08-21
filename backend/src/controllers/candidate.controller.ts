@@ -28,25 +28,23 @@ export async function createCandidate(req: Request, res: Response) {
   }
 }
 
-const VALID_STATUSES = ["APPLIED", "SHORTLISTED", "REJECTED", "IN_PROGRESS", "HIRED"] as const;
+const VALID_STAGES = ["APPLIED", "SHORTLISTED", "INTERVIEW_1", "INTERVIEW_2", "FINAL_INTERVIEW", "HIRED", "REJECTED"] as const;
 
 export async function listCandidates(req: Request, res: Response) {
-  const { search, vacancyId, stageId, status, minScore } = req.query as {
+  const { search, vacancyId, stage, minScore } = req.query as {
     search?: string;
     vacancyId?: string;
-    stageId?: string;
-    status?: string;
+    stage?: string;
     minScore?: string;
   };
 
-  if (status && !VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
-    return res.status(400).json({ error: "Invalid status filter" });
+  if (stage && !VALID_STAGES.includes(stage as (typeof VALID_STAGES)[number])) {
+    return res.status(400).json({ error: "Invalid stage filter" });
   }
 
   const applicationFilter: any = {};
   if (vacancyId) applicationFilter.vacancyId = Number(vacancyId);
-  if (stageId) applicationFilter.currentStageId = Number(stageId);
-  if (status) applicationFilter.status = status;
+  if (stage) applicationFilter.stage = stage;
   if (minScore) {
     applicationFilter.interviews = {
       some: { feedback: { some: { score: { gte: Number(minScore) } } } },

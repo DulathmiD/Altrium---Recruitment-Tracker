@@ -22,17 +22,31 @@ enum VacancyStatus {
   ON_HOLD
 }
 
-enum ApplicationStatus {
+// Universal 7-stage recruitment pipeline (US-05/US-31 resolution: fixed global
+// stages, not per-vacancy configurable). Order below is the authoritative rank
+// used to enforce "no skipping, no moving backwards" -- REJECTED is the one
+// exception, reachable from any rank at any time.
+enum RecruitmentStage {
   APPLIED
   SHORTLISTED
-  REJECTED
-  IN_PROGRESS
+  INTERVIEW_1
+  INTERVIEW_2
+  FINAL_INTERVIEW
   HIRED
+  REJECTED
 }
 
 enum HiringDecision {
   HIRE
   REJECT
+}
+
+// US-19: Hiring Manager's advisory recommendation. Deliberately NOT the same
+// thing as CandidateApplication.stage -- this is advisory input only and never
+// mutates the application's actual stage.
+enum RecommendationValue {
+  ADVANCE
+  DO_NOT_PROGRESS
 }
 
 model User {
@@ -47,12 +61,15 @@ model User {
   resetTokenHash      String?
   resetTokenExpiresAt DateTime?
 
-  feedbackGiven      Feedback[]
-  panelistOn         InterviewPanelist[]
-  decisionsMade      CandidateApplication[] @relation("DecidedBy")
-  feedbackEdits      FeedbackAuditLog[]
-  cvReviews          Candidate[]            @relation("LastCvReviewedBy")
-  assignedHmOn       CandidateApplication[] @relation("AssignedHiringManager")
+  feedbackGiven        Feedback[]
+  panelistOn           InterviewPanelist[]
+  decisionsMade        CandidateApplication[]    @relation("DecidedBy")
+  feedbackEdits         FeedbackAuditLog[]
+  cvReviews             Candidate[]               @relation("LastCvReviewedBy")
+  assignedHmOn          CandidateApplication[]    @relation("AssignedHiringManager")
+  stageChangesMade      ApplicationStageHistory[]
+  recommendationsMade   StageRecommendation[]
+  vacancyInterviewerOn  VacancyInterviewer[]
 }
 
 model Vacancy {
@@ -65,30 +82,33 @@ model Vacancy {
   status          VacancyStatus @default(OPEN)
   createdAt       DateTime      @default(now())
 
-  stages       VacancyStage[]
   applications CandidateApplication[]
+  interviewers VacancyInterviewer[]
+
+  // US-04: creating a duplicate vacancy (same title+department) is rejected.
+  @@unique([title, department])
 }
 
-model VacancyStage {
+// US-10/US-11: HR assigns interviewers/management personnel to a vacancy as a
+// standing pool, ahead of scheduling any specific interview. scheduleInterview
+// validates panelists come from this pool and checks for time conflicts.
+model VacancyInterviewer {
   id        Int     @id @default(autoincrement())
   vacancyId Int
   vacancy   Vacancy @relation(fields: [vacancyId], references: [id])
-  name      String
-  order     Int
+  userId    Int
+  user      User    @relation(fields: [userId], references: [id])
 
-  interviews          Interview[]
-  applicationsAtStage CandidateApplication[]
-
-  @@unique([vacancyId, order])
+  @@unique([vacancyId, userId])
 }
 
 model Candidate {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
   phoneNumber String?
-  cvUrl     String
-  createdAt DateTime @default(now())
+  cvUrl       String
+  createdAt   DateTime @default(now())
 
   lastCvReviewedByUserId Int?
   lastCvReviewedBy       User?     @relation("LastCvReviewedBy", fields: [lastCvReviewedByUserId], references: [id])
@@ -98,16 +118,16 @@ model Candidate {
 }
 
 model CandidateApplication {
-  id          Int               @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   candidateId Int
-  candidate   Candidate         @relation(fields: [candidateId], references: [id])
+  candidate   Candidate        @relation(fields: [candidateId], references: [id])
   vacancyId   Int
-  vacancy     Vacancy           @relation(fields: [vacancyId], references: [id])
-  status      ApplicationStatus @default(APPLIED)
-  appliedAt   DateTime          @default(now())
+  vacancy     Vacancy          @relation(fields: [vacancyId], references: [id])
 
-  currentStageId Int?
-  currentStage   VacancyStage? @relation(fields: [currentStageId], references: [id])
+  // Single authoritative field for where this candidate is in the recruitment
+  // pipeline. Replaces the old separate `status` + `currentStageId` fields.
+  stage     RecruitmentStage @default(APPLIED)
+  appliedAt DateTime         @default(now())
 
   hiringDecision  HiringDecision?
   decidedByUserId Int?
@@ -117,19 +137,51 @@ model CandidateApplication {
   hiringManagerId Int?
   hiringManager   User? @relation("AssignedHiringManager", fields: [hiringManagerId], references: [id])
 
-  interviews Interview[]
+  interviews      Interview[]
+  stageHistory    ApplicationStageHistory[]
+  recommendations StageRecommendation[]
 
   @@unique([candidateId, vacancyId])
+}
+
+// US-20/US-37: every stage transition is logged with entry/exit timestamps so
+// reports can compute time-in-stage and stage-progression history.
+model ApplicationStageHistory {
+  id            Int                  @id @default(autoincrement())
+  applicationId Int
+  application   CandidateApplication @relation(fields: [applicationId], references: [id])
+  stage         RecruitmentStage
+  enteredAt     DateTime             @default(now())
+  exitedAt      DateTime?
+
+  changedByUserId Int?
+  changedBy       User? @relation(fields: [changedByUserId], references: [id])
+}
+
+// US-19: Hiring Manager's advisory recommendation, entirely separate from the
+// Interviewer's actual stage update (updateApplicationStage).
+model StageRecommendation {
+  id              Int                  @id @default(autoincrement())
+  applicationId   Int
+  application     CandidateApplication @relation(fields: [applicationId], references: [id])
+  hiringManagerId Int
+  hiringManager   User                 @relation(fields: [hiringManagerId], references: [id])
+  recommendation  RecommendationValue
+  comments        String?              @db.Text
+  createdAt       DateTime             @default(now())
 }
 
 model Interview {
   id            Int                  @id @default(autoincrement())
   applicationId Int
   application   CandidateApplication @relation(fields: [applicationId], references: [id])
-  stageId       Int
-  stage         VacancyStage         @relation(fields: [stageId], references: [id])
-  scheduledAt   DateTime
-  createdAt     DateTime             @default(now())
+
+  // Descriptive only: which of the 7 pipeline stages this interview session is
+  // for. NOT the source of truth for the candidate's progression -- that's
+  // CandidateApplication.stage.
+  stage       RecruitmentStage
+  scheduledAt DateTime
+  createdAt   DateTime @default(now())
 
   panelists InterviewPanelist[]
   feedback  Feedback[]

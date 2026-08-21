@@ -144,7 +144,7 @@ export async function listFeedbackForVacancy(req: Request, res: Response) {
       where: { interview: { application: { vacancyId } } },
       include: {
         interviewer: true,
-        interview: { include: { application: { include: { candidate: true } }, stage: true } },
+        interview: { include: { application: { include: { candidate: true } } } },
       },
       orderBy: { createdAt: "asc" },
     });
