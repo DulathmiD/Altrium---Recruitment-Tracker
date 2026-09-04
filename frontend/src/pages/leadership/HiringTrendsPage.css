@@ -1,0 +1,147 @@
+.ht-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.ht-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.ht-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.ht-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.ht-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.ht-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.ht-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ht-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.ht-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  min-width: 160px;
+}
+
+.ht-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.ht-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.ht-kpi-tile {
+  /* Follow-up correction: tinted background + bigger value, to match the
+     "big and pretty" treatment now standardized across every dashboard's
+     KPI tiles. Gap/padding brought to the same values as every other
+     dashboard's tile (was 6px/22px 18px) for a true pixel-for-pixel match,
+     not just a similar-looking one. */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #faf5ea;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.ht-kpi-label {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+
+.ht-kpi-value {
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.ht-panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 0 0 16px;
+}
+
+.ht-chart-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 24px;
+}
+
+.ht-chart-svg {
+  width: 100%;
+  height: 240px;
+  display: block;
+}
+
+.ht-chart-axis {
+  stroke: var(--altrium-line);
+  stroke-width: 1;
+}
+
+.ht-chart-line {
+  stroke: var(--altrium-gold-dark, #a9660b);
+  stroke-width: 2.5;
+}
+
+.ht-chart-dot {
+  fill: var(--altrium-gold-dark, #a9660b);
+}
+
+.ht-chart-value {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--altrium-black);
+}
+
+.ht-chart-axis-label {
+  font-size: 10.5px;
+  fill: var(--altrium-ink-soft);
+}

@@ -1,0 +1,157 @@
+/* Corrections doc: this page was capped at a fixed 720px, leaving a large
+   empty gap on the right on normal-width screens -- widened to match the
+   90vw pattern used by every other HM content page (PendingDecisionsPage,
+   VacancyCandidatesPage). The feedback cards/comment box below don't stretch
+   to fill it (they're intentionally text-width-ish for readability), so
+   this alone doesn't make the page feel sparse -- it just stops artificially
+   capping the page narrower than the sidebar layout actually allows. */
+.cd-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.cd-breadcrumb {
+  font-size: 13px;
+  color: var(--altrium-ink-soft);
+  margin: 0;
+}
+.cd-breadcrumb a {
+  color: var(--altrium-ink-soft);
+  text-decoration: none;
+}
+.cd-breadcrumb a:hover {
+  color: var(--altrium-black);
+  text-decoration: underline;
+}
+
+.cd-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 6px 0 0;
+  color: var(--altrium-black);
+}
+
+.cd-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.cd-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.cd-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.cd-warning {
+  background: #fdf1dc;
+  color: #a9660b;
+  border: 1px solid #f3d9ad;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  margin: 0 0 18px;
+}
+
+.cd-outcome {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  margin: 0 0 18px;
+  font-weight: 600;
+}
+.cd-outcome-hired { background: #e6f4ea; color: #1e7a34; }
+.cd-outcome-rejected { background: #fbe4e4; color: #b91c1c; }
+
+.cd-stage-block {
+  margin-bottom: 20px;
+}
+
+.cd-stage-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--altrium-ink-soft);
+  margin: 0 0 10px;
+}
+
+.cd-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cd-entry-card {
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.cd-entry-card p {
+  margin: 2px 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+}
+
+.cd-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 20px 0 6px;
+}
+
+.cd-comments-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: var(--sans);
+  box-sizing: border-box;
+  resize: vertical;
+}
+.cd-comments-input:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+.cd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.cd-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 11px 22px;
+  cursor: pointer;
+  font-size: 15px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.cd-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.cd-action-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+  color: white;
+}
+.cd-action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.cd-action-positive { background: #1e7a34; }
+.cd-action-negative { background: #b91c1c; }

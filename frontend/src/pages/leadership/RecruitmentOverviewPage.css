@@ -1,0 +1,133 @@
+.ro-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.ro-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.ro-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.ro-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.ro-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.ro-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.ro-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ro-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.ro-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  min-width: 160px;
+}
+
+.ro-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.ro-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.ro-kpi-tile {
+  /* Follow-up correction: tinted background for consistency with the other
+     dashboards' "big and pretty" KPI tile treatment. */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #faf5ea;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.ro-kpi-value {
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.ro-kpi-label {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+
+.ro-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 0 0 4px;
+}
+
+.ro-progress-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin: 16px 0 0;
+}
+
+.ro-progress-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 calc(25% - 12px);
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 20px 16px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.ro-progress-value {
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--altrium-black);
+}

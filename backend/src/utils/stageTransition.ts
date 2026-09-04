@@ -1,28 +1,17 @@
 import { prisma } from "../prisma.js";
 import type { RecruitmentStage } from "../../generated/prisma/index.js";
 
-// Human-readable labels for emails/PDF/UI -- the enum values themselves are
-// SCREAMING_SNAKE_CASE, not meant to be shown to users directly.
-export const STAGE_LABELS: Record<RecruitmentStage, string> = {
+// The 4 fixed pipeline anchors (US-05 redesign). Interview rounds are no
+// longer part of this enum -- they're HR-configurable per vacancy via
+// VacancyStage, and a round's own `name` field is already human-readable
+// (no label lookup needed for those, unlike these 4 fixed values).
+export const ANCHOR_STAGES: RecruitmentStage[] = ["APPLIED", "SHORTLISTED", "HIRED", "REJECTED"];
+
+export const ANCHOR_STAGE_LABELS: Record<RecruitmentStage, string> = {
   APPLIED: "Applied",
   SHORTLISTED: "Shortlisted",
-  INTERVIEW_1: "Interview 1",
-  INTERVIEW_2: "Interview 2",
-  FINAL_INTERVIEW: "Final Interview",
   HIRED: "Hired",
   REJECTED: "Rejected",
-};
-
-// Rank order for "no skipping, no moving backwards" enforcement. REJECTED is
-// deliberately excluded -- it's reachable from any rank, not part of the
-// forward sequence.
-export const STAGE_RANK: Record<Exclude<RecruitmentStage, "REJECTED">, number> = {
-  APPLIED: 0,
-  SHORTLISTED: 1,
-  INTERVIEW_1: 2,
-  INTERVIEW_2: 3,
-  FINAL_INTERVIEW: 4,
-  HIRED: 5,
 };
 
 // Called once, right after a CandidateApplication row is created. Opens the
@@ -37,12 +26,18 @@ export async function initializeApplicationStage(applicationId: number, userId: 
   });
 }
 
-// Called on every subsequent stage change. Closes out whatever history entry
-// is currently open (exitedAt: null) and opens a new one for the new stage,
-// then updates CandidateApplication.stage itself -- all atomically.
+export type StageUpdate = { stage: RecruitmentStage } | { vacancyStageId: number };
+
+// Called on every subsequent stage change -- either an anchor transition
+// (APPLIED/SHORTLISTED/HIRED/REJECTED, sets CandidateApplication.stage) or an
+// interview-round transition (sets CandidateApplication.currentVacancyStageId,
+// leaves `stage` untouched -- it stays SHORTLISTED while a candidate moves
+// through interview rounds, only HIRED/REJECTED change it again). Closes out
+// whatever history entry is currently open (exitedAt: null) and opens a new
+// one, then updates CandidateApplication itself -- all atomically.
 export async function transitionApplicationStage(
   applicationId: number,
-  newStage: RecruitmentStage,
+  update: StageUpdate,
   userId: number | null,
   extraData: Record<string, unknown> = {}
 ) {
@@ -53,6 +48,16 @@ export async function transitionApplicationStage(
     orderBy: { enteredAt: "desc" },
   });
 
+  const applicationData =
+    "stage" in update
+      ? { stage: update.stage, ...extraData }
+      : { currentVacancyStageId: update.vacancyStageId, ...extraData };
+
+  const historyData =
+    "stage" in update
+      ? { applicationId, stage: update.stage, enteredAt: now, changedByUserId: userId }
+      : { applicationId, vacancyStageId: update.vacancyStageId, enteredAt: now, changedByUserId: userId };
+
   const operations = [
     ...(openEntry
       ? [
@@ -62,18 +67,17 @@ export async function transitionApplicationStage(
           }),
         ]
       : []),
-    prisma.applicationStageHistory.create({
-      data: {
-        applicationId,
-        stage: newStage,
-        enteredAt: now,
-        changedByUserId: userId,
-      },
-    }),
+    prisma.applicationStageHistory.create({ data: historyData }),
     prisma.candidateApplication.update({
       where: { id: applicationId },
-      data: { stage: newStage, ...extraData },
-      include: { candidate: true, vacancy: true, decidedBy: true, hiringManager: true },
+      data: applicationData,
+      include: {
+        candidate: true,
+        vacancy: true,
+        decidedBy: true,
+        hiringManager: true,
+        currentVacancyStage: true,
+      },
     }),
   ];
 

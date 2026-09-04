@@ -7,6 +7,11 @@ import {
   assignInterviewerToVacancy,
   removeInterviewerFromVacancy,
   listVacancyInterviewers,
+  listVacancyStages,
+  createVacancyStage,
+  updateVacancyStage,
+  deleteVacancyStage,
+  reorderVacancyStages,
 } from "../controllers/vacancy.controller.js";
 import {
   applyCandidateToVacancy,
@@ -32,6 +37,14 @@ vacancyRouter.patch("/:id", requireRole(Role.HR), updateVacancy);
 vacancyRouter.get("/:id/interviewers", listVacancyInterviewers);
 vacancyRouter.post("/:id/interviewers", requireRole(Role.HR), assignInterviewerToVacancy);
 vacancyRouter.delete("/:id/interviewers/:userId", requireRole(Role.HR), removeInterviewerFromVacancy);
+
+// US-05: HR-configurable interview rounds. Reorder route must come before
+// "/:stageId" -- otherwise Express would match "reorder" as a :stageId value.
+vacancyRouter.get("/:id/stages", listVacancyStages);
+vacancyRouter.post("/:id/stages", requireRole(Role.HR), createVacancyStage);
+vacancyRouter.patch("/:id/stages/reorder", requireRole(Role.HR), reorderVacancyStages);
+vacancyRouter.patch("/:id/stages/:stageId", requireRole(Role.HR), updateVacancyStage);
+vacancyRouter.delete("/:id/stages/:stageId", requireRole(Role.HR), deleteVacancyStage);
 
 vacancyRouter.get("/:id/applications", listApplicationsForVacancy);
 vacancyRouter.post("/:id/applications", requireRole(Role.HR), applyCandidateToVacancy);

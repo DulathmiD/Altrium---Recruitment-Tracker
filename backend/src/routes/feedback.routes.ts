@@ -8,5 +8,7 @@ export const feedbackRouter = Router();
 
 feedbackRouter.use(requireAuth);
 
-feedbackRouter.patch("/:id", requireRole(Role.INTERVIEWER), updateFeedback);
+// Corrections doc: Management also needs to be able to add/edit feedback
+// (they attend the final interview round) -- same as INTERVIEWER.
+feedbackRouter.patch("/:id", requireRole(Role.INTERVIEWER, Role.MANAGEMENT, Role.HIRING_MANAGER), updateFeedback);
 feedbackRouter.get("/:id/audit-log", listFeedbackAuditLog);

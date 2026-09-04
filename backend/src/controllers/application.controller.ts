@@ -1,7 +1,9 @@
 import type { Request, Response } from "express";
 import { prisma } from "../prisma.js";
 import { sendEmail } from "../utils/mailer.js";
-import { initializeApplicationStage, transitionApplicationStage, STAGE_RANK, STAGE_LABELS } from "../utils/stageTransition.js";
+import { initializeApplicationStage, transitionApplicationStage } from "../utils/stageTransition.js";
+import { writeAuditLog } from "../utils/auditLog.js";
+import { renderTemplate } from "../utils/notificationTemplates.js";
 
 export async function applyCandidateToVacancy(req: Request, res: Response) {
   const vacancyId = Number(req.params.id);
@@ -65,7 +67,8 @@ export async function getApplication(req: Request, res: Response) {
         vacancy: true,
         decidedBy: true,
         hiringManager: true,
-        stageHistory: { orderBy: { enteredAt: "asc" } },
+        currentVacancyStage: true,
+        stageHistory: { orderBy: { enteredAt: "asc" }, include: { vacancyStage: true } },
         recommendations: { include: { hiringManager: true }, orderBy: { createdAt: "desc" } },
       },
     });
@@ -90,7 +93,7 @@ export async function recordHiringDecision(req: Request, res: Response) {
     return res.status(400).json({ error: "Invalid application id" });
   }
 
-  const { hiringDecision } = req.body as { hiringDecision?: HiringDecisionValue };
+  const { hiringDecision, comments } = req.body as { hiringDecision?: HiringDecisionValue; comments?: string };
   if (!hiringDecision || !VALID_DECISIONS.includes(hiringDecision)) {
     return res.status(400).json({ error: "hiringDecision must be HIRE or REJECT" });
   }
@@ -105,44 +108,70 @@ export async function recordHiringDecision(req: Request, res: Response) {
       return res.status(400).json({ error: "This application has already reached a final outcome" });
     }
 
-    // Hiring can only be confirmed once a candidate has completed the full
-    // interview pipeline -- consistent with the no-skip rule enforced in
-    // updateApplicationStage (US-31). Rejection has no such restriction: it's
-    // a valid outcome from any stage (US-05/US-31).
-    if (hiringDecision === "HIRE" && existing.stage !== "FINAL_INTERVIEW") {
-      return res.status(400).json({
-        error: `Cannot hire from ${STAGE_LABELS[existing.stage as keyof typeof STAGE_LABELS]} -- candidate must reach Final Interview first`,
+    // Hiring can only be confirmed once a candidate has completed the
+    // vacancy's full (HR-configured) interview round list -- consistent with
+    // the no-skip rule enforced in submitStageRecommendation. Rejection has
+    // no such restriction: it's a valid outcome from any point (US-31).
+    if (hiringDecision === "HIRE") {
+      if (existing.currentVacancyStageId === null) {
+        return res.status(400).json({
+          error: "Cannot hire - candidate has not entered any interview round yet",
+        });
+      }
+      const lastRound = await prisma.vacancyStage.findFirst({
+        where: { vacancyId: existing.vacancyId },
+        orderBy: { order: "desc" },
       });
+      if (!lastRound || existing.currentVacancyStageId !== lastRound.id) {
+        return res.status(400).json({
+          error: "Cannot hire - candidate must reach the final configured interview round first",
+        });
+      }
     }
 
     const application = await transitionApplicationStage(
       id,
-      hiringDecision === "HIRE" ? "HIRED" : "REJECTED",
+      { stage: hiringDecision === "HIRE" ? "HIRED" : "REJECTED" },
       req.user!.id,
       { hiringDecision, decidedByUserId: req.user!.id, decidedAt: new Date() }
     );
 
-    // Email failure must not block the decision itself -- log and move on.
-    try {
-      const { candidate, vacancy } = application as any;
-      if (hiringDecision === "HIRE") {
-        await sendEmail({
-          to: candidate.email,
-          subject: `Congratulations - offer for ${vacancy.title} at Altrium`,
-          body: `Hi ${candidate.name},\n\nWe're pleased to let you know you've been selected for the ${vacancy.title} role at Altrium. Our HR team will be in touch shortly with next steps and offer details.\n\nCongratulations!`,
-        });
-      } else {
-        await sendEmail({
-          to: candidate.email,
-          subject: `Update on your application for ${vacancy.title} at Altrium`,
-          body: `Hi ${candidate.name},\n\nThank you for taking the time to interview for the ${vacancy.title} role at Altrium. After careful consideration, we've decided to move forward with another candidate.\n\nWe appreciate your interest in Altrium and encourage you to apply for future openings that match your experience.`,
-        });
-      }
-    } catch (emailErr) {
-      console.error("Hiring decision recorded but notification email failed:", emailErr);
+    // HIRE/REJECT has no dedicated comments column (unlike StageRecommendation
+    // below, which already had one) -- logged via the generic AuditLog rather
+    // than a schema migration, same pattern as NOTIFICATION_SENT tracking.
+    if (comments && comments.trim()) {
+      await writeAuditLog(req.user!.id, "HM_DECISION_COMMENT", "CandidateApplication", id, {
+        decision: hiringDecision,
+        comments: comments.trim(),
+      });
     }
 
     res.json(application);
+
+    // Email failure must not block the decision itself -- log and move on.
+    // Follow-up correction: this used to be awaited above, before res.json --
+    // that made every Hire/Reject click wait on full mail delivery (the
+    // reported "takes a moment to load"). Fired without awaiting now, so the
+    // response returns as soon as the decision is recorded; the email still
+    // sends, and failures are still caught and logged, just after the fact.
+    (async () => {
+      try {
+        const { candidate, vacancy } = application as any;
+        const templateKey = hiringDecision === "HIRE" ? "hiring_decision_hire" : "hiring_decision_reject";
+        const { subject, body } = await renderTemplate(templateKey, {
+          candidateName: candidate.name,
+          vacancyTitle: vacancy.title,
+        });
+        await sendEmail({ to: candidate.email, subject, body });
+        await writeAuditLog(req.user!.id, "NOTIFICATION_SENT", "CandidateApplication", id, {
+          recipient: candidate.email,
+          channel: "email",
+          reason: templateKey,
+        });
+      } catch (emailErr) {
+        console.error("Hiring decision recorded but notification email failed:", emailErr);
+      }
+    })();
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Could not record hiring decision" });
@@ -156,14 +185,20 @@ export async function compareApplicationsForVacancy(req: Request, res: Response)
   }
 
   try {
+    // "Actively being considered" now collapses to just SHORTLISTED -- under
+    // the US-05 redesign, `stage` no longer changes while a candidate moves
+    // through interview rounds (see currentVacancyStageId), so this single
+    // filter covers everyone from "freshly shortlisted" through "in the
+    // final round", exactly matching what the old 4-value `in` filter meant.
     const applications = await prisma.candidateApplication.findMany({
       where: {
         vacancyId,
-        stage: { in: ["SHORTLISTED", "INTERVIEW_1", "INTERVIEW_2", "FINAL_INTERVIEW"] },
+        stage: "SHORTLISTED",
       },
       include: {
         candidate: true,
         decidedBy: true,
+        currentVacancyStage: true,
         interviews: {
           include: {
             feedback: { include: { interviewer: true } },
@@ -179,55 +214,19 @@ export async function compareApplicationsForVacancy(req: Request, res: Response)
   }
 }
 
-// Interviewer-only forward progression through the interview stages
-// (INTERVIEW_1 -> INTERVIEW_2 -> FINAL_INTERVIEW). Exactly one rank forward at
-// a time -- no skipping, no moving backwards (US-31). APPLIED/SHORTLISTED are
-// HR's job (updateApplicationStatus) and HIRED/REJECTED are the Hiring
-// Manager's job (recordHiringDecision) -- this endpoint only accepts the three
-// interview-progression stages.
-const PROGRESSABLE_STAGES = ["INTERVIEW_1", "INTERVIEW_2", "FINAL_INTERVIEW"] as const;
-
-export async function updateApplicationStage(req: Request, res: Response) {
-  const id = Number(req.params.id);
-  if (Number.isNaN(id)) {
-    return res.status(400).json({ error: "Invalid application id" });
-  }
-
-  const { stage } = req.body as { stage?: string };
-  if (!stage || !PROGRESSABLE_STAGES.includes(stage as (typeof PROGRESSABLE_STAGES)[number])) {
-    return res.status(400).json({ error: `stage must be one of: ${PROGRESSABLE_STAGES.join(", ")}` });
-  }
-
-  try {
-    const application = await prisma.candidateApplication.findUnique({ where: { id } });
-    if (!application) {
-      return res.status(404).json({ error: "Application not found" });
-    }
-
-    if (application.stage === "REJECTED" || application.stage === "HIRED") {
-      return res.status(400).json({ error: "Cannot progress an application that has already reached a final outcome" });
-    }
-
-    const currentRank = STAGE_RANK[application.stage as keyof typeof STAGE_RANK];
-    const targetRank = STAGE_RANK[stage as keyof typeof STAGE_RANK];
-
-    if (targetRank !== currentRank + 1) {
-      return res.status(400).json({
-        error: `Cannot move from ${STAGE_LABELS[application.stage]} to ${STAGE_LABELS[stage as keyof typeof STAGE_LABELS]} -- stages must advance one at a time, no skipping or moving backwards`,
-      });
-    }
-
-    const updated = await transitionApplicationStage(id, stage as any, req.user!.id);
-    res.json(updated);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Could not update application stage" });
-  }
-}
-
-// US-19: Hiring Manager's advisory recommendation. Deliberately does NOT touch
-// CandidateApplication.stage -- this is separate advisory input, distinct from
-// the Interviewer's actual stage update above.
+// US-19: Hiring Manager's recommendation -- BINDING (reversed from advisory).
+// ADVANCE moves the application into the vacancy's next HR-configured
+// interview round; DO_NOT_PROGRESS rejects it outright. HR has no role in
+// intermediate round progression -- this is the only action that moves a
+// candidate through the interview rounds. (Final HIRED is still a separate,
+// distinct action -- recordHiringDecision -- since that only makes sense
+// once a candidate has actually completed the vacancy's last round.)
+//
+// Note: the old standalone updateApplicationStage (rank-based, fixed 7-stage
+// enum) was deleted in the US-05 redesign rather than reworked -- it was
+// already dead code (SUPERSEDED, NOT ROUTED per its own comment), and
+// rewriting unreachable reference code to match a schema it never actually
+// ran against would only drift further from reality.
 const VALID_RECOMMENDATIONS = ["ADVANCE", "DO_NOT_PROGRESS"] as const;
 
 export async function submitStageRecommendation(req: Request, res: Response) {
@@ -247,12 +246,58 @@ export async function submitStageRecommendation(req: Request, res: Response) {
       return res.status(404).json({ error: "Application not found" });
     }
 
+    if (application.stage === "REJECTED" || application.stage === "HIRED") {
+      return res.status(400).json({ error: "This application has already reached a final outcome" });
+    }
+
+    if (recommendation === "ADVANCE") {
+      // Only ADVANCE needs the SHORTLISTED gate -- it's the action that
+      // actually enters/progresses interview rounds, which only make sense
+      // post-shortlist. DO_NOT_PROGRESS has no such requirement (see below) --
+      // same as the original fixed-stage version, which never gated
+      // DO_NOT_PROGRESS on rank either.
+      if (application.stage !== "SHORTLISTED") {
+        return res.status(400).json({ error: "Candidate must be shortlisted before entering the interview process" });
+      }
+
+      const rounds = await prisma.vacancyStage.findMany({
+        where: { vacancyId: application.vacancyId },
+        orderBy: { order: "asc" },
+      });
+
+      if (rounds.length === 0) {
+        return res.status(400).json({
+          error: "This vacancy has no interview rounds configured yet. Ask HR to add at least one round before advancing candidates.",
+        });
+      }
+
+      const nextRound =
+        application.currentVacancyStageId === null
+          ? rounds[0]
+          : rounds[rounds.findIndex((r) => r.id === application.currentVacancyStageId) + 1];
+
+      if (!nextRound) {
+        return res.status(400).json({
+          error: "Cannot advance - there is no further interview round. Use the hiring decision endpoint once the candidate has completed the final round.",
+        });
+      }
+
+      await transitionApplicationStage(applicationId, { vacancyStageId: nextRound.id }, req.user!.id);
+    } else {
+      // DO_NOT_PROGRESS: the recommendation is the decision -- ends the
+      // candidate's journey on this vacancy, same as any other rejection.
+      await transitionApplicationStage(applicationId, { stage: "REJECTED" }, req.user!.id);
+    }
+
     const created = await prisma.stageRecommendation.create({
       data: {
         applicationId,
         hiringManagerId: req.user!.id,
         recommendation: recommendation as any,
-        comments,
+        // Was already a column on this model but never read from the request
+        // body -- the HM's "Add Comments" note (corrections doc) had nowhere
+        // to go. Wired up now instead of adding a new field.
+        comments: comments && comments.trim() ? comments.trim() : null,
       },
       include: { hiringManager: true },
     });
@@ -358,7 +403,7 @@ export async function updateApplicationStatus(req: Request, res: Response) {
       return res.status(400).json({ error: "Can only shortlist or reject an application that is still in the Applied stage" });
     }
 
-    const updated = await transitionApplicationStage(id, status as any, req.user!.id);
+    const updated = await transitionApplicationStage(id, { stage: status as any }, req.user!.id);
     res.json(updated);
   } catch (err) {
     console.error(err);

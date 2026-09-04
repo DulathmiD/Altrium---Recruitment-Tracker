@@ -1,0 +1,82 @@
+.mg-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  background: var(--altrium-white);
+}
+
+.mg-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--altrium-line);
+  border-left: 4px solid var(--altrium-gold);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.mg-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  padding: 0 20px 20px;
+}
+
+.mg-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.mg-nav-item {
+  display: block;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.mg-nav-item:hover {
+  background: #faf5ea;
+}
+
+.mg-nav-item.active {
+  background: var(--altrium-black);
+  color: var(--altrium-white);
+  border-left: 3px solid var(--altrium-gold);
+}
+
+.mg-logout {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--sans);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  background: var(--altrium-white);
+  color: var(--altrium-ink-soft);
+  cursor: pointer;
+}
+
+.mg-logout:hover {
+  border-color: var(--altrium-gold);
+  color: var(--altrium-black);
+}
+
+.mg-main {
+  flex: 1;
+  /* Top padding is taller than the sides/bottom so page headers clear the
+     fixed notification bell (top:16/right:20, 44px diameter). */
+  padding: 64px 40px 32px;
+  height: 100%;
+  overflow-y: auto;
+}

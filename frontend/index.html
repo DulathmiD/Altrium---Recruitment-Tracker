@@ -4,7 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <!-- This app is light-themed only. Declaring color-scheme here (not just
+         in CSS) tells the browser/OS up front not to auto-apply a forced
+         dark-mode color inversion to the page -- without it, some browsers'
+         "force dark" feature was inverting the AltriumLogo SVG's solid
+         shapes and producing a colored fringe along its edges. -->
+    <meta name="color-scheme" content="light" />
+    <title>Altrium</title>
   </head>
   <body>
     <div id="root"></div>

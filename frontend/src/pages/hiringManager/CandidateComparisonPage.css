@@ -1,0 +1,199 @@
+.cc-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.cc-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.cc-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.cc-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.cc-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.cc-page label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin-bottom: 6px;
+}
+
+.cc-page select {
+  width: 320px;
+  max-width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: var(--sans);
+  background: white;
+  margin-bottom: 24px;
+}
+
+.cc-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.cc-kpi-tile {
+  /* Corrections doc: KPI cards and charts should have a background colour
+     to make them pop, instead of sitting flush white. */
+  background: #faf5ea;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+}
+
+.cc-kpi-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--altrium-black);
+}
+
+.cc-kpi-label {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+  margin-top: 4px;
+}
+
+.cc-panels {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+  align-items: start;
+}
+
+.cc-panels-left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cc-panel {
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+
+.cc-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 0 0 12px;
+}
+
+.cc-ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cc-ranking-row {
+  display: grid;
+  grid-template-columns: 34px 1.3fr 2fr 36px;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  padding: 4px 0;
+}
+
+/* Score Distribution reuses .cc-ranking-row, but its first column holds a
+   bucket label ("Below 7") instead of a 1-2 digit rank -- the 34px column
+   above is too narrow for that and the label bled into the bar next to it.
+   Widen just this panel's first column instead of touching the shared rank
+   layout. */
+.cc-distribution-list .cc-ranking-row {
+  grid-template-columns: 62px 1.3fr 2fr 36px;
+}
+
+.cc-rank {
+  color: var(--altrium-ink-soft);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.cc-candidate-name {
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+
+/* Corrections doc: only the #1 candidate reads green/bigger now -- it used
+   to apply to every row in the ranking list, which defeated the point of
+   using color to call out the top candidate specifically. Scoped separately
+   from .cc-candidate-name so the Comments panel's names (which reuse that
+   same base class) are unaffected. */
+.cc-candidate-name-rank {
+  font-size: 19px;
+  font-weight: 700;
+  color: #1e7a34;
+}
+
+.cc-bucket-label {
+  color: var(--altrium-ink);
+  /* Follow-up correction: "9-10" etc. were wrapping onto two lines inside
+     the narrow first grid column -- keep each bucket label on one line. */
+  white-space: nowrap;
+}
+
+.cc-bar-track {
+  background: #f0efeb;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.cc-bar-fill {
+  background: var(--altrium-gold);
+  height: 100%;
+  border-radius: 999px;
+}
+
+.cc-score {
+  text-align: right;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--altrium-black);
+}
+
+.cc-comments-panel {
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 18px 20px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.cc-comment-block {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--altrium-line);
+}
+.cc-comment-block:last-child { border-bottom: none; }
+
+.cc-comment-text {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink-soft);
+  line-height: 1.4;
+}

@@ -1,0 +1,117 @@
+.hmv-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.hmv-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.hmv-filter-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+}
+
+.hmv-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hmv-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.hmv-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  min-width: 160px;
+}
+
+.hmv-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.hmv-row { cursor: pointer; }
+.hmv-row:hover { background: #faf5ea; }
+
+.hmv-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.hmv-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.hmv-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.hmv-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.hmv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.hmv-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.hmv-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.hmv-table tr:last-child td { border-bottom: none; }
+
+.hmv-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.hmv-status-ontrack { background: #e6f4ea; color: #1e7a34; }
+.hmv-status-delayed { background: #fdf1dc; color: #a9660b; }
+.hmv-status-overdue { background: #fbe4e4; color: #b91c1c; }

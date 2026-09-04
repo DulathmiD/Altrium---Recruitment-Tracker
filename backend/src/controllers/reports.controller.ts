@@ -1,34 +1,109 @@
 import type { Request, Response } from "express";
 import PDFDocument from "pdfkit";
 import { prisma } from "../prisma.js";
-import { STAGE_LABELS } from "../utils/stageTransition.js";
+import { ANCHOR_STAGES, ANCHOR_STAGE_LABELS } from "../utils/stageTransition.js";
 
-const ALL_STAGES = ["APPLIED", "SHORTLISTED", "INTERVIEW_1", "INTERVIEW_2", "FINAL_INTERVIEW", "HIRED", "REJECTED"] as const;
-
-function emptyStageCounts(): Record<string, number> {
-  return Object.fromEntries(ALL_STAGES.map((s) => [s, 0]));
+// Exported -- reused by hiringManager.controller.ts for the HM Dashboard's
+// "Recruitment Progress" breakdown (same shape, just scoped to a different
+// application set).
+export function emptyAnchorCounts(): Record<string, number> {
+  return Object.fromEntries(ANCHOR_STAGES.map((s) => [s, 0]));
 }
 
-// Averages exitedAt-enteredAt (in hours) per stage across a set of stage-history
-// rows. Entries still open (exitedAt: null, i.e. the candidate's current stage)
-// are excluded -- there's no "time in stage" to report until they've left it.
-function computeStageTimings(historyRows: { stage: string; enteredAt: Date; exitedAt: Date | null }[]) {
+// Averages exitedAt-enteredAt (in hours) per anchor stage across a set of
+// stage-history rows. Entries still open (exitedAt: null, i.e. the
+// candidate's current stage) are excluded -- there's no "time in stage" to
+// report until they've left it.
+function computeAnchorStageTimings(historyRows: { stage: string; enteredAt: Date; exitedAt: Date | null }[]) {
   const byStage: Record<string, number[]> = {};
   for (const row of historyRows) {
     if (!row.exitedAt) continue;
     const hours = (row.exitedAt.getTime() - row.enteredAt.getTime()) / (1000 * 60 * 60);
     (byStage[row.stage] ??= []).push(hours);
   }
-  return ALL_STAGES.map((stage) => {
+  return ANCHOR_STAGES.map((stage) => {
     const durations = byStage[stage] ?? [];
     const avgHours = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : null;
     return {
       stage,
-      label: STAGE_LABELS[stage as keyof typeof STAGE_LABELS],
+      label: ANCHOR_STAGE_LABELS[stage],
       completedCount: durations.length,
       averageHoursInStage: avgHours !== null ? Number(avgHours.toFixed(1)) : null,
     };
   });
+}
+
+// Same idea as computeAnchorStageTimings but per HR-configured interview
+// round (US-05) -- keyed by vacancyStageId, labeled with that round's actual
+// name. Only meaningful scoped to a single vacancy's own rounds (see callers).
+function computeRoundStageTimings(
+  historyRows: { vacancyStageId: number; enteredAt: Date; exitedAt: Date | null }[],
+  rounds: { id: number; order: number; name: string }[]
+) {
+  const byRound: Record<number, number[]> = {};
+  for (const row of historyRows) {
+    if (!row.exitedAt) continue;
+    const hours = (row.exitedAt.getTime() - row.enteredAt.getTime()) / (1000 * 60 * 60);
+    (byRound[row.vacancyStageId] ??= []).push(hours);
+  }
+  return rounds.map((r) => {
+    const durations = byRound[r.id] ?? [];
+    const avgHours = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : null;
+    return {
+      vacancyStageId: r.id,
+      order: r.order,
+      label: r.name,
+      completedCount: durations.length,
+      averageHoursInStage: avgHours !== null ? Number(avgHours.toFixed(1)) : null,
+    };
+  });
+}
+
+// Buckets a set of applications into anchor counts + per-round counts for one
+// vacancy. A HIRED/REJECTED application always counts under its anchor, even
+// though currentVacancyStageId is left set as a historical breadcrumb (US-05)
+// -- only actively-SHORTLISTED-and-in-a-round applications count toward a
+// round.
+export function bucketApplicationsByStage(
+  applications: { stage: string; currentVacancyStageId: number | null }[],
+  rounds: { id: number }[]
+) {
+  const anchorCounts = emptyAnchorCounts();
+  const roundCounts: Record<number, number> = Object.fromEntries(rounds.map((r) => [r.id, 0]));
+  for (const app of applications) {
+    if (app.stage === "SHORTLISTED" && app.currentVacancyStageId !== null && roundCounts[app.currentVacancyStageId] !== undefined) {
+      roundCounts[app.currentVacancyStageId] = (roundCounts[app.currentVacancyStageId] ?? 0) + 1;
+    } else {
+      anchorCounts[app.stage] = (anchorCounts[app.stage] ?? 0) + 1;
+    }
+  }
+  return { anchorCounts, roundCounts };
+}
+
+// Same idea as bucketApplicationsByStage but across vacancies -- aggregates
+// by round *order* index instead of round id/name, since rounds aren't
+// comparable by name or id across different vacancies (US-05, HR configures
+// rounds per vacancy). Used for org-wide stage monitoring and reused by
+// hiringManager.controller.ts for the HM Dashboard, scoped to a smaller
+// application set (their own assigned applications) rather than everyone's.
+export function aggregateByRoundOrder(
+  applications: { stage: string; currentVacancyStageId: number | null }[],
+  rounds: { id: number; order: number }[]
+) {
+  const roundById = new Map(rounds.map((r) => [r.id, r]));
+  const maxOrder = rounds.reduce((max, r) => Math.max(max, r.order), 0);
+  const anchorCounts = emptyAnchorCounts();
+  const roundOrderCounts: number[] = Array.from({ length: maxOrder }, () => 0);
+
+  for (const app of applications) {
+    const round = app.currentVacancyStageId !== null ? roundById.get(app.currentVacancyStageId) : undefined;
+    if (app.stage === "SHORTLISTED" && round) {
+      roundOrderCounts[round.order - 1] = (roundOrderCounts[round.order - 1] ?? 0) + 1;
+    } else {
+      anchorCounts[app.stage] = (anchorCounts[app.stage] ?? 0) + 1;
+    }
+  }
+  return { anchorCounts, roundOrderCounts };
 }
 
 // 5.1 — Management dashboard: active vacancies + their recruitment progress
@@ -37,23 +112,22 @@ export async function getDashboard(req: Request, res: Response) {
     const vacancies = await prisma.vacancy.findMany({
       where: { status: { in: ["OPEN", "ON_HOLD"] } },
       include: {
-        applications: { select: { stage: true } },
+        applications: { select: { stage: true, currentVacancyStageId: true } },
+        stages: { orderBy: { order: "asc" } },
       },
       orderBy: { createdAt: "desc" },
     });
 
     const dashboard = vacancies.map((v) => {
-      const stageCounts = emptyStageCounts();
-      for (const app of v.applications) {
-        stageCounts[app.stage] = (stageCounts[app.stage] ?? 0) + 1;
-      }
+      const { anchorCounts, roundCounts } = bucketApplicationsByStage(v.applications, v.stages);
       return {
         id: v.id,
         title: v.title,
         department: v.department,
         status: v.status,
         totalApplications: v.applications.length,
-        stageCounts,
+        anchorCounts,
+        rounds: v.stages.map((s) => ({ vacancyStageId: s.id, order: s.order, name: s.name, candidateCount: roundCounts[s.id] })),
       };
     });
 
@@ -64,29 +138,61 @@ export async function getDashboard(req: Request, res: Response) {
   }
 }
 
-// 5.2 — Monitor the number of candidates in each recruitment stage.
-// Stages are now a fixed global set (not per-vacancy), so this counts
-// applications grouped by their current `stage`, optionally scoped to one vacancy.
+// 5.2 — Monitor the number of candidates in each stage. Scoped to one vacancy:
+// shows that vacancy's actual named rounds (unambiguous, single vacancy).
+// Org-wide (no vacancyId): rounds no longer share a name across vacancies
+// (US-05 configurable rounds), so this aggregates by round *order* index
+// instead (Round 1, Round 2, ...) -- comparing named rounds across vacancies
+// isn't meaningful since HR can name/count them differently per vacancy.
 export async function getStageMonitoring(req: Request, res: Response) {
   const { vacancyId } = req.query as { vacancyId?: string };
-  const where = vacancyId ? { vacancyId: Number(vacancyId) } : {};
 
   try {
-    const counts = await prisma.candidateApplication.groupBy({
-      by: ["stage"],
-      where,
-      _count: { _all: true },
-    });
+    if (vacancyId) {
+      const vid = Number(vacancyId);
+      const [applications, rounds] = await Promise.all([
+        prisma.candidateApplication.findMany({
+          where: { vacancyId: vid },
+          select: { stage: true, currentVacancyStageId: true },
+        }),
+        prisma.vacancyStage.findMany({ where: { vacancyId: vid }, orderBy: { order: "asc" } }),
+      ]);
+      const { anchorCounts, roundCounts } = bucketApplicationsByStage(applications, rounds);
 
-    const countsByStage = Object.fromEntries(counts.map((c) => [c.stage, c._count._all]));
+      res.json({
+        anchors: ANCHOR_STAGES.map((stage) => ({
+          stage,
+          label: ANCHOR_STAGE_LABELS[stage],
+          candidateCount: anchorCounts[stage] ?? 0,
+        })),
+        rounds: rounds.map((r) => ({
+          vacancyStageId: r.id,
+          order: r.order,
+          name: r.name,
+          candidateCount: roundCounts[r.id],
+        })),
+      });
+    } else {
+      const [applications, allRounds] = await Promise.all([
+        prisma.candidateApplication.findMany({ select: { vacancyId: true, stage: true, currentVacancyStageId: true } }),
+        prisma.vacancyStage.findMany({ select: { id: true, vacancyId: true, order: true } }),
+      ]);
 
-    res.json({
-      stages: ALL_STAGES.map((stage) => ({
-        stage,
-        label: STAGE_LABELS[stage as keyof typeof STAGE_LABELS],
-        candidateCount: countsByStage[stage] ?? 0,
-      })),
-    });
+      const { anchorCounts, roundOrderCounts } = aggregateByRoundOrder(applications, allRounds);
+
+      res.json({
+        anchors: ANCHOR_STAGES.map((stage) => ({
+          stage,
+          label: ANCHOR_STAGE_LABELS[stage],
+          candidateCount: anchorCounts[stage] ?? 0,
+        })),
+        rounds: roundOrderCounts.map((count, i) => ({
+          order: i + 1,
+          label: `Round ${i + 1}`,
+          candidateCount: count,
+        })),
+      });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Could not build stage monitoring report" });
@@ -151,6 +257,7 @@ async function buildVacancyReportData(vacancyId: number) {
   const vacancy = await prisma.vacancy.findUnique({
     where: { id: vacancyId },
     include: {
+      stages: { orderBy: { order: "asc" } },
       applications: {
         include: {
           candidate: true,
@@ -163,15 +270,20 @@ async function buildVacancyReportData(vacancyId: number) {
 
   if (!vacancy) return null;
 
-  const stageCounts = emptyStageCounts();
   let totalScore = 0;
   let scoreCount = 0;
   let interviewCount = 0;
-  const allHistoryRows: { stage: string; enteredAt: Date; exitedAt: Date | null }[] = [];
+  const anchorHistoryRows: { stage: string; enteredAt: Date; exitedAt: Date | null }[] = [];
+  const roundHistoryRows: { vacancyStageId: number; enteredAt: Date; exitedAt: Date | null }[] = [];
 
   for (const app of vacancy.applications) {
-    stageCounts[app.stage] = (stageCounts[app.stage] ?? 0) + 1;
-    allHistoryRows.push(...app.stageHistory);
+    for (const h of app.stageHistory) {
+      if (h.vacancyStageId !== null) {
+        roundHistoryRows.push({ vacancyStageId: h.vacancyStageId, enteredAt: h.enteredAt, exitedAt: h.exitedAt });
+      } else if (h.stage !== null) {
+        anchorHistoryRows.push({ stage: h.stage, enteredAt: h.enteredAt, exitedAt: h.exitedAt });
+      }
+    }
     for (const interview of app.interviews) {
       interviewCount++;
       for (const fb of interview.feedback) {
@@ -181,12 +293,16 @@ async function buildVacancyReportData(vacancyId: number) {
     }
   }
 
+  const { anchorCounts, roundCounts } = bucketApplicationsByStage(vacancy.applications, vacancy.stages);
+
   return {
     vacancy,
-    stageCounts,
+    anchorCounts,
+    rounds: vacancy.stages.map((s) => ({ vacancyStageId: s.id, order: s.order, name: s.name, count: roundCounts[s.id] })),
     interviewCount,
     averageFeedbackScore: scoreCount > 0 ? Number((totalScore / scoreCount).toFixed(2)) : null,
-    stageTimings: computeStageTimings(allHistoryRows),
+    anchorTimings: computeAnchorStageTimings(anchorHistoryRows),
+    roundTimings: computeRoundStageTimings(roundHistoryRows, vacancy.stages),
   };
 }
 
@@ -204,7 +320,7 @@ export async function getVacancyReport(req: Request, res: Response) {
     if (!data) {
       return res.status(404).json({ error: "Vacancy not found" });
     }
-    const { vacancy, stageCounts, interviewCount, averageFeedbackScore, stageTimings } = data;
+    const { vacancy, anchorCounts, rounds, interviewCount, averageFeedbackScore, anchorTimings, roundTimings } = data;
 
     res.json({
       vacancyId: vacancy.id,
@@ -213,10 +329,12 @@ export async function getVacancyReport(req: Request, res: Response) {
       status: vacancy.status,
       createdAt: vacancy.createdAt,
       totalApplications: vacancy.applications.length,
-      stageCounts,
+      anchorCounts,
+      rounds,
       totalInterviews: interviewCount,
       averageFeedbackScore,
-      stageTimings,
+      anchorTimings,
+      roundTimings,
     });
   } catch (err) {
     console.error(err);
@@ -236,7 +354,7 @@ export async function getVacancyReportPdf(req: Request, res: Response) {
     if (!data) {
       return res.status(404).json({ error: "Vacancy not found" });
     }
-    const { vacancy, stageCounts, interviewCount, averageFeedbackScore, stageTimings } = data;
+    const { vacancy, anchorCounts, rounds, interviewCount, averageFeedbackScore, anchorTimings, roundTimings } = data;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="vacancy-${vacancy.id}-report.pdf"`);
@@ -301,7 +419,7 @@ export async function getVacancyReportPdf(req: Request, res: Response) {
         const isHeader = rowIndex === 0;
         let rowX = startX;
         row.forEach((cell, colIndex) => {
-          const w = colWidths[colIndex];
+          const w = colWidths[colIndex] ?? 0;
           const bg = isHeader ? GOLD : rowIndex % 2 === 0 ? LIGHT : "#ffffff";
           doc.rect(rowX, rowY, w, rowHeight).fillAndStroke(bg, "#dddddd");
           doc
@@ -322,7 +440,8 @@ export async function getVacancyReportPdf(req: Request, res: Response) {
     y = doc.y + 10;
     const stageRows = [
       ["Stage", "Count"],
-      ...ALL_STAGES.map((s) => [STAGE_LABELS[s as keyof typeof STAGE_LABELS], String(stageCounts[s])]),
+      ...ANCHOR_STAGES.map((s) => [ANCHOR_STAGE_LABELS[s], String(anchorCounts[s])]),
+      ...rounds.map((r) => [r.name, String(r.count)]),
     ];
     y = drawTable(MARGIN, y, [220, 100], stageRows) + 20;
 
@@ -334,7 +453,8 @@ export async function getVacancyReportPdf(req: Request, res: Response) {
     y = sectionHeading("Stage Progression (avg. time in stage)", y);
     const timingRows = [
       ["Stage", "Completed", "Avg. Hours"],
-      ...stageTimings.map((t) => [t.label, String(t.completedCount), t.averageHoursInStage !== null ? String(t.averageHoursInStage) : "N/A"]),
+      ...anchorTimings.map((t) => [t.label, String(t.completedCount), t.averageHoursInStage !== null ? String(t.averageHoursInStage) : "N/A"]),
+      ...roundTimings.map((t) => [t.label, String(t.completedCount), t.averageHoursInStage !== null ? String(t.averageHoursInStage) : "N/A"]),
     ];
     y = drawTable(MARGIN, y, [220, 100, 100], timingRows) + 20;
 

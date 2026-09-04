@@ -1,0 +1,211 @@
+.dp-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.dp-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.dp-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.dp-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.dp-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.dp-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.dp-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dp-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.dp-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  min-width: 160px;
+}
+
+.dp-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.dp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.dp-kpi-tile {
+  /* Follow-up correction: tinted background + bigger value, to match the
+     "big and pretty" treatment now standardized across every dashboard's
+     KPI tiles. Gap/padding brought to the same values as every other
+     dashboard's tile (was 6px/22px 18px) for a true pixel-for-pixel match,
+     not just a similar-looking one. */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #faf5ea;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.dp-kpi-label {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+
+.dp-kpi-value {
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.dp-kpi-sub {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  min-height: 14px;
+}
+
+.dp-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 36px;
+}
+
+.dp-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 22px 24px;
+}
+
+.dp-panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 0 0 16px;
+}
+
+.dp-table-title {
+  margin-top: 4px;
+}
+
+.dp-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dp-bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 32px;
+  align-items: center;
+  gap: 10px;
+}
+
+.dp-bar-label {
+  font-size: 13px;
+  color: var(--altrium-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dp-bar-track {
+  height: 10px;
+  background: #f0efe9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dp-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.dp-bar-fill-hired {
+  background: var(--altrium-gold, #c9a24b);
+}
+
+.dp-bar-fill-rejected {
+  background: #b91c1c;
+  opacity: 0.75;
+}
+
+.dp-bar-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  text-align: right;
+}
+
+.dp-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dp-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.dp-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.dp-table tr:last-child td { border-bottom: none; }

@@ -22,16 +22,16 @@ enum VacancyStatus {
   ON_HOLD
 }
 
-// Universal 7-stage recruitment pipeline (US-05/US-31 resolution: fixed global
-// stages, not per-vacancy configurable). Order below is the authoritative rank
-// used to enforce "no skipping, no moving backwards" -- REJECTED is the one
-// exception, reachable from any rank at any time.
+// US-05 redesign: reduced to 4 fixed anchors. APPLIED/SHORTLISTED are
+// pre-interview; HIRED/REJECTED are final outcomes. The interview phase
+// itself is no longer part of this enum -- it's HR-configurable per vacancy
+// via VacancyStage below. While a candidate is moving through interview
+// rounds, `stage` stays SHORTLISTED and CandidateApplication.currentVacancyStageId
+// tracks which round they're in. REJECTED is reachable from any point (any
+// round, or straight from SHORTLISTED), same "any time" exception as before.
 enum RecruitmentStage {
   APPLIED
   SHORTLISTED
-  INTERVIEW_1
-  INTERVIEW_2
-  FINAL_INTERVIEW
   HIRED
   REJECTED
 }
@@ -56,6 +56,7 @@ model User {
   passwordHash        String
   role                Role
   department          String?
+  phoneNumber         String?
   isActive            Boolean   @default(true)
   createdAt           DateTime  @default(now())
   resetTokenHash      String?
@@ -70,6 +71,11 @@ model User {
   stageChangesMade      ApplicationStageHistory[]
   recommendationsMade   StageRecommendation[]
   vacancyInterviewerOn  VacancyInterviewer[]
+  auditLogEntries       AuditLog[]
+  // SCRUM2-45: IT Admin edits to notification templates, audited by who/when.
+  notificationTemplateEdits NotificationTemplate[]
+  // SCRUM2-31: this user's own in-app notification inbox.
+  notifications             Notification[]
 }
 
 model Vacancy {
@@ -77,16 +83,51 @@ model Vacancy {
   title           String
   department      String
   description     String        @db.Text
-  requirements    String?
-  preferredSkills String?
+  // Bug fix: both of these were plain String (MySQL VARCHAR(191)) despite
+  // being free-text textareas in the Create/Edit Vacancy form -- anything
+  // over 191 characters crashed the request with a P2000 "value too long"
+  // error instead of saving. @db.Text matches description's column type.
+  requirements    String?       @db.Text
+  preferredSkills String?       @db.Text
   status          VacancyStatus @default(OPEN)
   createdAt       DateTime      @default(now())
 
+  // Optional, set by HR at creation or via Edit Vacancy -- never required
+  // (a vacancy with no target date never counts as overdue/delayed anywhere).
+  // Drives the On Track/Delayed/Overdue status shown on HM/Management/
+  // Leadership vacancy screens -- computed client-side from this + today's
+  // date, not a stored status field.
+  targetFillDate DateTime?
+
   applications CandidateApplication[]
   interviewers VacancyInterviewer[]
+  stages       VacancyStage[]
 
   // US-04: creating a duplicate vacancy (same title+department) is rejected.
   @@unique([title, department])
+}
+
+// US-05: HR-configurable interview rounds, per vacancy. `order` (1-based) is
+// the authoritative sequence for "no skipping, no moving backwards" within
+// the interview phase. The round list is locked (no create/rename/reorder/
+// delete) once any candidate application on this vacancy has entered a round
+// -- derived by checking whether any CandidateApplication for this vacancy
+// has a non-null currentVacancyStageId, not a stored flag (see
+// isRoundsLocked() in vacancy.controller.ts). Cross-vacancy reports must
+// aggregate by `order`, not `name` -- names aren't consistent across
+// vacancies (different HR users can call round 1 anything).
+model VacancyStage {
+  id        Int     @id @default(autoincrement())
+  vacancyId Int
+  vacancy   Vacancy @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  name      String
+  order     Int
+
+  applications   CandidateApplication[]
+  interviewSlots InterviewSlot[]
+  historyEntries ApplicationStageHistory[]
+
+  @@unique([vacancyId, order])
 }
 
 // US-10/US-11: HR assigns interviewers/management personnel to a vacancy as a
@@ -113,6 +154,12 @@ model Candidate {
   lastCvReviewedByUserId Int?
   lastCvReviewedBy       User?     @relation("LastCvReviewedBy", fields: [lastCvReviewedByUserId], references: [id])
   lastCvReviewedAt       DateTime?
+  // Frontend-corrections pass: free-text note HR can leave while screening a
+  // CV (wireframe: "a place for the HR person to write the review on the
+  // candidate's CV"). Separate from lastCvReviewedByUserId/At above -- those
+  // two are set automatically on every view (see getCandidate), this is only
+  // ever written when HR explicitly saves a note.
+  lastCvReviewNote String? @db.Text
 
   applications CandidateApplication[]
 }
@@ -126,8 +173,20 @@ model CandidateApplication {
 
   // Single authoritative field for where this candidate is in the recruitment
   // pipeline. Replaces the old separate `status` + `currentStageId` fields.
+  // Only ever APPLIED/SHORTLISTED/HIRED/REJECTED -- see currentVacancyStageId
+  // below for interview-round progression.
   stage     RecruitmentStage @default(APPLIED)
   appliedAt DateTime         @default(now())
+
+  // Which HR-configured interview round this candidate is currently in. Null
+  // until they enter the vacancy's first round. Deliberately NOT nulled out
+  // when the candidate is later HIRED or REJECTED -- it persists as a
+  // historical breadcrumb ("which round were they in when this concluded"),
+  // and is also what the round edit-lock check relies on
+  // (isRoundsLocked() treats any non-null value here, on any application for
+  // the vacancy, as "rounds have been used, lock the list").
+  currentVacancyStageId Int?
+  currentVacancyStage   VacancyStage? @relation(fields: [currentVacancyStageId], references: [id])
 
   hiringDecision  HiringDecision?
   decidedByUserId Int?
@@ -145,21 +204,31 @@ model CandidateApplication {
 }
 
 // US-20/US-37: every stage transition is logged with entry/exit timestamps so
-// reports can compute time-in-stage and stage-progression history.
+// reports can compute time-in-stage and stage-progression history. Exactly
+// one of `stage` / `vacancyStageId` is set per row: `stage` for an anchor
+// transition (APPLIED/SHORTLISTED/HIRED/REJECTED), `vacancyStageId` for
+// entering a specific HR-configured interview round. Reports must group by
+// vacancyStage.order (round index) when aggregating across vacancies, not by
+// vacancyStage.name -- see the note on VacancyStage above.
 model ApplicationStageHistory {
   id            Int                  @id @default(autoincrement())
   applicationId Int
   application   CandidateApplication @relation(fields: [applicationId], references: [id])
-  stage         RecruitmentStage
-  enteredAt     DateTime             @default(now())
-  exitedAt      DateTime?
+
+  stage          RecruitmentStage?
+  vacancyStageId Int?
+  vacancyStage   VacancyStage?       @relation(fields: [vacancyStageId], references: [id])
+  enteredAt      DateTime            @default(now())
+  exitedAt       DateTime?
 
   changedByUserId Int?
   changedBy       User? @relation(fields: [changedByUserId], references: [id])
 }
 
-// US-19: Hiring Manager's advisory recommendation, entirely separate from the
-// Interviewer's actual stage update (updateApplicationStage).
+// US-19: Hiring Manager's recommendation. Binding (see
+// submitStageRecommendation in application.controller.ts) -- ADVANCE/
+// DO_NOT_PROGRESS is what actually moves the application through interview
+// rounds, there's no separate standalone stage-update action.
 model StageRecommendation {
   id              Int                  @id @default(autoincrement())
   applicationId   Int
@@ -171,30 +240,68 @@ model StageRecommendation {
   createdAt       DateTime             @default(now())
 }
 
-model Interview {
-  id            Int                  @id @default(autoincrement())
-  applicationId Int
-  application   CandidateApplication @relation(fields: [applicationId], references: [id])
+// Frontend-corrections pass ("HR's Interview pages" -- calendar module):
+// the wireframe has HR schedule one time/panel/round slot and then add ONE
+// OR SEVERAL candidates to it ("add candidate or candidates to an
+// interview", "select all... add to interview"), and separately calls out
+// that HR's own "round" label ("just after the lunch break, it's the next
+// round of it") is a free-text convenience label, NOT the same thing as
+// VacancyStage.order's strict no-skipping sequence. Both of those broke the
+// old assumption that one Interview row = one time/panel/round *and* one
+// candidate.
+//
+// Split into InterviewSlot (the calendar entry: when, which round, which
+// panel, HR's optional round label) and Interview (one candidate's
+// participation in that slot -- this is what Feedback still attaches to,
+// one row per candidate, so panelist scoring/feedback logic elsewhere in
+// the codebase needed no conceptual change, only its query's include
+// shape). A slot can exist with zero candidates yet (schedule now, add
+// candidates later, per the wireframe's separate "+" menu options).
+model InterviewSlot {
+  id             Int          @id @default(autoincrement())
+  vacancyStageId Int
+  vacancyStage   VacancyStage @relation(fields: [vacancyStageId], references: [id])
+  scheduledAt    DateTime
+  // HR's own free-text label for this slot within the round (e.g. "Round
+  // 02", "After lunch") -- deliberately separate from VacancyStage.order,
+  // which stays the strict, no-skipping progression sequence candidates
+  // move through. Optional -- most rounds will only ever need one slot.
+  roundLabel     String?
+  createdAt      DateTime     @default(now())
 
-  // Descriptive only: which of the 7 pipeline stages this interview session is
-  // for. NOT the source of truth for the candidate's progression -- that's
-  // CandidateApplication.stage.
-  stage       RecruitmentStage
-  scheduledAt DateTime
-  createdAt   DateTime @default(now())
+  // SCRUM2-29: set once the reminder cron job (backend/src/jobs/
+  // interviewReminders.ts) has emailed the candidate + panelists for this
+  // slot, so the job never double-sends on its next 15-minute pass. Null
+  // means "not sent yet" -- includes slots created before this field existed.
+  reminderSentAt DateTime?
 
-  panelists InterviewPanelist[]
-  feedback  Feedback[]
+  panelists  InterviewPanelist[]
+  interviews Interview[]
 }
 
 model InterviewPanelist {
-  id          Int       @id @default(autoincrement())
-  interviewId Int
-  interview   Interview @relation(fields: [interviewId], references: [id])
-  userId      Int
-  user        User      @relation(fields: [userId], references: [id])
+  id      Int           @id @default(autoincrement())
+  slotId  Int
+  slot    InterviewSlot @relation(fields: [slotId], references: [id])
+  userId  Int
+  user    User          @relation(fields: [userId], references: [id])
 
-  @@unique([interviewId, userId])
+  @@unique([slotId, userId])
+}
+
+model Interview {
+  id     Int           @id @default(autoincrement())
+  slotId Int
+  slot   InterviewSlot @relation(fields: [slotId], references: [id])
+
+  applicationId Int
+  application   CandidateApplication @relation(fields: [applicationId], references: [id])
+  createdAt     DateTime             @default(now())
+
+  feedback Feedback[]
+
+  // A candidate can't be added twice to the same slot.
+  @@unique([slotId, applicationId])
 }
 
 model Feedback {
@@ -224,4 +331,70 @@ model FeedbackAuditLog {
   newComments      String   @db.Text
   reason           String   @db.Text
   editedAt         DateTime @default(now())
+}
+
+// Generic system-wide audit log (US-21/US-43). Deliberately does NOT duplicate
+// stage transitions (see ApplicationStageHistory) or feedback edits (see
+// FeedbackAuditLog) -- those stay in their own purpose-built tables and get
+// merged into the audit view at read time. This table is only for events that
+// have nowhere else to log to.
+//
+// Currently wired: VACANCY_CREATED, VACANCY_EDITED, VACANCY_CLOSED,
+// CV_UPLOADED, FEEDBACK_SUBMITTED, INTERVIEW_SCHEDULED, NOTIFICATION_SENT,
+// ACCOUNT_CREATED, ACCOUNT_DEACTIVATED, ROLE_CHANGED. All 8 originally
+// proposed events are now wired -- see user.controller.ts for the last 3.
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   Int?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// SCRUM2-45: configurable notification templates. Only covers the emails the
+// system sends automatically with no human editing them at send time
+// (interview scheduled, hiring decision, password reset, interview reminder)
+// -- the three manual Follow-Ups sends (feedback reminder, manual candidate/
+// panelist invite) deliberately stay HR's own free-typed text per-send
+// (see followUp.controller.ts), since that's already "configurable" in a more
+// direct way and rebuilding that as a fixed template would be a downgrade.
+// `key` is a fixed, code-referenced set (see backend/src/utils/
+// notificationTemplates.ts) -- rows are seeded, not created ad-hoc by IT
+// Admin, so there's no risk of a key existing in the DB with nothing that
+// ever reads it.
+model NotificationTemplate {
+  id              Int      @id @default(autoincrement())
+  key             String   @unique
+  subject         String
+  body            String   @db.Text
+  updatedAt       DateTime @updatedAt
+  updatedByUserId Int?
+  updatedBy       User?    @relation(fields: [updatedByUserId], references: [id])
+}
+
+// SCRUM2-31: in-app notification inbox, one row per (user, event). Only
+// written for staff-facing events (candidates aren't app users and have no
+// inbox to write to) -- see backend/src/utils/notify.ts, called alongside
+// the matching sendEmail() at each staff-facing send site. Deliberately no
+// push/websocket layer, consistent with the rest of this app: the frontend
+// fetches on page load / bell-open, matching how every other screen here
+// already works (fetch-on-mount, no realtime infra anywhere else either).
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  message   String   @db.Text
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
 }

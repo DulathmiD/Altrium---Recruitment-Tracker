@@ -1,6 +1,7 @@
 .hr-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   font-family: var(--sans);
   color: var(--altrium-ink);
   background: var(--altrium-white);
@@ -14,6 +15,8 @@
   display: flex;
   flex-direction: column;
   padding: 20px 0;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .hr-sidebar-title {
@@ -71,5 +74,15 @@
 
 .hr-main {
   flex: 1;
-  padding: 32px 40px;
+  /* Without this, a flex child's intrinsic content minimum (e.g. an
+     unbreakable table cell) can force it -- and the whole .hr-layout row --
+     wider than the viewport, producing a page-level horizontal scrollbar
+     instead of the content wrapping/shrinking inside its own box. */
+  min-width: 0;
+  /* Top padding is taller than the sides/bottom so page headers clear the
+     fixed notification bell (top:16/right:20, 44px diameter). */
+  padding: 64px 40px 32px;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
 }

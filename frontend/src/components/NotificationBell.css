@@ -1,0 +1,157 @@
+/* Fixed to the viewport's top-right corner on every page, regardless of
+   which role layout mounts it -- this used to live inside each sidebar
+   (above the logout button), but the dropdown got clipped by the sidebar's
+   own edge there. Fixed positioning here means it always has the full
+   viewport to open into. */
+.ntf-bell-container {
+  position: fixed;
+  /* right:40 lines its edge up with the page content's own right padding
+     (40px on every role layout), so it sits inside the same boundary as the
+     header row/divider instead of poking further right than the content.
+     top:28 brings it down roughly level with a page header's button row. */
+  top: 28px;
+  right: 40px;
+  z-index: 70;
+}
+
+/* No circular chrome (no border/background/shadow) -- bare icon only, per
+   follow-up correction. Also shrinks the button's footprint so it clears
+   the top-right "+" add button some pages render right below it (both
+   sit in the same fixed top-right corner; the old 44px circle reached low
+   enough to overlap it). */
+.ntf-bell-btn {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 17px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ntf-bell-icon {
+  display: block;
+  color: var(--altrium-black);
+}
+
+.ntf-bell-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: #b91c1c;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 3px 5px;
+  min-width: 16px;
+  text-align: center;
+  border: 2px solid var(--altrium-white);
+}
+
+.ntf-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  max-width: 80vw;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(20, 18, 14, 0.14);
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+}
+
+.ntf-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--altrium-line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+}
+
+.ntf-mark-all-btn {
+  border: none;
+  background: none;
+  color: var(--altrium-ink-soft);
+  font-size: 11.5px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+}
+
+.ntf-dropdown-list {
+  overflow-y: auto;
+}
+
+.ntf-empty {
+  padding: 20px 14px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--altrium-ink-soft);
+  text-align: center;
+}
+
+.ntf-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: none;
+  border-bottom: 1px solid var(--altrium-line);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--sans);
+}
+
+.ntf-item:last-child {
+  border-bottom: none;
+}
+
+.ntf-item:hover {
+  background: #faf9f6;
+}
+
+.ntf-item-unread {
+  background: #fbf8f0;
+}
+
+.ntf-item-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #b45309;
+  margin-top: 5px;
+}
+
+.ntf-item-body {
+  min-width: 0;
+}
+
+.ntf-item-message {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--altrium-ink);
+  line-height: 1.4;
+}
+
+.ntf-item-time {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--altrium-ink-soft);
+}

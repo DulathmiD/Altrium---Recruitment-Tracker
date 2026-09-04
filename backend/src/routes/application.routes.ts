@@ -3,7 +3,6 @@ import {
   getApplication,
   updateApplicationStatus,
   recordHiringDecision,
-  updateApplicationStage,
   assignHiringManager,
   listApplicationsAssignedToMe,
   submitStageRecommendation,
@@ -24,11 +23,13 @@ applicationRouter.get("/assigned-to-me", requireRole(Role.HIRING_MANAGER), listA
 applicationRouter.get("/:id", getApplication);
 applicationRouter.patch("/:id/status", requireRole(Role.HR, Role.INTERVIEWER), updateApplicationStatus);
 applicationRouter.patch("/:id/decision", requireRole(Role.HIRING_MANAGER), recordHiringDecision);
-// Interviewer only now -- the Hiring Manager's input is a separate advisory
-// recommendation (below), not a direct stage mutation (US-19).
-applicationRouter.patch("/:id/stage", requireRole(Role.INTERVIEWER), updateApplicationStage);
 applicationRouter.patch("/:id/assign-hm", requireRole(Role.HR), assignHiringManager);
 
+// No standalone stage-update route. The Hiring Manager's recommendation is
+// now binding (see application.controller.ts submitStageRecommendation) --
+// ADVANCE/DO_NOT_PROGRESS is what moves the application through the
+// interview stages. Neither HR nor the Interviewer has a separate action
+// that mutates stage directly.
 applicationRouter.post("/:id/recommendation", requireRole(Role.HIRING_MANAGER), submitStageRecommendation);
 applicationRouter.get("/:id/recommendation", listRecommendationsForApplication);
 

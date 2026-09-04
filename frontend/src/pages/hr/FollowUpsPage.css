@@ -1,0 +1,282 @@
+.fu-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.fu-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.fu-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.fu-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.fu-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.fu-section {
+  margin-bottom: 32px;
+}
+
+.fu-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 0 0 6px;
+}
+
+.fu-primary {
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+
+.fu-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+/* Explicit column widths so content spreads across the full table width
+   instead of clustering to the left with dead space before the last
+   column (browser's default auto layout sizes columns to content). Two
+   separate sets, one per table shape -- each set's widths must sum to
+   100% on its own, so the 3-column and 5-column tables can't share
+   classes (an earlier pass mistakenly reused one set across both shapes,
+   which left them summing to 76% and 114% respectively -- neither fills
+   the row correctly). */
+.fu-col3-candidate { width: 30%; }
+.fu-col3-vacancy { width: 45%; }
+.fu-col3-applied { width: 25%; }
+
+.fu-col-candidate { width: 20%; }
+.fu-col-vacancy { width: 26%; }
+.fu-col-stage { width: 22%; }
+.fu-col-scheduled { width: 20%; }
+.fu-col-action { width: 12%; }
+
+/* The last column in every fu-table (Applied, or the action button) was
+   still left-aligned within its own wide cell, so even though the column
+   itself now spans to the table's right edge, the visible text/button sat
+   in the middle of that empty space rather than actually at the corner.
+   Right-align it, with a bit of extra right padding so it sits near the
+   corner without touching the table's edge. Second column centered so the
+   three (or five) columns read as evenly spaced left/center/right. */
+.fu-table th:last-child,
+.fu-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.fu-table th:nth-child(2),
+.fu-table td:nth-child(2) {
+  text-align: center;
+}
+
+/* Pending CV Review's Vacancy column reads better left-aligned under its
+   left-aligned header, rather than centered like the wider action tables
+   below it -- overrides the nth-child(2) center rule above for this column
+   specifically (same specificity, later in the file wins). */
+.fu-table th.fu-col3-vacancy,
+.fu-table td.fu-col3-vacancy {
+  text-align: left;
+}
+
+.fu-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.fu-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  vertical-align: top;
+  color: var(--altrium-ink);
+}
+.fu-table tr:last-child td { border-bottom: none; }
+
+.fu-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.fu-action-btn {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 4px 12px;
+  min-width: 92px;
+  text-align: center;
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  background: white;
+}
+.fu-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.fu-action-shortlist { border-color: #1e7a34; color: #1e7a34; }
+.fu-action-shortlist:hover:not(:disabled) { background: #e6f4ea; }
+
+.fu-action-reject { border-color: #b91c1c; color: #b91c1c; }
+.fu-action-reject:hover:not(:disabled) { background: #fbe4e4; }
+
+.fu-feedback-card {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-top: 10px;
+}
+
+.fu-feedback-header {
+  margin-bottom: 10px;
+}
+
+.fu-pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fu-pending-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--altrium-line);
+  padding-top: 6px;
+  font-size: 13.5px;
+}
+.fu-pending-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.fu-call-cell {
+  text-align: right;
+}
+
+.fu-call-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 28px 32px;
+  min-width: 320px;
+  text-align: center;
+  font-family: var(--sans);
+}
+
+.fu-call-modal-number {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 6px 0 0;
+}
+
+.fu-call-modal-none {
+  color: var(--altrium-ink-soft);
+  font-size: 14px;
+  margin: 6px 0 0;
+}
+
+/* Bottom toast, matches CandidatesPage/VacanciesPage/InterviewsPage */
+
+/* Modal (same look as the other HR modals, kept local) */
+
+.fu-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.fu-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  font-family: var(--sans);
+}
+
+.fu-modal h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+.fu-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 12px 0 4px;
+}
+
+.fu-modal input,
+.fu-modal textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+.fu-modal textarea { font-family: var(--sans); }
+
+.fu-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.fu-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.fu-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.fu-save-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.fu-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }

@@ -1,0 +1,146 @@
+.hmd-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.hmd-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.hmd-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.hmd-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.hmd-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.hmd-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.hmd-filter-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+}
+
+.hmd-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hmd-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.hmd-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  min-width: 160px;
+}
+
+.hmd-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.hmd-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.hmd-kpi-tile {
+  /* Corrections doc: give the KPI cards a background colour so they pop,
+     rather than sitting flush white against the page. */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #faf5ea;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.hmd-kpi-value {
+  /* These 4 headline numbers are the first thing meant to catch the eye on
+     the landing page -- label reads first, then the number lands big.
+     Bigger than the Recruitment Progress tiles below (see
+     .hmd-progress-value), which are supporting detail, not the headline.
+     Was 48px (deliberately bigger than every other dashboard's 44px) --
+     brought down to 44px so every dashboard's KPI tile is now pixel-for-pixel
+     identical, not just "close." */
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.hmd-kpi-label {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+
+.hmd-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 0 0 4px;
+}
+
+.hmd-progress-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin: 16px 0 0;
+}
+
+.hmd-progress-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 calc(25% - 12px);
+  background: #faf5ea;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 20px 16px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.hmd-progress-value {
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--altrium-black);
+}

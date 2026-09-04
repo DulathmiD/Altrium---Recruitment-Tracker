@@ -1,0 +1,241 @@
+.hmi-page {
+  width: 100%;
+  font-family: var(--sans);
+}
+
+.hmi-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.hmi-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.hmi-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.hmi-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+/* Calendar -- mirrors interviewer/MyInterviewsPage.css's month-grid pattern
+   exactly (follow-up correction: "my interviews should be a calendar like
+   the interviews page"). */
+.hmi-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.hmi-calendar-wrap {
+  background: var(--altrium-white);
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 24px 24px;
+  flex: 1 1 auto;
+  /* Corrections doc: with no day selected there's only one item in
+     .hmi-body's flex row, and it was leaving a large empty gap on the
+     right -- flex-grow should already cover this, but width:100% makes it
+     explicit/guaranteed rather than relying on flex alone. */
+  width: 100%;
+  min-width: 0;
+  transition: flex-basis 0.2s ease;
+}
+.hmi-calendar-shrunk {
+  flex: 0 0 420px;
+}
+
+.hmi-calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin-bottom: 12px;
+}
+.hmi-calendar-nav button {
+  background: none;
+  border: none;
+  font-size: 19px;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  padding: 2px 10px;
+}
+.hmi-calendar-nav button:hover {
+  color: var(--altrium-black);
+}
+
+.hmi-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.hmi-calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--altrium-ink-soft);
+  text-transform: uppercase;
+  padding-bottom: 8px;
+}
+
+.hmi-calendar-cell {
+  height: 62px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 17px;
+  color: var(--altrium-ink-soft);
+  cursor: default;
+}
+.hmi-calendar-shrunk .hmi-calendar-cell {
+  font-size: 15px;
+  height: 50px;
+}
+
+.hmi-calendar-cell-empty {
+  visibility: hidden;
+}
+
+.hmi-calendar-cell-active {
+  background: #fdeceb;
+  color: #c0362c;
+  font-weight: 600;
+  cursor: pointer;
+}
+.hmi-calendar-cell-active:hover {
+  background: #f9d8d6;
+}
+
+.hmi-calendar-cell-selected {
+  background: #c0362c;
+  color: white;
+}
+
+.hmi-side-panel {
+  flex: 1;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  min-width: 0;
+}
+
+.hmi-side-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.hmi-side-panel-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.hmi-side-panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+}
+.hmi-side-panel-close:hover {
+  color: var(--altrium-black);
+}
+
+.hmi-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hmi-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--altrium-ink);
+  cursor: pointer;
+  text-align: left;
+}
+.hmi-slot-row:hover {
+  border-color: var(--altrium-gold);
+  background: #faf5ea;
+}
+
+.hmi-slot-time {
+  flex-shrink: 0;
+  font-weight: 600;
+  width: 70px;
+}
+.hmi-slot-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hmi-slot-count {
+  flex-shrink: 0;
+  color: var(--altrium-ink-soft);
+  font-size: 12px;
+}
+
+.hmi-section-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 18px 0 6px;
+}
+
+.hmi-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Unlike Interviewer's read-only equivalent, HM has no separate list tab to
+   submit feedback from -- this is the only entry point, so the candidate
+   line here is clickable straight through to the Feedback page. */
+.hmi-candidate-row {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.hmi-candidate-row:hover {
+  border-color: var(--altrium-gold);
+  background: #faf5ea;
+}

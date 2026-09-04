@@ -5,3 +5,5 @@ build/
 backend/.agents/
 backend/.claude/skills/
 backend/.windsurf/skills/
+.claude/  
+backend/uploads/

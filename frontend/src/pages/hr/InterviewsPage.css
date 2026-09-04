@@ -1,0 +1,538 @@
+.ivw-page {
+  /* No hard cap -- fills .hr-main's content box so the header row and
+     divider reach almost to the edge of the screen, matching Vacancies. */
+  width: 100%;
+  font-family: var(--sans);
+}
+
+.ivw-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ivw-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.ivw-plus-btn {
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ivw-plus-btn:hover {
+  background: var(--altrium-gold-dark);
+}
+
+.ivw-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.ivw-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.ivw-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.ivw-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.ivw-calendar-wrap {
+  /* flex: 1 (not width: 100%) -- reliably fills the rest of the flex row
+     regardless of percentage-width quirks, so its right edge lines up with
+     the "+" button and divider above it. Fixed-height cells (not
+     aspect-ratio) below are what let this grow taller and use the empty
+     space beneath it without ever needing a page scrollbar. */
+  background: var(--altrium-white);
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 24px 24px;
+  flex: 1 1 auto;
+  min-width: 0;
+  transition: flex-basis 0.2s ease;
+}
+.ivw-calendar-shrunk {
+  flex: 0 0 420px;
+}
+
+.ivw-calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin-bottom: 12px;
+}
+.ivw-calendar-nav button {
+  background: none;
+  border: none;
+  font-size: 19px;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  padding: 2px 10px;
+}
+.ivw-calendar-nav button:hover {
+  color: var(--altrium-black);
+}
+
+.ivw-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.ivw-calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--altrium-ink-soft);
+  text-transform: uppercase;
+  padding-bottom: 8px;
+}
+
+.ivw-calendar-cell {
+  /* Fixed height, not aspect-ratio -- a full-width calendar with
+     square-per-column cells would be far too tall and force a page
+     scrollbar. 72px (up from an earlier 44px) uses more of the leftover
+     vertical space below the grid while still leaving the sidebar's
+     Log out button on screen without a page scrollbar -- .hr-layout's
+     height tracks whatever is tallest in the row, sidebar included. */
+  height: 62px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 17px;
+  color: var(--altrium-ink-soft);
+  cursor: default;
+}
+.ivw-calendar-shrunk .ivw-calendar-cell {
+  font-size: 15px;
+  height: 50px;
+}
+
+.ivw-calendar-cell-empty {
+  visibility: hidden;
+}
+
+.ivw-calendar-cell-active {
+  background: #fdeceb;
+  color: #c0362c;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ivw-calendar-cell-active:hover {
+  background: #f9d8d6;
+}
+
+.ivw-calendar-cell-selected {
+  background: #c0362c;
+  color: white;
+}
+
+.ivw-side-panel {
+  flex: 1;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  min-width: 0;
+}
+
+.ivw-side-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.ivw-side-panel-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.ivw-side-panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+}
+.ivw-side-panel-close:hover {
+  color: var(--altrium-black);
+}
+
+.ivw-section-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 18px 0 6px;
+}
+
+.ivw-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ivw-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ivw-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.ivw-slot-row:hover {
+  border-color: var(--altrium-gold);
+}
+
+.ivw-slot-time {
+  font-weight: 600;
+  color: var(--altrium-black);
+  flex-shrink: 0;
+}
+
+.ivw-slot-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ivw-slot-count {
+  color: var(--altrium-ink-soft);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Shared modal chrome, matching VacanciesPage/CandidatesPage conventions */
+
+.ivw-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.ivw-modal {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  font-family: var(--sans);
+}
+.ivw-modal-wide {
+  width: 560px;
+}
+
+.ivw-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #f1f2f4;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  /* Corrections doc: the hover highlight (this button's own circular
+     background) was correctly positioned, but the X glyph inside it wasn't
+     centered -- a <button> doesn't center its content by default, and the
+     browser's own UA padding was pushing "X" off to one side within the
+     28x28 box. Flex-centering plus padding:0 above fixes that everywhere
+     this class is used, not just the one menu it was reported on. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ivw-modal-close:hover {
+  background: #e4e6e9;
+  color: var(--altrium-black);
+}
+
+.ivw-modal h2 {
+  margin: 0 24px 16px 0;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+.ivw-time-row {
+  display: flex;
+  gap: 8px;
+}
+.ivw-time-row select {
+  flex: 1;
+}
+
+.ivw-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 12px 0 4px;
+}
+
+.ivw-modal input,
+.ivw-modal select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+.ivw-modal input:focus,
+.ivw-modal select:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
+.ivw-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.ivw-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.ivw-cancel-btn:hover {
+  border-color: var(--altrium-black);
+}
+.ivw-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ivw-save-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.ivw-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ivw-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ivw-check-row {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px !important;
+  font-weight: 400 !important;
+  margin: 0 !important;
+  color: var(--altrium-ink);
+}
+.ivw-check-row input {
+  width: auto !important;
+}
+
+/* Schedule Interview's Panel field -- a click-to-expand summary of the
+   vacancy's already-assigned panel (all members are included automatically,
+   no per-person selection), rather than a checklist. */
+.ivw-panel-summary {
+  margin-top: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ivw-panel-summary-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #faf9f6;
+  border: none;
+  padding: 10px 12px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  cursor: pointer;
+}
+.ivw-panel-summary-row:hover {
+  background: #f3f1ec;
+}
+
+.ivw-panel-summary-arrow {
+  color: var(--altrium-ink-soft);
+  font-size: 11px;
+}
+
+.ivw-panel-summary-list {
+  padding: 10px 14px;
+  border-top: 1px solid var(--altrium-line);
+}
+
+/* "+" menu popup */
+
+.ivw-plus-menu {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 10px;
+  padding-top: 34px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--sans);
+}
+/* The shared .ivw-modal-close is positioned relative to .ivw-modal
+   elsewhere; this menu isn't a .ivw-modal, so pull the X in a bit tighter
+   to match this card's smaller padding. */
+.ivw-plus-menu-close {
+  top: 8px;
+  right: 8px;
+}
+.ivw-plus-menu button {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  cursor: pointer;
+}
+.ivw-plus-menu button:hover {
+  background: #faf5ea;
+  color: var(--altrium-gold-dark);
+}
+
+/* Add-candidate step 1: filter row + candidate checklist */
+
+.ivw-filter-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.ivw-filter-row input,
+.ivw-filter-row select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+}
+.ivw-filter-row input {
+  flex: 1;
+}
+.ivw-filter-row select {
+  max-width: 180px;
+}
+
+.ivw-candidate-list {
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ivw-candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.ivw-candidate-row-selected {
+  background: #faf5ea;
+  border-color: var(--altrium-gold);
+}
+.ivw-candidate-row input {
+  width: auto;
+}
+
+.ivw-candidate-vacancy {
+  margin-left: auto;
+  color: var(--altrium-ink-soft);
+  font-size: 12px;
+}
+
+/* Bottom toast, matching VacanciesPage's save notification */
+

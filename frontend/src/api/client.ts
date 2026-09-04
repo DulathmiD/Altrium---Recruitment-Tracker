@@ -1,7 +1,9 @@
 const API_BASE = "/api";
 
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem("token");
+  // sessionStorage, not localStorage -- see AuthContext.tsx's comment (scoped
+  // per-tab so multiple roles can be logged in across tabs at once).
+  const token = sessionStorage.getItem("token");
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...((options.headers as Record<string, string>) ?? {}),

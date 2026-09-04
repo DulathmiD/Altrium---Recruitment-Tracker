@@ -1,0 +1,60 @@
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--altrium-black);
+  color: white;
+  border-left: 4px solid var(--altrium-gold);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  z-index: 1000;
+  max-width: 90vw;
+  animation: toast-in 0.25s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 16px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Notification-style popup, anchored under the top-right bell instead of
+   bottom-center. Same look (black, gold accent), different corner + slide
+   direction so it doesn't collide with the bell/dropdown above it. */
+.toast-top-right {
+  bottom: auto;
+  left: auto;
+  top: 68px;
+  right: 20px;
+  transform: none;
+  animation: toast-in-top-right 0.25s ease-out;
+}
+
+@keyframes toast-in-top-right {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.toast-message {
+  color: white;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.toast-close:hover {
+  color: white;
+}

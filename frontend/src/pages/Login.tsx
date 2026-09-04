@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginRequest } from "../api/auth";
+import { loginRequest, forgotPasswordRequest } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 import AltriumLogo from "../components/AltriumLogo";
 import "./Login.css";
@@ -16,14 +16,36 @@ const ROLE_ROUTES: Record<string, string> = {
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [forgotNotice, setForgotNotice] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState("");
+  const [forgotError, setForgotError] = useState("");
   const { setAuth } = useAuth();
   const navigate = useNavigate();
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  // Reuses the email already typed into the main Email field above --
+  // no separate input for this.
+  async function handleForgotSubmit() {
+    setForgotError("");
+    if (!email.trim()) {
+      setForgotError("Enter your email above first.");
+      return;
+    }
+    setForgotSubmitting(true);
+    try {
+      const { message } = await forgotPasswordRequest(email.trim());
+      setForgotMessage(message);
+    } catch (err) {
+      setForgotError(err instanceof Error ? err.message : "Could not send the reset link. Try again.");
+    } finally {
+      setForgotSubmitting(false);
+    }
+  }
+
+  async function handleLogin() {
     setError("");
     if (!email.trim() || !password) {
       setError("Email and password are required.");
@@ -38,6 +60,18 @@ export default function Login() {
       setError(err instanceof Error ? err.message : "Invalid email or password");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // One form, two modes: normal login vs. requesting a reset link. Enter
+  // key and the submit button both route to whichever mode is active,
+  // rather than always trying to log in.
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (forgotOpen) {
+      void handleForgotSubmit();
+    } else {
+      void handleLogin();
     }
   }
 
@@ -57,26 +91,50 @@ export default function Login() {
               value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
 
-          <div className="login-field">
-            <label htmlFor="password">Password</label>
-            <input id="password" type="password" autoComplete="current-password"
-              value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-
-          {error && <div className="login-alert">{error}</div>}
-
-          <button type="submit" className="login-button" disabled={loading}>
-            {loading ? "Signing in..." : "Log in"}
-          </button>
-
-          <button type="button" className="login-forgot" onClick={() => setForgotNotice(true)}>
-            Forgot Password?
-          </button>
-          {forgotNotice && (
-            <p className="login-forgot-notice">
-              Password reset isn't built into the interface yet — ask your IT Administrator to reset it for you.
-            </p>
+          {!forgotOpen && (
+            <div className="login-field">
+              <label htmlFor="password">Password</label>
+              <div className="login-password-wrap">
+                <input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password"
+                  value={password} onChange={(e) => setPassword(e.target.value)} />
+                <button type="button" className="login-toggle" onClick={() => setShowPassword((v) => !v)}>
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
           )}
+
+          {!forgotOpen && error && <div className="login-alert">{error}</div>}
+          {forgotOpen && forgotError && <div className="login-alert">{forgotError}</div>}
+
+          {!forgotOpen && !forgotMessage && (
+            <button type="submit" className="login-button" disabled={loading}>
+              {loading ? "Signing in..." : "Log in"}
+            </button>
+          )}
+
+          {!forgotOpen && !forgotMessage && (
+            <button
+              type="button"
+              className="login-forgot"
+              onClick={() => setForgotOpen(true)}
+            >
+              Forgot Password?
+            </button>
+          )}
+
+          {forgotOpen && !forgotMessage && (
+            <div className="login-forgot-actions">
+              <button type="button" className="login-forgot-cancel" onClick={() => setForgotOpen(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="login-forgot-send" disabled={forgotSubmitting}>
+                {forgotSubmitting ? "Sending..." : "Send reset link"}
+              </button>
+            </div>
+          )}
+
+          {forgotMessage && <p className="login-forgot-notice">{forgotMessage}</p>}
 
           <p className="login-footer">IT Admin? <a href="/admin">Sign in here</a> instead.</p>
         </form>

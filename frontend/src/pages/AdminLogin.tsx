@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminLoginRequest } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
+import AltriumLogo from "../components/AltriumLogo";
 import "./Login.css";
 
 export default function AdminLogin() {
@@ -24,7 +25,7 @@ export default function AdminLogin() {
     try {
       const { token, user } = await adminLoginRequest(email.trim(), password);
       setAuth(token, user);
-      navigate("/admin/dashboard");
+      navigate("/admin/users");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password");
     } finally {
@@ -34,50 +35,40 @@ export default function AdminLogin() {
 
   return (
     <div className="login-body">
+      <div className="login-hex-pattern" aria-hidden="true" />
       <div className="login-wrap">
         <div className="login-brand">
-          <div className="login-brand-icon">
-            <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </div>
-          <h1>Recruitment System</h1>
-          <p>IT Admin sign in</p>
+          <AltriumLogo size={56} />
+          <h1>Recruitment Tracker</h1>
+          <p className="login-brand-subtitle">IT Admin sign in</p>
         </div>
 
-        <div className="login-card">
-          <div className="login-notice">
-            <p>This entry point is for IT Admin accounts only.</p>
+        <form className="login-card" onSubmit={handleSubmit}>
+          <div className="login-field">
+            <label htmlFor="email">Email</label>
+            <input id="email" type="email" autoComplete="username"
+              value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="login-field">
-              <label htmlFor="email">Email</label>
-              <input id="email" type="email" autoComplete="username" placeholder="name@company.com"
-                value={email} onChange={(e) => setEmail(e.target.value)} />
+          <div className="login-field">
+            <label htmlFor="password">Password</label>
+            <div className="login-password-wrap">
+              <input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password"
+                value={password} onChange={(e) => setPassword(e.target.value)} />
+              <button type="button" className="login-toggle" onClick={() => setShowPassword((v) => !v)}>
+                {showPassword ? "Hide" : "Show"}
+              </button>
             </div>
+          </div>
 
-            <div className="login-field">
-              <label htmlFor="password">Password</label>
-              <div className="login-password-wrap">
-                <input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password"
-                  placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <button type="button" className="login-toggle" onClick={() => setShowPassword((v) => !v)}>
-                  {showPassword ? "Hide" : "Show"}
-                </button>
-              </div>
-            </div>
+          {error && <div className="login-alert">{error}</div>}
 
-            {error && <div className="login-alert">{error}</div>}
-
-            <button type="submit" className="login-button" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
-          </form>
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
 
           <p className="login-footer"><a href="/login">Back to regular sign in</a></p>
-        </div>
+        </form>
       </div>
     </div>
   );

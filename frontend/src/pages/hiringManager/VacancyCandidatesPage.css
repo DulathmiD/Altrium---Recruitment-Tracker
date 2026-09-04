@@ -1,0 +1,119 @@
+.vc-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.vc-back-link {
+  display: inline-block;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--altrium-ink-soft);
+  text-decoration: none;
+  margin-bottom: 12px;
+  padding: 4px 0;
+}
+.vc-back-link:hover { color: var(--altrium-black); }
+
+.vc-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.vc-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.vc-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.vc-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.vc-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vc-table th:nth-child(1) { width: 38%; }
+.vc-table th:nth-child(2) { width: 22%; }
+.vc-table th:nth-child(3) { width: 18%; }
+.vc-table th:nth-child(4) { width: 22%; }
+
+.vc-table th:last-child,
+.vc-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.vc-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.vc-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  vertical-align: top;
+  color: var(--altrium-ink);
+}
+.vc-table tr:last-child td { border-bottom: none; }
+
+.vc-row { cursor: pointer; }
+.vc-row:hover { background: #faf5ea; }
+
+.vc-candidate-name { font-weight: 600; }
+.vc-candidate-email { color: var(--altrium-ink-soft); font-size: 12.5px; }
+
+.vc-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.vc-status-red { background: #fbe4e4; color: #b91c1c; }
+.vc-status-green { background: #e6f4ea; color: #1e7a34; }
+.vc-status-gold { background: #faf0d8; color: #8a6a1f; }
+
+.vc-awaiting {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--altrium-gold-dark);
+}
+
+/* Corrections doc: "Done" and "Waiting on panel feedback" were plain
+   .vc-muted (a smaller, unstyled gray) -- now the same size/weight as
+   .vc-awaiting, just a different color per state: green once resolved,
+   gray while genuinely waiting on someone else. */
+.vc-action-done {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e7a34;
+}
+.vc-action-waiting {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--altrium-ink-soft);
+}

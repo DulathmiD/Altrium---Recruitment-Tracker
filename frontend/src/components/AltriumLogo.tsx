@@ -4,6 +4,9 @@ export default function AltriumLogo({ size = 40 }: { size?: number }) {
       <polygon
         points="50,3 93,26 93,74 50,97 7,74 7,26"
         fill="#111111"
+        stroke="#f5a623"
+        strokeWidth="3"
+        strokeLinejoin="round"
       />
       <path
         d="M50 28 L72 68 L60 68 L50 48 L40 68 L28 68 Z"

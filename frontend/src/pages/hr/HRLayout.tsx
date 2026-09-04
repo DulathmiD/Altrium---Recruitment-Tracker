@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import AltriumLogo from "../../components/AltriumLogo";
+import NotificationBell from "../../components/NotificationBell";
 import "./HRLayout.css";
 
 const NAV_ITEMS = [
@@ -18,7 +19,7 @@ export default function HRLayout() {
       <aside className="hr-sidebar">
         <div className="hr-sidebar-title">
           <AltriumLogo size={28} />
-          <span>Altrium HR</span>
+          <span>Altrium</span>
         </div>
         <nav className="hr-nav">
           {NAV_ITEMS.map((item) => (
@@ -31,6 +32,7 @@ export default function HRLayout() {
             </NavLink>
           ))}
         </nav>
+        <NotificationBell />
         <button className="hr-logout" onClick={logout}>Log out</button>
       </aside>
       <main className="hr-main">

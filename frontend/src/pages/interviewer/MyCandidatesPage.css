@@ -1,0 +1,137 @@
+.myc-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.myc-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.myc-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.myc-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.myc-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+/* Toolbar: feedback-status filter chips + the new vacancy filter dropdown
+   the corrections doc asked for (moved here from what used to be on My
+   Interviews, along with the table itself). */
+.myc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.myc-filter-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.myc-filter-btn {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-family: var(--sans);
+  cursor: pointer;
+  background: white;
+  color: var(--altrium-ink);
+}
+.myc-filter-btn:hover { border-color: var(--altrium-black); }
+.myc-filter-btn.active {
+  background: var(--altrium-black);
+  color: white;
+  border-color: var(--altrium-black);
+}
+
+.myc-vacancy-select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: var(--sans);
+  background: white;
+  color: var(--altrium-ink);
+}
+
+.myc-interviews-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.myc-col-date { width: 12%; }
+.myc-col-time { width: 10%; }
+.myc-col-stage { width: 20%; }
+.myc-col-position { width: 22%; }
+.myc-col-candidate { width: 22%; }
+.myc-col-feedback { width: 14%; }
+
+.myc-interviews-table th:last-child,
+.myc-interviews-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.myc-interviews-table th:nth-child(2),
+.myc-interviews-table td:nth-child(2) {
+  text-align: center;
+}
+
+.myc-interviews-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.myc-interviews-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.myc-interviews-table tr:last-child td { border-bottom: none; }
+
+.myc-interviews-row {
+  cursor: pointer;
+}
+.myc-interviews-row:hover td {
+  background: #faf5ea;
+}
+
+.myc-badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.myc-badge-pending { background: #fdf1dc; color: #a9660b; }
+.myc-badge-done { background: #e6f4ea; color: #1e7a34; }

@@ -1,8 +1,15 @@
 .vac-page {
-  max-width: 900px;
+  /* No hard cap -- fills .hr-main's content box so the divider line and
+     header row reach almost to the edge of the screen on wide viewports,
+     per the wireframe (was capped at 900px, leaving a large dead gap on the
+     right of every HR Vacancies screen). */
+  width: 100%;
   font-family: var(--sans);
 }
 
+/* Frontend-corrections pass: the "Saved..." message used to be static text
+   easy to miss at the top of the modal -- now a bottom toast so it actually
+   gets seen, matching where notifications land elsewhere in the app. */
 .vac-title {
   font-size: 22px;
   font-weight: 600;
@@ -37,9 +44,10 @@
   background: none;
   border: none;
   color: var(--altrium-ink-soft);
-  font-size: 12.5px;
+  font-size: 17px;
+  font-weight: 600;
   cursor: pointer;
-  padding: 0 0 6px;
+  padding: 6px 0 12px;
   font-family: var(--sans);
 }
 .vac-back:hover { color: var(--altrium-black); }
@@ -62,14 +70,14 @@
 .vac-dept-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 28px 32px;
 }
 
 .vac-dept-card {
   background: var(--altrium-white);
   border: 1px solid var(--altrium-line);
   border-radius: 10px;
-  padding: 24px;
+  padding: 26px;
   font-size: 14px;
   font-weight: 500;
   font-family: var(--sans);
@@ -83,6 +91,31 @@
   border-color: var(--altrium-gold);
   box-shadow: 0 2px 10px rgba(245, 166, 35, 0.15);
 }
+
+.vac-filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.vac-filter-chip {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-family: var(--sans);
+  color: var(--altrium-ink-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.vac-filter-chip:hover { border-color: var(--altrium-gold); color: var(--altrium-ink); }
+.vac-filter-chip-active {
+  background: var(--altrium-black);
+  border-color: var(--altrium-black);
+  color: white;
+}
+.vac-filter-chip-active:hover { border-color: var(--altrium-black); color: white; }
 
 .vac-list {
   display: flex;
@@ -99,10 +132,47 @@
   border-radius: 8px;
   padding: 12px 16px;
   font-size: 14px;
+  transition: opacity 0.15s ease;
 }
 
 .vac-row:hover {
   border-color: var(--altrium-gold);
+}
+
+.vac-row-closed {
+  opacity: 0.55;
+  background: #f6f6f4;
+}
+.vac-row-closed:hover {
+  border-color: var(--altrium-line);
+}
+
+.vac-row-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vac-badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.vac-badge-open {
+  background: #e6f4ea;
+  color: #1e7a34;
+}
+.vac-badge-hold {
+  background: #fdf1dc;
+  color: #a9660b;
+}
+.vac-badge-closed {
+  background: #ece9e4;
+  color: #6b6a66;
 }
 
 .vac-edit-btn {
@@ -124,6 +194,7 @@
 }
 
 .vac-modal {
+  position: relative;
   background: white;
   border-radius: 12px;
   padding: 24px;
@@ -133,8 +204,27 @@
   font-family: var(--sans);
 }
 
+.vac-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f2f4;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.vac-modal-close:hover {
+  background: #e4e6e9;
+  color: var(--altrium-black);
+}
+
 .vac-modal h2 {
-  margin: 0 0 16px;
+  margin: 0 24px 16px 0;
   font-size: 17px;
   color: var(--altrium-black);
 }
@@ -197,3 +287,139 @@
   font-weight: 500;
 }
 .vac-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.vac-stages-section {
+  margin-top: 8px;
+}
+
+.vac-stages-hint {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  background: #faf5ea;
+  border: 1px solid var(--altrium-line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 4px 0 8px;
+}
+
+.vac-stages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.vac-stage-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: var(--altrium-white);
+}
+
+.vac-stage-row-dragging {
+  opacity: 0.4;
+}
+
+.vac-stage-row-dragover {
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.18);
+}
+
+.vac-stage-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.vac-stage-drag-handle {
+  cursor: grab;
+  color: var(--altrium-ink-soft);
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  user-select: none;
+  touch-action: none;
+}
+.vac-stage-drag-handle:active { cursor: grabbing; }
+.vac-stage-drag-handle[aria-disabled="true"] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.vac-stage-name {
+  color: var(--altrium-ink);
+}
+
+.vac-stage-rename-input {
+  flex: 1;
+  border: 1px solid var(--altrium-gold);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: var(--sans);
+  margin-right: 8px;
+}
+
+.vac-stage-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.vac-stage-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--altrium-ink-soft);
+  padding: 2px 4px;
+}
+.vac-stage-icon-btn:hover:not(:disabled) { color: var(--altrium-gold-dark); }
+.vac-stage-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.vac-stage-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  color: var(--altrium-ink);
+}
+.vac-stage-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.vac-stage-add-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.vac-stage-add-row input {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: var(--sans);
+}
+
+.vac-stage-add-btn {
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vac-stage-add-btn:hover:not(:disabled) { background: var(--altrium-gold-dark); }
+.vac-stage-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
