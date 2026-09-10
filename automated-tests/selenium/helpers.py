@@ -40,16 +40,33 @@ API_HEALTH_URL = "http://localhost:4000/api/health"
 DEFAULT_TIMEOUT = 15          # seconds, for explicit waits (some flows chain several API calls)
 PAUSE_SECONDS = 1.5           # short pause after each test so it's easy to watch run
 
-# Seeded demo accounts (backend/prisma/seed.ts). Password is the same for all.
-PASSWORD = "password123"
+# Seeded demo accounts (backend/prisma/seed.ts). Stale as of the "viva reset"
+# pass in that file: the roster there moved from one shared password
+# ("password123") on role-labelled emails to real first+last-name emails,
+# each with its own Firstname@2026 password (avoids the account-security
+# warning Chrome/Google show on "password123", distracting mid-viva even
+# though nothing's actually compromised). ACCOUNTS below is kept as a flat
+# role -> email map on purpose, unchanged shape, so no call site in any
+# test_*.py file needs editing -- login_as() resolves the matching password
+# from ACCOUNT_PASSWORDS internally instead of relying on one global constant.
+PASSWORD = "password123"  # kept only as login_as()'s fallback for any email not in the map below
 ACCOUNTS = {
-    "HR": "hr@altrium.com",
-    "INTERVIEWER": "interviewer@altrium.com",
-    "MANAGEMENT": "management@altrium.com",
-    "HIRING_MANAGER": "hiringmanager@altrium.com",
-    "IT_ADMIN": "itadmin@altrium.com",
-    "LEADERSHIP_MANAGEMENT": "leadership@altrium.com",
-    "DISABLED": "disabled@altrium.com",  # isActive: false, for negative tests
+    "HR": "sharon@altrium.com",
+    "INTERVIEWER": "marcus@altrium.com",
+    "MANAGEMENT": "elena@altrium.com",
+    "HIRING_MANAGER": "victor@altrium.com",
+    "IT_ADMIN": "naomi@altrium.com",
+    "LEADERSHIP_MANAGEMENT": "daniel@altrium.com",
+    "DISABLED": "rachel@altrium.com",  # isActive: false, for negative tests
+}
+ACCOUNT_PASSWORDS = {
+    "sharon@altrium.com": "Sharon@2026",
+    "marcus@altrium.com": "Marcus@2026",
+    "elena@altrium.com": "Elena@2026",
+    "victor@altrium.com": "Victor@2026",
+    "naomi@altrium.com": "Naomi@2026",
+    "daniel@altrium.com": "Daniel@2026",
+    "rachel@altrium.com": "Rachel@2026",
 }
 
 # These are the URL each role actually SETTLES on after login, not
@@ -306,11 +323,20 @@ def element_exists(driver, by, value):
 # Login / logout
 # ---------------------------------------------------------------------------
 
-def login_as(driver, email, password=PASSWORD, admin=False, expect_success=True, role=None):
+def login_as(driver, email, password=None, admin=False, expect_success=True, role=None):
     """
     Logs in via /login (or /admin for IT Admin) and, if expect_success, waits
     for the redirect to that role's landing page.
+
+    password defaults to None so every existing call site (login_as(driver,
+    ACCOUNTS["HR"], role="HR"), with no password argument) keeps working
+    unchanged -- the real per-account password is looked up from
+    ACCOUNT_PASSWORDS by email here. Falls back to the old shared PASSWORD
+    only for an email that isn't in that map (e.g. a deliberately-wrong
+    password passed in for a negative-login test).
     """
+    if password is None:
+        password = ACCOUNT_PASSWORDS.get(email, PASSWORD)
     driver.get(f"{BASE_URL}{'/admin' if admin else '/login'}")
     wait_visible(driver, By.ID, "email").send_keys(email)
     driver.find_element(By.ID, "password").send_keys(password)

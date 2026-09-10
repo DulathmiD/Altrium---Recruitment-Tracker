@@ -55,7 +55,7 @@ export default function Login() {
     try {
       const { token, user } = await loginRequest(email.trim(), password);
       setAuth(token, user);
-      navigate(ROLE_ROUTES[user.role] ?? "/login");
+      navigate(user.mustChangePassword ? "/change-password" : (ROLE_ROUTES[user.role] ?? "/login"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password");
     } finally {

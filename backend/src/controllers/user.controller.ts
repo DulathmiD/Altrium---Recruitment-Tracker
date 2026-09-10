@@ -75,35 +75,55 @@ export async function createUser(req: Request, res: Response) {
     email,
     passwordHash,
     role: role as Role,
+    // IT Admin picks the initial password and shares it directly (no
+    // email-invite flow) -- flag the account so the very first login is
+    // forced through /change-password before anything else is reachable,
+    // rather than the initial password being usable forever unchanged.
+    mustChangePassword: true,
     ...(department !== undefined ? { department } : {}),
   };
 
-  // `phoneNumber` was added to the schema for the Create User form's Contact
-  // Number field, but the generated Prisma Client on whatever machine is
-  // running this only has the new column once someone has actually run
-  // `npx prisma migrate dev` there -- until then, Prisma throws a
-  // PrismaClientValidationError ("Unknown argument `phoneNumber`") for any
-  // create call that includes it, which would otherwise hard-fail account
-  // creation entirely over one optional field. Retry once without it instead,
-  // and tell the caller the number wasn't saved, so IT Admin isn't blocked
-  // from creating accounts while waiting on the migration.
+  // Newer schema fields (`phoneNumber`, `mustChangePassword`) only exist on
+  // the generated Prisma Client once someone has actually run
+  // `npx prisma migrate dev` on whatever machine is running this. Until then,
+  // Prisma throws a PrismaClientValidationError ("Unknown argument `X`") for
+  // any create call that includes an unmigrated column -- which would
+  // otherwise hard-fail account creation entirely over a field the caller
+  // may not even control. Retry with that one field stripped instead (can
+  // strip more than one across repeated retries), so IT Admin isn't blocked
+  // from creating accounts while a migration is pending. `mustChangePassword`
+  // silently defaulting to unset in this fallback case just means the forced
+  // first-login change doesn't kick in until the migration actually runs --
+  // not a security regression, just that specific enforcement not existing
+  // yet on this un-migrated database, same as before this feature existed.
   let phoneNumberSaved = phoneNumber === undefined;
+  const fullData: Record<string, unknown> = { ...baseData, ...(phoneNumber !== undefined ? { phoneNumber } : {}) };
+
+  function unknownArgName(err: any): string | null {
+    const isUnknownArg = err?.name === "PrismaClientValidationError" || String(err?.message ?? "").includes("Unknown argument");
+    if (!isUnknownArg) return null;
+    const match = String(err?.message ?? "").match(/Unknown argument `(\w+)`/);
+    return match?.[1] ?? null;
+  }
+
   try {
     let user;
-    try {
-      user = await prisma.user.create({
-        data: { ...baseData, ...(phoneNumber !== undefined ? { phoneNumber } : {}) },
-      });
-      phoneNumberSaved = true;
-    } catch (err: any) {
-      const isUnknownPhoneNumberArg =
-        phoneNumber !== undefined &&
-        (err?.name === "PrismaClientValidationError" || String(err?.message ?? "").includes("Unknown argument"));
-      if (!isUnknownPhoneNumberArg) throw err;
-
-      console.warn("createUser: phoneNumber column not present yet (migration pending) -- created account without it.");
-      user = await prisma.user.create({ data: baseData });
-      phoneNumberSaved = false;
+    let data = fullData;
+    // Bounded loop (at most one retry per real field) rather than a fixed
+    // two-deep try/catch, so this doesn't need updating every time another
+    // migration-pending field gets added to this form later.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        user = await prisma.user.create({ data: data as any });
+        break;
+      } catch (err: any) {
+        const badArg = unknownArgName(err);
+        if (!badArg || !(badArg in data) || attempt > 5) throw err;
+        console.warn(`createUser: '${badArg}' column not present yet (migration pending) -- created account without it.`);
+        if (badArg === "phoneNumber") phoneNumberSaved = false;
+        const { [badArg]: _omit, ...rest } = data;
+        data = rest;
+      }
     }
 
     await writeAuditLog(req.user!.id, "ACCOUNT_CREATED", "User", user.id, {
@@ -132,10 +152,11 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(400).json({ error: "Invalid user id" });
   }
 
-  const { name, email, department } = req.body as {
+  const { name, email, department, phoneNumber } = req.body as {
     name?: string;
     email?: string;
     department?: string;
+    phoneNumber?: string;
   };
 
   try {
@@ -145,6 +166,7 @@ export async function updateUser(req: Request, res: Response) {
         ...(name !== undefined ? { name } : {}),
         ...(email !== undefined ? { email } : {}),
         ...(department !== undefined ? { department } : {}),
+        ...(phoneNumber !== undefined ? { phoneNumber } : {}),
       },
     });
     res.json(user);

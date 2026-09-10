@@ -59,23 +59,47 @@ export function drawReportSectionHeading(doc: PDFKit.PDFDocument, title: string,
   return doc.y + 8;
 }
 
-export function drawReportTable(doc: PDFKit.PDFDocument, startX: number, startY: number, colWidths: number[], rows: string[][]): number {
+function drawTableRow(doc: PDFKit.PDFDocument, startX: number, rowY: number, colWidths: number[], row: string[], isHeader: boolean, stripe: boolean): void {
+  let rowX = startX;
+  const rowHeight = 20;
+  row.forEach((cell, colIndex) => {
+    const w = colWidths[colIndex] ?? 0;
+    const bg = isHeader ? PDF_GOLD : stripe ? PDF_LIGHT : "#ffffff";
+    doc.rect(rowX, rowY, w, rowHeight).fillAndStroke(bg, "#dddddd");
+    doc
+      .fillColor(isHeader ? PDF_BLACK : "#222222")
+      .font(isHeader ? "Helvetica-Bold" : "Helvetica")
+      .fontSize(9)
+      .text(cell, rowX + 8, rowY + 6, { width: w - 16 });
+    rowX += w;
+  });
+}
+
+// Real gap found and fixed while investigating the Export Report bug: this
+// never paginated. Every row was drawn at whatever y the running total
+// reached, with no check against the page's actual height (A4, ~842pt) --
+// a table long enough to run past the bottom of the page didn't error, it
+// just kept drawing off-page, so the rows were silently invisible in the
+// downloaded PDF rather than flowing onto a second page. Not itself the
+// cause of a corrupt/unopenable file (a clipped-but-structurally-valid PDF
+// still opens fine), but a real bug in its own right, and one about to
+// become reachable now that report data volume is growing -- fixed by
+// breaking to a new page (and repeating the header row for readability)
+// once a row would cross the same 650pt threshold ensureSpace already uses
+// between sections, instead of only ever checking between sections.
+export function drawReportTable(doc: PDFKit.PDFDocument, startX: number, startY: number, colWidths: number[], rows: string[][], threshold = 650): number {
   const rowHeight = 20;
   let rowY = startY;
+  const header = rows[0] ?? [];
   rows.forEach((row, rowIndex) => {
     const isHeader = rowIndex === 0;
-    let rowX = startX;
-    row.forEach((cell, colIndex) => {
-      const w = colWidths[colIndex] ?? 0;
-      const bg = isHeader ? PDF_GOLD : rowIndex % 2 === 0 ? PDF_LIGHT : "#ffffff";
-      doc.rect(rowX, rowY, w, rowHeight).fillAndStroke(bg, "#dddddd");
-      doc
-        .fillColor(isHeader ? PDF_BLACK : "#222222")
-        .font(isHeader ? "Helvetica-Bold" : "Helvetica")
-        .fontSize(9)
-        .text(cell, rowX + 8, rowY + 6, { width: w - 16 });
-      rowX += w;
-    });
+    if (!isHeader && rowY + rowHeight > threshold) {
+      doc.addPage();
+      rowY = 50;
+      drawTableRow(doc, startX, rowY, colWidths, header, true, false);
+      rowY += rowHeight;
+    }
+    drawTableRow(doc, startX, rowY, colWidths, row, isHeader, rowIndex % 2 === 0);
     rowY += rowHeight;
   });
   return rowY;

@@ -8,6 +8,7 @@ export type AuthUser = {
   email: string;
   role: string;
   department: string | null;
+  mustChangePassword: boolean;
 };
 
 type LoginResponse = {
@@ -73,5 +74,16 @@ export function resetPasswordRequest(token: string, newPassword: string) {
   return apiFetch<{ message: string }>("/auth/reset-password", {
     method: "POST",
     body: JSON.stringify({ token, newPassword }),
+  });
+}
+
+// Forced first-login change (mustChangePassword) and any later voluntary
+// change both use this -- same endpoint, current password required either
+// way, no token/email round-trip needed since the caller is already
+// authenticated.
+export function changePasswordRequest(currentPassword: string, newPassword: string) {
+  return apiFetch<{ message: string }>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
   });
 }

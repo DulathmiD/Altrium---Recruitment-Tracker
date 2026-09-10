@@ -21,7 +21,8 @@ export type AuditAction =
   | "ACCOUNT_DEACTIVATED"
   | "ROLE_CHANGED"
   | "HM_DECISION_COMMENT"
-  | "NOTIFICATION_TEMPLATE_UPDATED";
+  | "NOTIFICATION_TEMPLATE_UPDATED"
+  | "SYSTEM_BACKUP_RUN";
 
 export async function writeAuditLog(
   userId: number,

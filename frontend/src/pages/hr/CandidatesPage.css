@@ -111,13 +111,20 @@
 /* table-layout: fixed needs explicit column shares, otherwise every column
    defaults to an equal split and long content (candidate email, vacancy
    title) wraps awkwardly narrow. Order matches the <th>/<td> order in
-   CandidatesPage.tsx: ID, Candidate, CV, Vacancy, Stage, Status. */
+   CandidatesPage.tsx: ID, Candidate, Vacancy, Stage, Status.
+   Correction: the standalone "CV" column (plain View link, no side effect)
+   was removed -- viewing a CV now only ever happens from the candidate's own
+   detail page (the click-through-row-then-View-CV path), so there's exactly
+   one way to view a CV, not two. Its 8% share folded into Vacancy/Stage. */
 .cnd-table th:nth-child(1), .cnd-table td:nth-child(1) { width: 9%; }
-.cnd-table th:nth-child(2), .cnd-table td:nth-child(2) { width: 27%; }
-.cnd-table th:nth-child(3), .cnd-table td:nth-child(3) { width: 8%; }
-.cnd-table th:nth-child(4), .cnd-table td:nth-child(4) { width: 24%; }
-.cnd-table th:nth-child(5), .cnd-table td:nth-child(5) { width: 20%; }
-.cnd-table th:nth-child(6), .cnd-table td:nth-child(6) { width: 12%; }
+.cnd-table th:nth-child(2), .cnd-table td:nth-child(2) { width: 28%; }
+.cnd-table th:nth-child(3), .cnd-table td:nth-child(3) { width: 28%; }
+.cnd-table th:nth-child(4), .cnd-table td:nth-child(4) { width: 23%; }
+.cnd-table th:nth-child(5), .cnd-table td:nth-child(5) { width: 12%; }
+/* Status column: badge + reviewed-note centered together, not just the note
+   text on its own -- otherwise the note (centered) and the badge (left-
+   aligned by default) would visually disagree with each other. */
+.cnd-table td:nth-child(5) { text-align: center; }
 
 .cnd-table td {
   word-wrap: break-word;
@@ -147,6 +154,14 @@
 .cnd-candidate-name { font-weight: 600; }
 .cnd-candidate-email { color: var(--altrium-ink-soft); font-size: 12.5px; }
 .cnd-vacancy-dept { color: var(--altrium-ink-soft); font-size: 12px; }
+
+/* Handoff indicator on In Progress rows -- who last opened this CV and when,
+   so a second HR officer can pick up where a colleague left off.
+   Correction: white-space: nowrap was clipping this against the Status
+   column's fixed 12% width ("Reviewed by Sharon Whi..." cut off mid-word) --
+   the column is deliberately narrow, so the fix is to let it wrap and center
+   it under the badge, not to widen the column. */
+.cnd-reviewed-note { color: var(--altrium-ink-soft); font-size: 11px; margin-top: 4px; text-align: center; }
 
 .cnd-status {
   font-size: 11px;
@@ -187,11 +202,30 @@
 
 .cnd-stage-rejected { color: #b91c1c; }
 
+/* Back in the normal page flow, after Schedule Interview (the last section)
+   -- a fixed/floating version was tried and reverted per user feedback ("not
+   floating, just put it at the end of the screen once they scroll down").
+   Right-aligned within the page, with a top border to separate it from the
+   Schedule Interview section above. */
 .cnd-detail-decision-row {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 10px;
-  margin-bottom: 4px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--altrium-line);
+}
+
+/* Reconsider row -- explanatory text on the left, action on the right,
+   unlike the plain Reject/Shortlist pair which is just two right-aligned
+   buttons. */
+.cnd-detail-decision-row-space {
+  justify-content: space-between;
+}
+.cnd-detail-decision-row-space p {
+  margin: 0;
+  max-width: 70%;
 }
 
 /* Candidate detail page (was a modal, now a routed page). Previously capped
@@ -217,17 +251,6 @@
   color: var(--altrium-black);
 }
 
-/* Reject/Shortlist moved to the bottom of the page, per user feedback --
-   previously top-of-modal, using .cnd-detail-decision-row's flex/gap as-is
-   but with a top border/spacing to separate it from Schedule Interview
-   above instead of .cnd-detail-modal's own bottom padding. */
-.cnd-detail-decision-row-bottom {
-  justify-content: flex-start;
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid var(--altrium-line);
-}
-
 .cnd-link-btn {
   background: none;
   border: none;
@@ -245,28 +268,27 @@
   gap: 6px;
 }
 
+/* Solid pill style, matching the Hiring Manager's Reject/Hire buttons on
+   Pending Decisions (pd-action-btn/-positive/-negative) -- was previously a
+   thin outlined pill, restyled per user feedback so the decision buttons
+   read as prominent, filled actions instead of secondary/outline ones. */
 .cnd-action-btn {
-  border: 1px solid #d1d5db;
+  border: none;
   border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 12px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 500;
   font-family: var(--sans);
   cursor: pointer;
-  background: white;
+  color: white;
 }
-.cnd-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cnd-action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.cnd-action-shortlist {
-  border-color: #1e7a34;
-  color: #1e7a34;
-}
-.cnd-action-shortlist:hover:not(:disabled) { background: #e6f4ea; }
+.cnd-action-shortlist { background: #1e7a34; }
+.cnd-action-shortlist:hover:not(:disabled) { background: #17612a; }
 
-.cnd-action-reject {
-  border-color: #b91c1c;
-  color: #b91c1c;
-}
-.cnd-action-reject:hover:not(:disabled) { background: #fbe4e4; }
+.cnd-action-reject { background: #b91c1c; }
+.cnd-action-reject:hover:not(:disabled) { background: #991717; }
 
 /* Modal (mirrors VacanciesPage's modal look, kept local so this page has no
    cross-file CSS dependency) */
@@ -594,6 +616,31 @@
 .cnd-review-note-input {
   min-height: 120px;
 }
+
+/* Read-only state once a CV-stage decision has locked the note (see
+   CandidateDetailPage.tsx's isCvReviewLocked). Correction: this used to
+   share the editable textarea's fixed 120px min-height so the card
+   "wouldn't jump" -- but a locked note is almost always one short sentence,
+   so that made every locked card show a mostly-empty oversized box. Sizes
+   to its actual content now (no min-height), same border/background
+   treatment otherwise so it still reads as a distinct, non-interactive box. */
+.cnd-review-note-locked {
+  margin: 0;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--altrium-ink);
+  background: #faf9f7;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+}
+.cnd-locked-hint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-style: italic;
+}
 .cnd-detail-page select:focus,
 .cnd-detail-page input:focus,
 .cnd-detail-page textarea:focus {
@@ -643,3 +690,98 @@
 .cnd-summary-name { font-weight: 500; }
 .cnd-summary-ok { color: #1e7a34; font-size: 12.5px; }
 .cnd-summary-error { color: #b91c1c; font-size: 12.5px; }
+
+/* Email History rows -- clicking a row expands it in place to show the
+   actual subject/body that was sent (see candidate.controller.ts's
+   emailHistory, now carrying subject/body alongside the existing
+   label/sentAt). The row itself is a <button> (not a <div> with an onClick)
+   for real keyboard/screen-reader support. */
+.cnd-email-history-toggle {
+  width: 100%;
+  margin: 0;
+  background: none;
+  font-family: var(--sans);
+  cursor: pointer;
+  text-align: left;
+}
+.cnd-email-history-toggle:hover { border-color: var(--altrium-gold); }
+.cnd-email-history-body {
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  margin-top: 6px;
+  padding: 12px 14px 14px;
+  background: #faf9f7;
+}
+.cnd-email-history-subject {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+.cnd-email-history-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--altrium-ink-soft);
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* Duplicate-match notice on CV upload -- centered modal (reuses the shared
+   .cnd-modal-backdrop/.cnd-modal pattern, same as the Upload CV modal) rather
+   than a bottom toast, since HR reported the toast read like a fleeting error
+   and was easy to miss. Can hold multiple rows (one per matched CV in a
+   batch upload), each with a real link through to the application. */
+.cnd-duplicate-modal {
+  width: 440px;
+  text-align: center;
+}
+.cnd-duplicate-modal-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #fdf2d9;
+  color: var(--altrium-gold-dark);
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cnd-duplicate-modal h2 {
+  text-align: center;
+  margin-bottom: 18px;
+}
+.cnd-duplicate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cnd-duplicate-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  background: #faf9f7;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  text-align: center;
+}
+.cnd-duplicate-row p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--altrium-ink);
+}
+.cnd-duplicate-link {
+  color: var(--altrium-gold-dark);
+  font-weight: 600;
+  font-size: 13.5px;
+  text-decoration: none;
+}
+.cnd-duplicate-link:hover { text-decoration: underline; }
+.cnd-duplicate-modal .cnd-modal-actions {
+  justify-content: center;
+  margin-top: 22px;
+}

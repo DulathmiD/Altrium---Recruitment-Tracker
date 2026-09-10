@@ -12,9 +12,15 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from helpers import (  # noqa: E402
     safe_quit,
-    BASE_URL, ACCOUNTS, PASSWORD, check_servers_are_up, new_driver,
+    BASE_URL, ACCOUNTS, ACCOUNT_PASSWORDS, check_servers_are_up, new_driver,
     login_as, wait_visible, report, run_safely,
 )
+
+# The password-confirmation modal re-checks the CURRENTLY LOGGED IN user's
+# own password (Naomi, the IT Admin account these tests log in as) -- not a
+# flat shared constant. Resolved once here so every send_keys below stays
+# correct if the IT Admin account this suite logs in as ever changes.
+IT_ADMIN_PASSWORD = ACCOUNT_PASSWORDS[ACCOUNTS["IT_ADMIN"]]
 from selenium.webdriver.common.by import By  # noqa: E402
 from selenium.webdriver.support.ui import Select  # noqa: E402
 
@@ -58,7 +64,7 @@ def test_create_user_correct_password_navigates_to_create_page():
         _login_admin(driver)
         driver.get(f"{BASE_URL}/admin/users")
         wait_visible(driver, By.CSS_SELECTOR, "button.usr-create-btn").click()
-        wait_visible(driver, By.ID, "pwc-password").send_keys(PASSWORD)
+        wait_visible(driver, By.ID, "pwc-password").send_keys(IT_ADMIN_PASSWORD)
         driver.find_element(By.CSS_SELECTOR, "button.pwc-confirm-btn").click()
         wait_visible(driver, By.ID, "cru-name")
         ok = "/admin/users/create" in driver.current_url
@@ -74,7 +80,7 @@ def test_create_user_full_form_happy_path():
         _login_admin(driver)
         driver.get(f"{BASE_URL}/admin/users")
         wait_visible(driver, By.CSS_SELECTOR, "button.usr-create-btn").click()
-        wait_visible(driver, By.ID, "pwc-password").send_keys(PASSWORD)
+        wait_visible(driver, By.ID, "pwc-password").send_keys(IT_ADMIN_PASSWORD)
         driver.find_element(By.CSS_SELECTOR, "button.pwc-confirm-btn").click()
 
         wait_visible(driver, By.ID, "cru-name").send_keys("Selenium Test User")
@@ -87,7 +93,7 @@ def test_create_user_full_form_happy_path():
         # First "Create User" click opens a second PasswordConfirmModal
         # (every account-mutating IT Admin action is password-gated).
         driver.find_element(By.CSS_SELECTOR, "button.cru-primary-btn").click()
-        wait_visible(driver, By.ID, "pwc-password").send_keys(PASSWORD)
+        wait_visible(driver, By.ID, "pwc-password").send_keys(IT_ADMIN_PASSWORD)
         driver.find_element(By.CSS_SELECTOR, "button.pwc-confirm-btn").click()
 
         success = wait_visible(driver, By.CSS_SELECTOR, ".cru-success-title", timeout=8)

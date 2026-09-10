@@ -13,6 +13,7 @@ import {
   deleteVacancyStage,
   reorderVacancyStages,
 } from "../controllers/vacancy.controller.js";
+import { createInterviewPanel, listInterviewPanelsForVacancy } from "../controllers/interviewPanel.controller.js";
 import {
   applyCandidateToVacancy,
   listApplicationsForVacancy,
@@ -37,6 +38,11 @@ vacancyRouter.patch("/:id", requireRole(Role.HR), updateVacancy);
 vacancyRouter.get("/:id/interviewers", listVacancyInterviewers);
 vacancyRouter.post("/:id/interviewers", requireRole(Role.HR), assignInterviewerToVacancy);
 vacancyRouter.delete("/:id/interviewers/:userId", requireRole(Role.HR), removeInterviewerFromVacancy);
+
+// Named, reusable panels -- a saved grouping within a vacancy's interviewer
+// pool above (see schema.prisma comment on InterviewPanel).
+vacancyRouter.get("/:id/panels", listInterviewPanelsForVacancy);
+vacancyRouter.post("/:id/panels", requireRole(Role.HR), createInterviewPanel);
 
 // US-05: HR-configurable interview rounds. Reorder route must come before
 // "/:stageId" -- otherwise Express would match "reorder" as a :stageId value.

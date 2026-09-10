@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   listCandidates,
   applyCandidateToVacancy,
   extractCvFiles,
   confirmCvUpload,
-  fetchCvBlobUrl,
   type CandidateApplicationRow,
   type RecruitmentStage,
   type ExtractedCvFile,
@@ -14,6 +13,7 @@ import {
 } from "../../api/candidates";
 import { listVacancies, type Vacancy } from "../../api/vacancy";
 import { listVacancyStages } from "../../api/vacancyStages";
+import { ApiError } from "../../api/client";
 import Toast from "../../components/Toast";
 import "./CandidatesPage.css";
 
@@ -25,16 +25,18 @@ const STAGE_LABELS: Record<RecruitmentStage, string> = {
 };
 
 // US-09: status marker, derived from `stage` rather than stored separately.
-// Frontend-corrections pass (2nd round): "In Progress" is the CV's default
-// state right after upload (nobody's screened it yet) -- it becomes
-// "Shortlisted" once HR reviews/shortlists it. This is deliberately not
-// re-derived from currentVacancyStageId anymore -- once shortlisted, this
-// candidate reads "Shortlisted" here for their whole time in the pipeline;
-// which specific interview round they're in is the Stage column's job (see
+// Frontend-corrections pass (2nd round): "Unreviewed" is the CV's default
+// state right after upload (nobody's screened it yet, matches the AC's own
+// "unreviewed" wording -- relabeled from "In Progress" which read as though
+// something was actively happening) -- it becomes "Shortlisted" once HR
+// reviews/shortlists it. This is deliberately not re-derived from
+// currentVacancyStageId anymore -- once shortlisted, this candidate reads
+// "Shortlisted" here for their whole time in the pipeline; which specific
+// interview round they're in is the Stage column's job (see
 // stageDisplayFor below), not this one's.
 function statusFor(row: CandidateApplicationRow): { label: string; cls: string } {
   if (row.stage === "APPLIED") {
-    return { label: "In Progress", cls: "cnd-status cnd-status-blue" };
+    return { label: "Unreviewed", cls: "cnd-status cnd-status-blue" };
   }
   if (row.stage === "SHORTLISTED") {
     // Swapped per follow-up correction: Shortlisted now reads yellow,
@@ -50,14 +52,17 @@ function statusFor(row: CandidateApplicationRow): { label: string; cls: string }
   return { label: STAGE_LABELS[row.stage], cls: "cnd-status cnd-status-plain" };
 }
 
-// Frontend-corrections pass: Status only ever means In Progress (freshly
-// applied, not yet screened) or Shortlisted (HR has screened/shortlisted it)
-// -- Hired/Rejected aren't part of this filter, they're covered by the
-// interview-stage filter and the merged Stage column instead.
-function statusBucketFor(row: CandidateApplicationRow): "SHORTLISTED" | "IN_PROGRESS" | null {
+// Correction: originally only covered Unreviewed/Shortlisted on the theory
+// that Hired/Rejected were "covered by the interview-stage filter instead" --
+// but that filter is about which specific round a candidate is in, not a
+// substitute for filtering by final outcome, and a lecturer asking "show me
+// everyone rejected" has no way to do that otherwise. All four
+// CandidateApplication.stage values are real filter options now.
+function statusBucketFor(row: CandidateApplicationRow): "SHORTLISTED" | "IN_PROGRESS" | "HIRED" | "REJECTED" {
   if (row.stage === "APPLIED") return "IN_PROGRESS";
   if (row.stage === "SHORTLISTED") return "SHORTLISTED";
-  return null;
+  if (row.stage === "HIRED") return "HIRED";
+  return "REJECTED";
 }
 
 // Merged Stage column -- blank until this candidate has actually entered an
@@ -102,10 +107,50 @@ type UploadStep = "select" | "review";
 
 export default function CandidatesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Reject/Shortlist on the Candidate Detail page navigate back here with a
+  // one-shot toast in router state (same pattern as FeedbackPage.tsx ->
+  // MyCandidatesPage.tsx) so HR sees confirmation of what just happened,
+  // rather than the page just silently redirecting. Captured once on mount,
+  // then cleared via replace so a refresh/back doesn't re-show a stale toast.
+  const [decisionToast, setDecisionToast] = useState<string | null>(
+    () => (location.state as { toast?: string } | null)?.toast ?? null
+  );
+  useEffect(() => {
+    if (location.state && (location.state as { toast?: string }).toast) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [rows, setRows] = useState<CandidateApplicationRow[]>([]);
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Which vacancies/interview-rounds actually have at least one candidate
+  // application -- deliberately independent of the active filters above
+  // (rows is the FILTERED table data, so deriving "has candidates" from it
+  // would be self-referential: picking a vacancy filter would make every
+  // other vacancy look empty). Populated from one unfiltered fetch, so a
+  // vacancy/stage the lecturer picks from these two dropdowns always has at
+  // least one real row to show -- otherwise she'd land on a blank table and
+  // reasonably ask why a vacancy is listed at all with nothing in it.
+  const [vacancyIdsWithCandidates, setVacancyIdsWithCandidates] = useState<Set<number>>(new Set());
+  const [stageIdsWithCandidates, setStageIdsWithCandidates] = useState<Set<number>>(new Set());
+
+  async function refreshPopulatedFilterIds() {
+    try {
+      const all = await listCandidates({});
+      setVacancyIdsWithCandidates(new Set(all.map((r) => r.vacancyId)));
+      setStageIdsWithCandidates(
+        new Set(all.map((r) => r.currentVacancyStageId).filter((id): id is number => id !== null))
+      );
+    } catch {
+      // Non-critical -- worst case the dropdowns just show every vacancy/
+      // stage again (the pre-fix behavior), not a broken page.
+    }
+  }
 
   const [search, setSearch] = useState("");
   // Frontend-corrections pass: "Stage" now filters by a specific interview
@@ -120,12 +165,10 @@ export default function CandidatesPage() {
   // only Shortlisted / In Progress, since this screen is specifically where
   // HR screens CVs and moves candidates through rounds. Applied purely
   // client-side since it's derived from data already loaded.
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "SHORTLISTED" | "IN_PROGRESS">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "SHORTLISTED" | "IN_PROGRESS" | "HIRED" | "REJECTED">("ALL");
   // Minimum interview feedback score -- server-side (candidate.controller.ts
   // already supported this; the frontend control was the missing piece).
   const [minScore, setMinScore] = useState("");
-
-  const [actionError, setActionError] = useState("");
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadStep, setUploadStep] = useState<UploadStep>("select");
@@ -137,8 +180,14 @@ export default function CandidatesPage() {
   const [uploadToast, setUploadToast] = useState<string | null>(null);
   const [confirmFailNotice, setConfirmFailNotice] = useState<string | null>(null);
   // SCRUM2-30: separate from confirmFailNotice on purpose -- a matched
-  // duplicate isn't a failure, the application still gets created.
-  const [duplicateNotice, setDuplicateNotice] = useState<string | null>(null);
+  // duplicate isn't a failure, the application still gets created. Holds one
+  // entry per matched CV (not a joined string) so each can link straight to
+  // the existing candidate's newly-linked application instead of just
+  // naming them in text -- HR asked to be able to click through and check
+  // it's really the same person, not just be told so.
+  const [duplicateMatches, setDuplicateMatches] = useState<
+    { applicationId: number; name: string; existingVacancies: string[]; alreadyOnThisVacancy: boolean }[]
+  >([]);
   const [confirming, setConfirming] = useState(false);
   // Frontend-corrections pass: real drag-and-drop dropzone (dragActive is
   // just hover styling while a drag is over it) and files that failed the
@@ -151,6 +200,7 @@ export default function CandidatesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    refreshPopulatedFilterIds();
     listVacancies()
       .then((vacs) => {
         setVacancies(vacs);
@@ -215,32 +265,60 @@ export default function CandidatesPage() {
     };
   }
 
-  // Frontend-corrections pass: candidates who've been passed on to a later
-  // round float to the top, rejected candidates sink to the bottom -- so the
-  // "All Stages" view stays organized without HR having to filter it down.
-  // Rejected first check, then by how far along they are (round order),
-  // then by most recently applied as a tiebreaker (no per-row "last stage
-  // change" timestamp is available on this list endpoint).
+  // Status ordering (top to bottom): In Progress -> Shortlisted -> Hired ->
+  // Rejected -- the still-actionable ones surface first, fully-resolved
+  // candidates sink down, Rejected sinks furthest since it's the least
+  // actionable of all. Within "In Progress" specifically, most-recently-
+  // reviewed floats to the top of that bucket: this is the CV-handoff case
+  // (an HR officer was mid-review and had to step away) -- the next HR
+  // officer opening this screen sees which CV a colleague was just looking
+  // at, right at the top, instead of having to open candidates one at a time
+  // to find it. Never-reviewed rows (lastCvReviewedAt is null) sink to the
+  // bottom of the In Progress bucket. Shortlisted keeps the older "further
+  // along the round order floats up" behavior; Hired/Rejected just fall back
+  // to most-recently-applied.
+  const STAGE_RANK: Record<RecruitmentStage, number> = {
+    APPLIED: 0,
+    SHORTLISTED: 1,
+    HIRED: 2,
+    REJECTED: 3,
+  };
   const filteredRows = useMemo(() => {
     const base = statusFilter === "ALL" ? rows : rows.filter((r) => statusBucketFor(r) === statusFilter);
     return [...base].sort((a, b) => {
-      if (a.stage === "REJECTED" && b.stage !== "REJECTED") return 1;
-      if (b.stage === "REJECTED" && a.stage !== "REJECTED") return -1;
-      const aOrder = a.currentVacancyStage?.order ?? (a.stage === "HIRED" ? 999 : -1);
-      const bOrder = b.currentVacancyStage?.order ?? (b.stage === "HIRED" ? 999 : -1);
-      if (aOrder !== bOrder) return bOrder - aOrder;
+      const rankDiff = STAGE_RANK[a.stage] - STAGE_RANK[b.stage];
+      if (rankDiff !== 0) return rankDiff;
+
+      if (a.stage === "APPLIED") {
+        const aReviewed = a.candidate.lastCvReviewedAt ? new Date(a.candidate.lastCvReviewedAt).getTime() : 0;
+        const bReviewed = b.candidate.lastCvReviewedAt ? new Date(b.candidate.lastCvReviewedAt).getTime() : 0;
+        if (aReviewed !== bReviewed) return bReviewed - aReviewed;
+        return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+      }
+
+      if (a.stage === "SHORTLISTED") {
+        const aOrder = a.currentVacancyStage?.order ?? -1;
+        const bOrder = b.currentVacancyStage?.order ?? -1;
+        if (aOrder !== bOrder) return bOrder - aOrder;
+      }
+
       return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
     });
   }, [rows, statusFilter]);
 
-  async function handleViewCv(candidateId: number) {
-    setActionError("");
-    try {
-      const url = await fetchCvBlobUrl(candidateId);
-      window.open(url, "_blank");
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Could not open CV");
-    }
+  // Compact "5m ago" / "3h ago" / "2d ago" label for the In Progress
+  // handoff indicator -- falls back to a plain date once it's more than a
+  // week old, since "9d ago" is less useful than a real date at that point.
+  function relativeTime(iso: string): string {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(iso).toLocaleDateString();
   }
 
   function openUploadModal() {
@@ -349,10 +427,15 @@ export default function CandidatesPage() {
     setConfirming(true);
     setUploadError("");
     setConfirmFailNotice(null);
-    setDuplicateNotice(null);
+    setDuplicateMatches([]);
     let successCount = 0;
     const failReasons: string[] = [];
-    const duplicateNotes: string[] = [];
+    const newDuplicateMatches: {
+      applicationId: number;
+      name: string;
+      existingVacancies: string[];
+      alreadyOnThisVacancy: boolean;
+    }[] = [];
     try {
       const result = await confirmCvUpload(
         reviewRows.map((r) => ({
@@ -381,15 +464,40 @@ export default function CandidatesPage() {
       // HR is informed, not that the app pretends nothing happened.
       for (const match of result.matched) {
         try {
-          await applyCandidateToVacancy(vacancyId, match.candidateId);
+          const application = await applyCandidateToVacancy(vacancyId, match.candidateId);
           successCount++;
-          duplicateNotes.push(
-            match.existingVacancies.length > 0
-              ? `${match.existingName} already has a profile with us, so we linked this CV to their existing application for ${match.existingVacancies.join(", ")}.`
-              : `${match.existingName} already has a profile with us, so we linked this CV to it instead of creating a new one.`
-          );
+          // Link straight to the application this CV just got attached to
+          // (application.id), not just name the match in text -- HR asked to
+          // be able to click through and confirm it's really the same
+          // person rather than take the match on faith.
+          newDuplicateMatches.push({
+            applicationId: application.id,
+            name: match.existingName,
+            existingVacancies: match.existingVacancies,
+            alreadyOnThisVacancy: false,
+          });
         } catch (err) {
-          failReasons.push(err instanceof Error ? err.message : "Could not apply this candidate to the vacancy");
+          // This specific person has already applied to THIS vacancy before
+          // (re-uploading the same CV a second time, or two files in one
+          // batch resolving to the same email) -- previously just a dead-end
+          // "already uploaded" text notice. The backend now names the
+          // existing application's id on this exact 409
+          // (application.controller.ts's applyCandidateToVacancy), so this
+          // can link straight to it instead, same as a cross-vacancy match.
+          const existingApplicationId =
+            err instanceof ApiError && err.data && typeof err.data === "object"
+              ? (err.data as { existingApplicationId?: number | null }).existingApplicationId
+              : null;
+          if (existingApplicationId) {
+            newDuplicateMatches.push({
+              applicationId: existingApplicationId,
+              name: match.existingName,
+              existingVacancies: match.existingVacancies,
+              alreadyOnThisVacancy: true,
+            });
+          } else {
+            failReasons.push(err instanceof Error ? err.message : "Could not apply this candidate to the vacancy");
+          }
         }
       }
 
@@ -400,8 +508,8 @@ export default function CandidatesPage() {
         failReasons.push(failure.error);
       }
 
-      if (duplicateNotes.length > 0) {
-        setDuplicateNotice(duplicateNotes.join(" "));
+      if (newDuplicateMatches.length > 0) {
+        setDuplicateMatches(newDuplicateMatches);
       }
 
       // Single toast instead of a separate "Upload Complete" summary step --
@@ -410,32 +518,41 @@ export default function CandidatesPage() {
       // mentions failed counts -- any failure instead surfaces via the same
       // red notice style used for the "PDF only" rejection in the select
       // step, per user feedback. The notice names the actual reason instead
-      // of a generic phrase: the most common real cause is the candidate
-      // having already applied to this vacancy (a duplicate CV for the same
-      // vacancy), which the backend reports verbatim -- so that's called out
-      // by name when it's the only reason. Other backend-reported reasons
-      // (e.g. an expired upload) are shown as-is rather than invented.
+      // of a generic phrase -- other backend-reported reasons (e.g. an
+      // expired upload) are shown as-is rather than invented. A candidate
+      // who's already applied to THIS vacancy is no longer counted as a
+      // failure at all -- see the matched-loop catch above, it's routed into
+      // duplicateMatches (a clickable link to their existing application)
+      // instead, so it doesn't inflate failReasons or need special-casing
+      // here anymore.
       const total = successCount + failReasons.length;
       if (failReasons.length === 0) {
-        setUploadToast(`Successfully uploaded ${total} ${total === 1 ? "CV" : "CVs"}.`);
+        // successCount can legitimately be 0 here if every file in the batch
+        // turned out to already have an application on this vacancy (all
+        // caught by duplicateMatches, none of them a real failure) -- don't
+        // claim a false "Successfully uploaded 0 CVs" in that case, let the
+        // duplicateMatches panel alone explain what happened.
+        if (successCount > 0) {
+          setUploadToast(`Successfully uploaded ${total} ${total === 1 ? "CV" : "CVs"}.`);
+        }
         setUploadOpen(false);
       } else {
         // Keep the modal open on failure instead of closing it -- the notice
         // is shown inline in the review step, same as the "PDF only"
         // rejection notice in the select step, rather than a toast.
-        const isAllDuplicates = failReasons.every((r) => /already applied to this vacancy/i.test(r));
         const uniqueReasons = Array.from(new Set(failReasons));
-        const message = isAllDuplicates
-          ? failReasons.length === 1
-            ? "This CV has already been uploaded to this vacancy."
-            : "These CVs have already been uploaded to this vacancy."
-          : uniqueReasons.length === 1
+        const message =
+          uniqueReasons.length === 1
             ? uniqueReasons[0]
             : `${failReasons.length} of ${total} CVs could not be uploaded: ${uniqueReasons.join("; ")}`;
         setConfirmFailNotice(message);
       }
 
       await refresh(currentFilters());
+      // A vacancy/round that had zero candidates before this upload should
+      // become selectable in the filter dropdowns immediately, not only
+      // after the page is reloaded.
+      await refreshPopulatedFilterIds();
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Could not confirm candidates");
     } finally {
@@ -443,7 +560,12 @@ export default function CandidatesPage() {
     }
   }
 
-  const applyableVacancies = vacancies.filter((v) => v.status !== "CLOSED");
+  // Upload CVs is HR's "add a new candidate to this vacancy" entry point, so
+  // it must respect the same freeze as the backend
+  // (application.controller.ts's assertVacancyNotOnHold): CLOSED already
+  // excluded a vacancy here, ON_HOLD now does too -- a frozen vacancy is
+  // paused, not accepting new applicants, until it's reopened to OPEN.
+  const applyableVacancies = vacancies.filter((v) => v.status === "OPEN");
 
   return (
     <div className="cnd-page">
@@ -465,19 +587,25 @@ export default function CandidatesPage() {
           onChange={(e) => setVacancyFilter(e.target.value === "ALL" ? "ALL" : Number(e.target.value))}
         >
           <option value="ALL">All Vacancies</option>
-          {vacancies.map((v) => <option key={v.id} value={v.id}>{v.title} - {v.department}</option>)}
+          {vacancies
+            .filter((v) => vacancyIdsWithCandidates.has(v.id))
+            .map((v) => <option key={v.id} value={v.id}>{v.title} - {v.department}</option>)}
         </select>
         <select
           value={vacancyStageFilter}
           onChange={(e) => setVacancyStageFilter(e.target.value === "ALL" ? "ALL" : Number(e.target.value))}
         >
           <option value="ALL">All Stages</option>
-          {vacancyStageOptions.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+          {vacancyStageOptions
+            .filter((s) => stageIdsWithCandidates.has(s.id))
+            .map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
           <option value="ALL">All Statuses</option>
+          <option value="IN_PROGRESS">Unreviewed</option>
           <option value="SHORTLISTED">Shortlisted</option>
-          <option value="IN_PROGRESS">In Progress</option>
+          <option value="HIRED">Hired</option>
+          <option value="REJECTED">Rejected</option>
         </select>
         <select className="cnd-score-input" value={minScore} onChange={(e) => setMinScore(e.target.value)}>
           <option value="">Score</option>
@@ -489,7 +617,6 @@ export default function CandidatesPage() {
 
       {loading && <p className="cnd-muted">Loading...</p>}
       {error && <p className="cnd-error">{error}</p>}
-      {actionError && <p className="cnd-error">{actionError}</p>}
       {!loading && filteredRows.length === 0 && <p className="cnd-muted">No candidates match these filters.</p>}
 
       {!loading && filteredRows.length > 0 && (
@@ -498,7 +625,6 @@ export default function CandidatesPage() {
             <tr>
               <th>Candidate ID</th>
               <th>Candidate</th>
-              <th>CV</th>
               <th>Vacancy</th>
               <th>Stage</th>
               <th>Status</th>
@@ -517,12 +643,16 @@ export default function CandidatesPage() {
                       <div className="cnd-candidate-email">{r.candidate.email}</div>
                     </button>
                   </td>
-                  <td>
-                    <button className="cnd-link-btn" onClick={() => handleViewCv(r.candidateId)}>View</button>
-                  </td>
                   <td>{r.vacancy.title}<div className="cnd-vacancy-dept">{r.vacancy.department}</div></td>
                   <td className={stageDisplay.rejected ? "cnd-stage-rejected" : undefined}>{stageDisplay.text}</td>
-                  <td><span className={status.cls}>{status.label}</span></td>
+                  <td>
+                    <span className={status.cls}>{status.label}</span>
+                    {r.stage === "APPLIED" && r.candidate.lastCvReviewedBy && r.candidate.lastCvReviewedAt && (
+                      <div className="cnd-reviewed-note">
+                        Reviewed by {r.candidate.lastCvReviewedBy.name} &middot; {relativeTime(r.candidate.lastCvReviewedAt)}
+                      </div>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -708,13 +838,58 @@ export default function CandidatesPage() {
         <Toast message={uploadToast} duration={8000} dismissible onClose={() => setUploadToast(null)} />
       )}
 
-      {/* SCRUM2-30: rendered outside the modal (unlike confirmFailNotice)
-          because a duplicate match isn't a failure -- the modal already
-          closed on the success path by the time this needs to be seen. No
-          auto-dismiss (duration 0): this is worth HR actually reading, not a
-          one-line confirmation that can flash by. */}
-      {duplicateNotice && (
-        <Toast message={duplicateNotice} duration={0} dismissible onClose={() => setDuplicateNotice(null)} />
+      {decisionToast && (
+        <Toast message={decisionToast} duration={6000} dismissible onClose={() => setDecisionToast(null)} />
+      )}
+
+      {/* SCRUM2-30: rendered as a centered modal (unlike confirmFailNotice)
+          because a duplicate match isn't a failure -- the upload modal already
+          closed on the success path by the time this needs to be seen, and a
+          bottom toast was easy to miss/misread as an error. No auto-dismiss:
+          this is worth HR actually reading, not a one-line confirmation that
+          can flash by. One row per match rather than a single joined message,
+          each a real link to the application this CV just got attached to --
+          so HR can click through and check it's really the same person
+          instead of taking the match on faith. Reuses this file's existing
+          .cnd-modal-backdrop/.cnd-modal pattern (same as the Upload CV modal)
+          since a batch upload can produce more than one match at once. */}
+      {duplicateMatches.length > 0 && (
+        <div className="cnd-modal-backdrop" onClick={() => setDuplicateMatches([])}>
+          <div
+            className="cnd-modal cnd-duplicate-modal"
+            role="alertdialog"
+            aria-labelledby="cnd-duplicate-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="cnd-duplicate-modal-icon" aria-hidden="true">!</div>
+            <h2 id="cnd-duplicate-modal-title">
+              {duplicateMatches.length === 1 ? "Existing candidate found" : "Existing candidates found"}
+            </h2>
+            <div className="cnd-duplicate-list">
+              {duplicateMatches.map((m) => (
+                <div key={m.applicationId} className="cnd-duplicate-row">
+                  <p>
+                    {m.alreadyOnThisVacancy
+                      ? `${m.name} has already applied to this vacancy.`
+                      : `${m.name} already has a candidate profile${
+                          m.existingVacancies.length > 0 ? ` and has also applied to ${m.existingVacancies.join(", ")}` : ""
+                        }.`}
+                  </p>
+                  <Link
+                    to={`/hr/candidates/${m.applicationId}`}
+                    className="cnd-duplicate-link"
+                    onClick={() => setDuplicateMatches([])}
+                  >
+                    View their profile &rarr;
+                  </Link>
+                </div>
+              ))}
+            </div>
+            <div className="cnd-modal-actions">
+              <button className="cnd-cancel-btn" onClick={() => setDuplicateMatches([])}>Close</button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

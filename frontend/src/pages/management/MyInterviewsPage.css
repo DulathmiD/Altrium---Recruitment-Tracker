@@ -161,17 +161,28 @@
   gap: 6px;
 }
 
+/* Clickable -- opens the read-only slot detail panel below (Panel +
+   Candidates), same two-level drill-down as the Interviewer role's My
+   Interviews calendar (frontend/src/pages/interviewer/MyInterviewsPage.tsx),
+   per the request to match that page's detail view here too. */
 .mi-slot-row {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
+  background: none;
   border: 1px solid var(--altrium-line);
   border-radius: 8px;
   padding: 10px 12px;
   font-family: var(--sans);
   font-size: 13px;
   color: var(--altrium-ink);
+  cursor: pointer;
+  text-align: left;
+}
+.mi-slot-row:hover {
+  border-color: var(--altrium-gold);
+  background: #faf5ea;
 }
 
 .mi-slot-time {
@@ -189,4 +200,22 @@
 .mi-slot-candidate {
   flex-shrink: 0;
   color: var(--altrium-ink-soft);
+}
+
+.mi-section-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 18px 0 6px;
+}
+
+.mi-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }

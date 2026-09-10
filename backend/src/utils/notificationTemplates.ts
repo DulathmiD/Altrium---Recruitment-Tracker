@@ -22,6 +22,8 @@ export const TEMPLATE_KEYS = [
   "auth_password_reset",
   "interview_reminder_panelist",
   "interview_reminder_candidate",
+  "pending_cv_review_reminder",
+  "feedback_overdue_reminder",
 ] as const;
 
 export type TemplateKey = (typeof TEMPLATE_KEYS)[number];
@@ -51,12 +53,20 @@ export const TEMPLATE_META: Record<TemplateKey, { label: string; placeholders: s
     placeholders: ["userName", "resetLink"],
   },
   interview_reminder_panelist: {
-    label: "Interview reminder - panelist (SCRUM2-29)",
+    label: "Interview reminder - panelist",
     placeholders: ["panelistName", "candidateName", "vacancyTitle", "stageLabel", "when", "cvUrl"],
   },
   interview_reminder_candidate: {
-    label: "Interview reminder - candidate (SCRUM2-29)",
+    label: "Interview reminder - candidate",
     placeholders: ["candidateName", "vacancyTitle", "stageLabel", "when"],
+  },
+  pending_cv_review_reminder: {
+    label: "Pending CV reviews - daily digest (HR)",
+    placeholders: ["userName", "count", "oldestCandidateName", "oldestVacancyTitle"],
+  },
+  feedback_overdue_reminder: {
+    label: "Overdue interview feedback (Interviewer/Management)",
+    placeholders: ["panelistName", "candidateName", "vacancyTitle", "stageLabel", "when"],
   },
 };
 
@@ -101,6 +111,16 @@ export const DEFAULT_TEMPLATES: Record<TemplateKey, { subject: string; body: str
     subject: "Reminder: your upcoming interview for {{vacancyTitle}} at Altrium",
     body:
       "Hi {{candidateName}},\n\nThis is a friendly reminder that your {{stageLabel}} interview for the {{vacancyTitle}} role is coming up.\n\nDate/time: {{when}}\n\nWe look forward to speaking with you.",
+  },
+  pending_cv_review_reminder: {
+    subject: "{{count}} CV review(s) still pending",
+    body:
+      "Hi {{userName}},\n\nYou have {{count}} candidate application(s) still waiting on an initial CV review. The oldest is {{oldestCandidateName}} for {{oldestVacancyTitle}}.\n\nCheck Follow Ups to review them.",
+  },
+  feedback_overdue_reminder: {
+    subject: "Feedback still due: {{candidateName}} for {{vacancyTitle}}",
+    body:
+      "Hi {{panelistName}},\n\nYou haven't yet submitted feedback for {{candidateName}}'s {{stageLabel}} interview for the {{vacancyTitle}} role, held {{when}}.\n\nPlease submit your feedback when you get a chance.",
   },
 };
 

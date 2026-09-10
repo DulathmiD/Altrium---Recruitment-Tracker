@@ -54,7 +54,10 @@ export async function login(req: Request, res: Response) {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, department: user.department },
+      user: {
+        id: user.id, name: user.name, email: user.email, role: user.role, department: user.department,
+        mustChangePassword: user.mustChangePassword,
+      },
     });
   } catch (err) {
     console.error(err);
@@ -91,7 +94,10 @@ export async function adminLogin(req: Request, res: Response) {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, department: user.department },
+      user: {
+        id: user.id, name: user.name, email: user.email, role: user.role, department: user.department,
+        mustChangePassword: user.mustChangePassword,
+      },
     });
   } catch (err) {
     console.error(err);
@@ -131,6 +137,44 @@ export async function verifyPassword(req: Request, res: Response) {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Could not verify password right now. Please try again." });
+  }
+}
+
+// Self-service change while already logged in -- distinct from resetPassword
+// (email-token flow for a forgotten password) and verifyPassword (re-confirm
+// without changing anything). This is the one that clears mustChangePassword,
+// so it's what the forced first-login screen calls after an IT-Admin-created
+// account signs in with its shared initial password.
+export async function changePassword(req: Request, res: Response) {
+  const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: "currentPassword and newPassword are required" });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: "Password must be at least 8 characters" });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id }, omit: { passwordHash: false } });
+    if (!user) {
+      return res.status(401).json({ error: "Incorrect current password" });
+    }
+
+    const passwordMatches = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!passwordMatches) {
+      return res.status(401).json({ error: "Incorrect current password" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, mustChangePassword: false },
+    });
+
+    res.json({ message: "Password changed." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not change your password right now. Please try again." });
   }
 }
 

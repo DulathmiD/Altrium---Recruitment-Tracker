@@ -348,7 +348,11 @@ export async function getCandidateProgress(req: Request, res: Response) {
 // 4. Upcoming Interviews
 // ---------------------------------------------------------------------------
 
-async function buildUpcomingInterviewsData(department: string, filters: { dateRange?: DateRangeFilter | undefined; vacancyId?: number | undefined }) {
+async function buildUpcomingInterviewsData(
+  department: string,
+  userId: number,
+  filters: { dateRange?: DateRangeFilter | undefined; vacancyId?: number | undefined }
+) {
   const vacancyIds = (await getDepartmentVacancies(department, { vacancyId: filters.vacancyId })).map((v) => v.id);
 
   const now = new Date();
@@ -366,19 +370,46 @@ async function buildUpcomingInterviewsData(department: string, filters: { dateRa
       slot: { scheduledAt: { gte: now, ...(lookaheadEnd ? { lte: lookaheadEnd } : {}) } },
     },
     include: {
-      application: { include: { candidate: true, vacancy: true } },
-      slot: { include: { vacancyStage: true } },
+      // vacancy.stages included so the final round can be determined per
+      // vacancy (highest VacancyStage.order) rather than hardcoding a label
+      // like "Final Interview" against a specific stage name -- every
+      // department names its rounds differently, but "highest order" is
+      // structurally always the final one.
+      application: { include: { candidate: true, vacancy: { include: { stages: true } } } },
+      // panelists + this viewer's own feedback added so the calendar's
+      // slot-detail drill-down can show the same "Panel" / "Candidates
+      // (feedback status)" card as the Interviewer role's My Interviews
+      // page (frontend/src/pages/interviewer/MyInterviewsPage.tsx) --
+      // same shape/semantics, just re-fetched here since Management's
+      // upcoming-interviews query is scoped by department, not by
+      // panelist membership like listMyInterviews is.
+      slot: { include: { panelists: { include: { user: true } }, vacancyStage: true } },
+      feedback: { where: { interviewerId: userId }, select: { id: true } },
     },
     orderBy: { slot: { scheduledAt: "asc" } },
   });
 
-  return interviews.map((iv) => ({
-    interviewId: iv.id,
-    scheduledAt: iv.slot.scheduledAt,
-    candidate: { id: iv.application.candidate.id, name: iv.application.candidate.name },
-    vacancy: { id: iv.application.vacancy.id, title: iv.application.vacancy.title },
-    round: { name: iv.slot.vacancyStage.name, order: iv.slot.vacancyStage.order, roundLabel: iv.slot.roundLabel },
-  }));
+  return interviews.map((iv) => {
+    const maxOrder = Math.max(...iv.application.vacancy.stages.map((s) => s.order));
+    return {
+      interviewId: iv.id,
+      scheduledAt: iv.slot.scheduledAt,
+      candidate: { id: iv.application.candidate.id, name: iv.application.candidate.name },
+      vacancy: { id: iv.application.vacancy.id, title: iv.application.vacancy.title },
+      round: {
+        name: iv.slot.vacancyStage.name,
+        order: iv.slot.vacancyStage.order,
+        roundLabel: iv.slot.roundLabel,
+        isFinal: iv.slot.vacancyStage.order === maxOrder,
+      },
+      panelists: iv.slot.panelists.map((p) => ({ id: p.id, userId: p.userId, name: p.user.name })),
+      // "Own feedback submitted" -- same semantics as listMyInterviews,
+      // meaningful here because Management panelists submit/edit feedback
+      // through the same Feedback model (feedback.routes.ts allows
+      // MANAGEMENT on PATCH /feedback/:id).
+      feedbackSubmitted: iv.feedback.length > 0,
+    };
+  });
 }
 
 export async function getUpcomingInterviews(req: Request, res: Response) {
@@ -388,7 +419,10 @@ export async function getUpcomingInterviews(req: Request, res: Response) {
   const { dateRange, vacancyId } = req.query as { dateRange?: DateRangeFilter; vacancyId?: string };
 
   try {
-    const rows = await buildUpcomingInterviewsData(department, { dateRange, vacancyId: vacancyId ? Number(vacancyId) : undefined });
+    const rows = await buildUpcomingInterviewsData(department, req.user!.id, {
+      dateRange,
+      vacancyId: vacancyId ? Number(vacancyId) : undefined,
+    });
     res.json({ hasDepartment: true, rows });
   } catch (err) {
     console.error(err);
@@ -495,11 +529,15 @@ export async function getReportPdf(req: Request, res: Response) {
   // already-fetched, known-shaped data, so it isn't expected to throw -- but
   // it's still wrapped so a bug here logs and cleanly ends the document
   // instead of leaving the response hanging.
+  // Declared outside the try so the catch block below can still reach it --
+  // it's assigned inside the try immediately after doc.pipe(res) starts
+  // streaming, which is exactly when a later drawing failure needs it.
+  let doc: PDFKit.PDFDocument | undefined;
   try {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${type}-report.pdf"`);
 
-    const doc = new PDFDocument({ margin: PDF_MARGIN, size: "A4" });
+    doc = new PDFDocument({ margin: PDF_MARGIN, size: "A4" });
     doc.pipe(res);
 
     let y = drawReportHeader(doc, "MANAGEMENT REPORT");
@@ -603,6 +641,19 @@ export async function getReportPdf(req: Request, res: Response) {
     doc.end();
   } catch (err) {
     console.error("Error while drawing report PDF after headers were sent:", err);
-    res.end();
+    // Real bug, found while investigating a broken downloaded PDF: calling
+    // res.end() directly here (as this used to) ends the raw HTTP response
+    // without ever finalizing the PDFKit document -- PDFKit's own trailer/
+    // xref bytes (written by doc.end()) never get flushed into the stream,
+    // so the browser saves a structurally truncated file that then fails to
+    // open ("ERR_FAILED" / "This site can't be reached" for a local file).
+    // doc.end() itself is safe to call again here even mid-failure -- it
+    // just finalizes whatever content was already piped to `res` before the
+    // error, so the download is at least a valid (if incomplete) PDF instead
+    // of a corrupt one. Falls back to res.end() only for the (currently
+    // unreachable, since nothing above the doc assignment can throw) case
+    // where the failure happened before `doc` was even created.
+    if (doc) doc.end();
+    else res.end();
   }
 }

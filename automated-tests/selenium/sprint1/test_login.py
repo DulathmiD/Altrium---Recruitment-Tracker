@@ -13,7 +13,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from helpers import (  # noqa: E402
     safe_quit,
-    BASE_URL, ACCOUNTS, PASSWORD, GENERIC_LOGIN_ERROR, EMPTY_FIELDS_ERROR,
+    BASE_URL, ACCOUNTS, ACCOUNT_PASSWORDS, GENERIC_LOGIN_ERROR, EMPTY_FIELDS_ERROR,
     ROLE_LANDING_PATH, check_servers_are_up, new_driver, wait_visible,
     wait_url_contains, report, run_safely,
 )
@@ -25,7 +25,7 @@ def test_valid_login_hr():
     try:
         driver.get(f"{BASE_URL}/login")
         wait_visible(driver, By.ID, "email").send_keys(ACCOUNTS["HR"])
-        driver.find_element(By.ID, "password").send_keys(PASSWORD)
+        driver.find_element(By.ID, "password").send_keys(ACCOUNT_PASSWORDS[ACCOUNTS["HR"]])
         driver.find_element(By.CSS_SELECTOR, "button.login-button").click()
         wait_url_contains(driver, ROLE_LANDING_PATH["HR"])
         ok = ROLE_LANDING_PATH["HR"] in driver.current_url
@@ -48,7 +48,7 @@ def test_valid_login_all_roles_redirect_correctly():
         try:
             driver.get(f"{BASE_URL}/login")
             wait_visible(driver, By.ID, "email").send_keys(ACCOUNTS[role])
-            driver.find_element(By.ID, "password").send_keys(PASSWORD)
+            driver.find_element(By.ID, "password").send_keys(ACCOUNT_PASSWORDS[ACCOUNTS[role]])
             driver.find_element(By.CSS_SELECTOR, "button.login-button").click()
             wait_url_contains(driver, path)
             ok = path in driver.current_url
@@ -88,14 +88,14 @@ def test_empty_fields_shows_required_error():
 
 
 def test_disabled_account_shows_generic_error_not_a_hint():
-    """Priya Fernando (disabled@altrium.com) has isActive=false. The app must
+    """Rachel Kim (rachel@altrium.com) has isActive=false. The app must
     show the same generic message as a wrong password -- not "account disabled"
     -- so a caller can't use the error to enumerate which accounts exist."""
     driver = new_driver()
     try:
         driver.get(f"{BASE_URL}/login")
         wait_visible(driver, By.ID, "email").send_keys(ACCOUNTS["DISABLED"])
-        driver.find_element(By.ID, "password").send_keys(PASSWORD)
+        driver.find_element(By.ID, "password").send_keys(ACCOUNT_PASSWORDS[ACCOUNTS["DISABLED"]])
         driver.find_element(By.CSS_SELECTOR, "button.login-button").click()
         alert = wait_visible(driver, By.CSS_SELECTOR, ".login-alert")
         ok = alert.text.strip() == GENERIC_LOGIN_ERROR
@@ -111,7 +111,7 @@ def test_it_admin_cannot_use_regular_login():
     try:
         driver.get(f"{BASE_URL}/login")
         wait_visible(driver, By.ID, "email").send_keys(ACCOUNTS["IT_ADMIN"])
-        driver.find_element(By.ID, "password").send_keys(PASSWORD)
+        driver.find_element(By.ID, "password").send_keys(ACCOUNT_PASSWORDS[ACCOUNTS["IT_ADMIN"]])
         driver.find_element(By.CSS_SELECTOR, "button.login-button").click()
         alert = wait_visible(driver, By.CSS_SELECTOR, ".login-alert")
         ok = alert.text.strip() == GENERIC_LOGIN_ERROR
@@ -125,7 +125,7 @@ def test_it_admin_login_via_admin_route():
     try:
         driver.get(f"{BASE_URL}/admin")
         wait_visible(driver, By.ID, "email").send_keys(ACCOUNTS["IT_ADMIN"])
-        driver.find_element(By.ID, "password").send_keys(PASSWORD)
+        driver.find_element(By.ID, "password").send_keys(ACCOUNT_PASSWORDS[ACCOUNTS["IT_ADMIN"]])
         driver.find_element(By.CSS_SELECTOR, "button.login-button").click()
         wait_url_contains(driver, "/admin/users")
         ok = "/admin/users" in driver.current_url
@@ -140,7 +140,7 @@ def test_non_admin_rejected_at_admin_route():
     try:
         driver.get(f"{BASE_URL}/admin")
         wait_visible(driver, By.ID, "email").send_keys(ACCOUNTS["HR"])
-        driver.find_element(By.ID, "password").send_keys(PASSWORD)
+        driver.find_element(By.ID, "password").send_keys(ACCOUNT_PASSWORDS[ACCOUNTS["HR"]])
         driver.find_element(By.CSS_SELECTOR, "button.login-button").click()
         alert = wait_visible(driver, By.CSS_SELECTOR, ".login-alert")
         ok = alert.text.strip() == GENERIC_LOGIN_ERROR

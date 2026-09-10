@@ -25,6 +25,7 @@ export const EVENT_TYPE: Record<AuditAction, string> = {
   ROLE_CHANGED: "User Management",
   HM_DECISION_COMMENT: "Hiring Decisions",
   NOTIFICATION_TEMPLATE_UPDATED: "Notifications",
+  SYSTEM_BACKUP_RUN: "System",
 };
 
 const EVENT_TYPES = [...new Set(Object.values(EVENT_TYPE))];
@@ -64,6 +65,8 @@ export function describeAction(action: string, metadata: unknown): string {
       return m.reset
         ? `Reset the "${str(m.key, "a")}" notification template to default`
         : `Edited the "${str(m.key, "a")}" notification template`;
+    case "SYSTEM_BACKUP_RUN":
+      return `Manually triggered a system backup${typeof m.filename === "string" && m.filename ? ` (${m.filename})` : ""}`;
     default:
       return action;
   }

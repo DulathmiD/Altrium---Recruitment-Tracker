@@ -5,6 +5,7 @@ type AuthContextValue = {
   token: string | null;
   user: AuthUser | null;
   setAuth: (token: string, user: AuthUser) => void;
+  updateUser: (patch: Partial<AuthUser>) => void;
   logout: () => void;
 };
 
@@ -39,6 +40,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(newUser);
   }
 
+  // Patches the stored user in place -- used after a forced password change
+  // clears mustChangePassword, so the gate in ProtectedRoute picks up the new
+  // value on the very next render without a full re-login/new token.
+  function updateUser(patch: Partial<AuthUser>) {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      sessionStorage.setItem("user", JSON.stringify(next));
+      return next;
+    });
+  }
+
   function logout() {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
@@ -47,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ token, user, setAuth, logout }}>
+    <AuthContext.Provider value={{ token, user, setAuth, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

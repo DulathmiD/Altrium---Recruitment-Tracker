@@ -10,6 +10,14 @@ export type CandidateSummary = {
   phoneNumber: string | null;
   cvUrl: string;
   createdAt: string;
+  // Already returned by the backend on every candidate payload (see
+  // candidate.controller.ts, both getCandidate and listCandidates) -- these
+  // were previously only declared on CandidateDetail below, even though
+  // listCandidates' rows carry them too. Surfaced here so the Candidates
+  // list can show/sort on "who last reviewed this CV, and when" (the CV
+  // handoff indicator on In Progress rows) without a second round trip.
+  lastCvReviewedAt: string | null;
+  lastCvReviewedBy: { id: number; name: string; email: string } | null;
 };
 
 export type VacancyStageSummary = {
@@ -19,8 +27,9 @@ export type VacancyStageSummary = {
 };
 
 // Frontend-corrections pass: candidate detail view (getCandidate) -- who
-// last reviewed this CV and when (set automatically on every view, see
-// backend), the HR review note (only set when HR explicitly saves one), and
+// last reviewed this CV and when (set only via the "View CV" action on this
+// page, see markCandidateReviewed below -- opening the page alone no longer
+// counts), the HR review note (only set when HR explicitly saves one), and
 // every application this candidate has across all vacancies ("Applicant
 // History" in the wireframe).
 export type CandidateApplicationHistoryEntry = {
@@ -36,11 +45,15 @@ export type CandidateApplicationHistoryEntry = {
 // Task #44: read-only log of emails sent to this candidate (offers,
 // rejections, interview invitations), sourced from AuditLog NOTIFICATION_SENT
 // entries filtered to this candidate's email -- see candidate.controller.ts.
-// Only shows "what kind of email, when," not the actual subject/body sent.
+// subject/body are only populated for emails sent after the content-capture
+// fix -- older AuditLog rows predate it and come back null, which the UI
+// treats as "content not available" rather than an empty message.
 export type CandidateEmailHistoryEntry = {
   id: number;
   label: string;
   sentAt: string;
+  subject: string | null;
+  body: string | null;
 };
 
 export type CandidateDetail = CandidateSummary & {
@@ -52,12 +65,26 @@ export type CandidateDetail = CandidateSummary & {
   emailHistory: CandidateEmailHistoryEntry[];
 };
 
-// Also marks this candidate as reviewed by the current user (lastCvReviewedBy
-// / lastCvReviewedAt) as a side effect -- that's intentional backend
-// behavior (US-15: viewing the CV *is* the review), not something this call
-// opts into.
+// Read-only -- no longer marks the candidate as reviewed as a side effect.
+// That used to happen here (US-15: "viewing the CV is the review"), but per
+// user correction, simply opening this page shouldn't count as a review on
+// its own. Call markCandidateReviewed() below when HR actually views the
+// CV file, so it takes both opening the candidate AND viewing the CV.
 export function getCandidateDetail(candidateId: number) {
   return apiFetch<CandidateDetail>(`/candidates/${candidateId}`);
+}
+
+// Fired from the candidate detail page's "View CV" action -- the one place
+// that both requires the candidate's row to already be open AND that the
+// CV was actually looked at. Returns the updated lastCvReviewedBy/At so the
+// caller can merge it into already-loaded candidate detail state.
+export function markCandidateReviewed(candidateId: number) {
+  return apiFetch<{
+    id: number;
+    lastCvReviewedByUserId: number | null;
+    lastCvReviewedAt: string | null;
+    lastCvReviewedBy: { id: number; name: string; email: string } | null;
+  }>(`/candidates/${candidateId}/review`, { method: "POST" });
 }
 
 export function saveCandidateReviewNote(candidateId: number, reviewNote: string) {
@@ -78,6 +105,12 @@ export type CandidateApplicationRow = {
   appliedAt: string;
   currentVacancyStageId: number | null;
   hiringManagerId: number | null;
+  // Distinct from `stage === "REJECTED"` -- that can mean either an early
+  // CV-screening rejection (this stays null) or a real post-interview
+  // hiring decision (set to "REJECT" via recordHiringDecision). Only the
+  // former can be reconsidered back to Shortlisted -- see
+  // application.controller.ts's updateApplicationStatus.
+  hiringDecision: "HIRE" | "REJECT" | null;
   candidate: CandidateSummary;
   vacancy: {
     id: number;

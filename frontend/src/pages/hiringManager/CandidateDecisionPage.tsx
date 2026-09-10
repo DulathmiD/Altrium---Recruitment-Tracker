@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { getApplicationDecision, type ApplicationDecision } from "../../api/hiringManager";
 import { submitStageRecommendation, recordHiringDecision } from "../../api/applications";
+import { getFeedbackAuditLog, type FeedbackAuditLogEntry } from "../../api/feedback";
 import "./CandidateDecisionPage.css";
 
 export default function CandidateDecisionPage() {
@@ -21,6 +22,34 @@ export default function CandidateDecisionPage() {
   // happened to the candidate -- this holds the outcome text on-page instead
   // of leaving immediately, so the HM sees it before moving on.
   const [outcome, setOutcome] = useState<string | null>(null);
+
+  // Feedback edit history: previously captured (FeedbackAuditLog) but never
+  // shown anywhere -- clicking "Edited" on a feedback entry now expands its
+  // full before/after/reason trail in place, fetched on demand rather than
+  // upfront since most entries were never edited.
+  const [expandedFeedbackId, setExpandedFeedbackId] = useState<number | null>(null);
+  const [auditLogs, setAuditLogs] = useState<Record<number, FeedbackAuditLogEntry[]>>({});
+  const [auditLoading, setAuditLoading] = useState<number | null>(null);
+  const [auditError, setAuditError] = useState("");
+
+  async function toggleAuditLog(feedbackId: number) {
+    if (expandedFeedbackId === feedbackId) {
+      setExpandedFeedbackId(null);
+      return;
+    }
+    setExpandedFeedbackId(feedbackId);
+    if (auditLogs[feedbackId]) return; // already fetched
+    setAuditLoading(feedbackId);
+    setAuditError("");
+    try {
+      const log = await getFeedbackAuditLog(feedbackId);
+      setAuditLogs((prev) => ({ ...prev, [feedbackId]: log }));
+    } catch (err) {
+      setAuditError(err instanceof Error ? err.message : "Could not load edit history");
+    } finally {
+      setAuditLoading(null);
+    }
+  }
 
   useEffect(() => {
     if (Number.isNaN(id)) return;
@@ -152,10 +181,41 @@ export default function CandidateDecisionPage() {
               <h2 className="cd-stage-title">Stage {String(round.round.order).padStart(2, "0")}: {round.round.name}</h2>
               <div className="cd-entry-list">
                 {round.entries.map((entry) => (
-                  <div key={entry.interviewerId} className="cd-entry-card">
+                  <div key={entry.feedbackId} className="cd-entry-card">
                     <p><strong>Interviewer Name:</strong> {entry.interviewerName}</p>
                     <p><strong>Interview Score:</strong> {entry.score}</p>
                     <p><strong>Feedback:</strong> {entry.comments}</p>
+                    {entry.edited && (
+                      <>
+                        <button
+                          type="button"
+                          className="cd-edited-toggle"
+                          onClick={() => toggleAuditLog(entry.feedbackId)}
+                        >
+                          {expandedFeedbackId === entry.feedbackId ? "Hide edit history" : "Edited - view history"}
+                        </button>
+                        {expandedFeedbackId === entry.feedbackId && (
+                          <div className="cd-audit-log">
+                            {auditLoading === entry.feedbackId && <p className="cd-muted">Loading...</p>}
+                            {auditError && <p className="cd-error">{auditError}</p>}
+                            {auditLogs[entry.feedbackId]?.map((log) => (
+                              <div key={log.id} className="cd-audit-entry">
+                                <p className="cd-audit-meta">
+                                  Edited by {log.editedBy.name} on {new Date(log.editedAt).toLocaleString()}
+                                </p>
+                                <p><strong>Reason:</strong> {log.reason}</p>
+                                <p>
+                                  <strong>Score:</strong> {log.previousScore} &rarr; {log.newScore}
+                                </p>
+                                <p>
+                                  <strong>Comments:</strong> "{log.previousComments}" &rarr; "{log.newComments}"
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 ))}
               </div>

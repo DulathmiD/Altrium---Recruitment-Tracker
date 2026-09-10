@@ -135,6 +135,44 @@
   box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
 }
 
+/* Own edit history -- FeedbackAuditLog was already captured on every edit,
+   just never shown back to the person who made it. */
+.fb-edited-toggle {
+  background: none;
+  border: none;
+  padding: 8px 0 0;
+  margin: 0;
+  color: var(--altrium-gold);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.fb-edited-toggle:hover {
+  color: var(--altrium-black);
+}
+
+.fb-audit-log {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--altrium-line);
+  background: #faf9f6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fb-audit-entry p {
+  margin: 2px 0;
+  font-size: 12.5px;
+  color: var(--altrium-ink);
+}
+
+.fb-audit-meta {
+  color: var(--altrium-ink-soft);
+  font-style: italic;
+}
+
 .fb-comments-input {
   resize: vertical;
 }
@@ -170,3 +208,29 @@
   font-weight: 500;
 }
 .fb-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.fb-view-cv-btn {
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 600;
+}
+.fb-view-cv-btn:hover { background: var(--altrium-gold-dark); }
+
+.fb-view-cv-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: var(--sans);
+  color: var(--altrium-gold-dark, #b8860b);
+  text-align: left;
+}
+.fb-view-cv-link:hover { text-decoration: underline; }

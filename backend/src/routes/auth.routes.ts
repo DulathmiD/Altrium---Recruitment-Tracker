@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { login, adminLogin, me, forgotPassword, resetPassword, verifyPassword } from "../controllers/auth.controller.js";
+import { login, adminLogin, me, forgotPassword, resetPassword, verifyPassword, changePassword } from "../controllers/auth.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
 export const authRouter = Router();
@@ -10,3 +10,4 @@ authRouter.get("/me", requireAuth, me);
 authRouter.post("/forgot-password", forgotPassword);
 authRouter.post("/reset-password", resetPassword);
 authRouter.post("/verify-password", requireAuth, verifyPassword);
+authRouter.post("/change-password", requireAuth, changePassword);

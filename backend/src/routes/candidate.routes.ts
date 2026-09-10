@@ -3,6 +3,7 @@ import multer from "multer";
 import {
   listCandidates,
   getCandidate,
+  markCvReviewed,
   updateCandidate,
   extractCvFiles,
   confirmCvUpload,
@@ -24,6 +25,7 @@ candidateRouter.use(requireAuth);
 candidateRouter.get("/", listCandidates);
 candidateRouter.get("/:id", getCandidate);
 candidateRouter.get("/:id/cv", downloadCv);
+candidateRouter.post("/:id/review", requireRole(Role.HR), markCvReviewed);
 
 candidateRouter.post("/cv-extract", requireRole(Role.HR), uploadCv.array("files"), extractCvFiles);
 candidateRouter.post("/cv-confirm", requireRole(Role.HR), confirmCvUpload);

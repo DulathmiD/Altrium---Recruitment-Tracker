@@ -14,6 +14,11 @@ export type User = {
   phoneNumber: string | null;
   isActive: boolean;
   createdAt: string;
+  // Approximate only -- see schema.prisma's comment on User.lastActiveAt.
+  // Updated on authenticated requests, not a real login/logout session
+  // record, so this answers "made a request recently," not "has an open
+  // session right now."
+  lastActiveAt: string | null;
 };
 
 export type CreateUserInput = {
@@ -29,6 +34,7 @@ export type UpdateUserInput = {
   name?: string;
   email?: string;
   department?: string;
+  phoneNumber?: string;
 };
 
 export function listUsers(filters?: { role?: Role; isActive?: boolean }) {

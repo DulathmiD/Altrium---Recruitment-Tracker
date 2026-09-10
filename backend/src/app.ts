@@ -4,6 +4,7 @@ import fs from "fs";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import cors from "cors";
+import multer from "multer";
 import { authRouter } from "./routes/auth.routes.js";
 import { vacancyRouter } from "./routes/vacancy.routes.js";
 import { candidateRouter } from "./routes/candidate.routes.js";
@@ -82,6 +83,23 @@ if (fs.existsSync(frontendDist)) {
 // `_req`) silently turns this into a normal (non-error) middleware.
 app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) return next(err);
+
+  // Multer's upload middleware (candidate.routes.ts's `uploadCv`) throws
+  // before ever reaching extractCvFiles's own try/catch, so a rejected file
+  // lands here, not in the controller -- without this check it fell through
+  // to the generic 500 below, which is exactly why a 5MB+ PDF upload showed
+  // "Something went wrong" instead of naming the actual limit. 400, not 500:
+  // this is a bad request (file too big), not a server fault.
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ error: "That file is over the 5MB size limit. Please upload a smaller PDF." });
+    }
+    if (err.code === "LIMIT_FILE_COUNT") {
+      return res.status(400).json({ error: "Too many files at once -- please upload 20 or fewer PDFs at a time." });
+    }
+    return res.status(400).json({ error: "Could not upload that file. Please try again." });
+  }
+
   console.error("Unhandled error:", err);
   res.status(500).json({ error: "Something went wrong. Please try again." });
 });

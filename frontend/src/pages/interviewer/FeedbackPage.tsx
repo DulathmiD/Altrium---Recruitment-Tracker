@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation, Link } from "react-router-dom";
 import { getInterview, type InterviewDetail } from "../../api/interviews";
-import { getMyFeedbackForInterview, submitFeedback, updateFeedback, type Feedback } from "../../api/feedback";
+import {
+  getMyFeedbackForInterview,
+  submitFeedback,
+  updateFeedback,
+  getFeedbackAuditLog,
+  type Feedback,
+  type FeedbackAuditLogEntry,
+} from "../../api/feedback";
+import { fetchCvBlobUrl } from "../../api/candidates";
 import "./FeedbackPage.css";
 
 // Shared by Interviewer's and Management's My Candidates tabs (corrections
@@ -40,6 +48,17 @@ export default function FeedbackPage() {
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [cvError, setCvError] = useState("");
+
+  // Own edit history -- the interviewer/panelist who actually made an edit
+  // previously had no way to see it either (FeedbackAuditLog was captured
+  // but this page just silently saved and navigated away). getMyFeedbackFor
+  // Interview is already self-scoped, so whatever feedbackId this page has
+  // is always this user's own -- no extra access check needed to show it
+  // back to them.
+  const [auditLog, setAuditLog] = useState<FeedbackAuditLogEntry[]>([]);
+  const [auditLogOpen, setAuditLogOpen] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   const isEditMode = existing !== null;
 
@@ -63,6 +82,13 @@ export default function FeedbackPage() {
       setExisting(mine);
       setScore(mine ? String(mine.score) : "");
       setComments(mine ? mine.comments : "");
+      if (mine) {
+        setAuditLoading(true);
+        getFeedbackAuditLog(mine.id)
+          .then(setAuditLog)
+          .catch(() => {}) // non-critical -- the form itself still works if this fails
+          .finally(() => setAuditLoading(false));
+      }
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Could not load this interview");
     } finally {
@@ -115,6 +141,22 @@ export default function FeedbackPage() {
 
   const isFuture = interview ? new Date(interview.scheduledAt) > new Date() : false;
 
+  // Same authenticated blob-fetch pattern CandidatesPage uses -- the CV
+  // route needs the auth header, so a plain <a href> can't carry it.
+  // Available regardless of isFuture: reviewing the CV to prepare before an
+  // interview is exactly as legitimate as reviewing it while writing
+  // feedback afterward.
+  async function handleViewCv() {
+    if (!interview) return;
+    setCvError("");
+    try {
+      const url = await fetchCvBlobUrl(interview.application.candidate.id);
+      window.open(url, "_blank");
+    } catch (err) {
+      setCvError(err instanceof Error ? err.message : "Could not open CV");
+    }
+  }
+
   return (
     <div className="fb-page">
       <p className="fb-breadcrumb">
@@ -132,60 +174,107 @@ export default function FeedbackPage() {
       {!loading && interview && (
         <div className="fb-layout">
           <div className="fb-form-col">
-            {isFuture && (
-              <p className="fb-warning">
-                This interview hasn't taken place yet - feedback can only be submitted afterward.
-              </p>
-            )}
-
-            <label className="fb-label" htmlFor="fb-score">Score (1-10)</label>
-            <input
-              id="fb-score"
-              className="fb-score-input"
-              type="number"
-              min={1}
-              max={10}
-              step={1}
-              value={score}
-              onChange={(e) => setScore(e.target.value)}
-              disabled={isFuture}
-            />
-
-            <label className="fb-label" htmlFor="fb-comments">Comments</label>
-            <textarea
-              id="fb-comments"
-              className="fb-comments-input"
-              rows={12}
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-              disabled={isFuture}
-            />
-
-            {isEditMode && (
+            {isFuture ? (
+              // Deliberately not just a greyed-out, unusable copy of the
+              // real form -- there is nothing to fill in yet, so don't show
+              // inputs that can never be interacted with. Just the reason
+              // why, plus the one thing actually useful to do right now:
+              // review the CV ahead of the interview.
               <>
-                <label className="fb-label" htmlFor="fb-reason">Reason for change</label>
+                <p className="fb-warning">
+                  This interview hasn't taken place yet - feedback can only be submitted afterward.
+                </p>
+                <button className="fb-view-cv-btn" onClick={handleViewCv}>
+                  View {interview.application.candidate.name}'s CV
+                </button>
+                {cvError && <p className="fb-error">{cvError}</p>}
+                <div className="fb-actions">
+                  <button className="fb-cancel-btn" onClick={() => navigate(backTo)}>
+                    Back
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="fb-label" htmlFor="fb-score">Score (1-10)</label>
                 <input
-                  id="fb-reason"
-                  className="fb-reason-input"
-                  type="text"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Why are you editing this feedback?"
-                  disabled={isFuture}
+                  id="fb-score"
+                  className="fb-score-input"
+                  type="number"
+                  min={1}
+                  max={10}
+                  step={1}
+                  value={score}
+                  onChange={(e) => setScore(e.target.value)}
                 />
+
+                <label className="fb-label" htmlFor="fb-comments">Comments</label>
+                <textarea
+                  id="fb-comments"
+                  className="fb-comments-input"
+                  rows={12}
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                />
+
+                {isEditMode && (
+                  <>
+                    <label className="fb-label" htmlFor="fb-reason">Reason for change</label>
+                    <input
+                      id="fb-reason"
+                      className="fb-reason-input"
+                      type="text"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="Why are you editing this feedback?"
+                    />
+
+                    {/* Own edit history -- previously nowhere for the person
+                        who made the edit to see it either. Only shown once
+                        there's actually a prior edit to show (auditLoading
+                        finished and the array came back non-empty), so a
+                        first-time edit doesn't show an empty, pointless
+                        toggle. */}
+                    {!auditLoading && auditLog.length > 0 && (
+                      <>
+                        <button
+                          type="button"
+                          className="fb-edited-toggle"
+                          onClick={() => setAuditLogOpen((v) => !v)}
+                        >
+                          {auditLogOpen ? "Hide edit history" : `Previously edited ${auditLog.length} time${auditLog.length === 1 ? "" : "s"} - view history`}
+                        </button>
+                        {auditLogOpen && (
+                          <div className="fb-audit-log">
+                            {auditLog.map((log) => (
+                              <div key={log.id} className="fb-audit-entry">
+                                <p className="fb-audit-meta">
+                                  Edited by {log.editedBy.name} on {new Date(log.editedAt).toLocaleString()}
+                                </p>
+                                <p><strong>Reason:</strong> {log.reason}</p>
+                                <p><strong>Score:</strong> {log.previousScore} &rarr; {log.newScore}</p>
+                                <p><strong>Comments:</strong> "{log.previousComments}" &rarr; "{log.newComments}"</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+
+                {saveError && <p className="fb-error">{saveError}</p>}
+
+                <div className="fb-actions">
+                  <button className="fb-cancel-btn" onClick={() => navigate(backTo)}>
+                    Back
+                  </button>
+                  <button className="fb-submit-btn" onClick={handleSubmit} disabled={saving}>
+                    {isEditMode ? "Save Changes" : "Submit"}
+                  </button>
+                </div>
               </>
             )}
-
-            {saveError && <p className="fb-error">{saveError}</p>}
-
-            <div className="fb-actions">
-              <button className="fb-cancel-btn" onClick={() => navigate(backTo)}>
-                Back
-              </button>
-              <button className="fb-submit-btn" onClick={handleSubmit} disabled={saving || isFuture}>
-                {isEditMode ? "Save Changes" : "Submit"}
-              </button>
-            </div>
           </div>
 
           <aside className="fb-info-card">
@@ -205,6 +294,9 @@ export default function FeedbackPage() {
             <div className="fb-info-row">
               <span className="fb-info-label">Scheduled</span>
               <span className="fb-info-value">{new Date(interview.scheduledAt).toLocaleString()}</span>
+            </div>
+            <div className="fb-info-row">
+              <button className="fb-view-cv-link" onClick={handleViewCv}>View CV</button>
             </div>
             {interview.panelists.length > 0 && (
               <div className="fb-info-row fb-info-row-block">

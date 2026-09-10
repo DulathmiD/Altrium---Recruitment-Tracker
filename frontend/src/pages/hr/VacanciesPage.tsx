@@ -89,7 +89,6 @@ export default function VacanciesPage() {
   // Interview Stages (US-05) -- shown once a vacancy exists (either an
   // existing one being edited, or one just created in this modal session).
   const [stages, setStages] = useState<VacancyStage[]>([]);
-  const [stagesLocked, setStagesLocked] = useState(false);
   const [stagesLoading, setStagesLoading] = useState(false);
   const [stageError, setStageError] = useState("");
   const [newStageName, setNewStageName] = useState("");
@@ -124,7 +123,6 @@ export default function VacanciesPage() {
     setForm({ ...EMPTY_FORM, department: selectedDepartment ?? "" });
     setFormError("");
     setStages([]);
-    setStagesLocked(false);
     setStageError("");
     setNewStageName("");
     setRenamingStageId(null);
@@ -156,7 +154,6 @@ export default function VacanciesPage() {
     try {
       const data = await listVacancyStages(vacancyId);
       setStages(data.stages);
-      setStagesLocked(data.locked);
     } catch (err) {
       setStageError(err instanceof Error ? err.message : "Could not load interview rounds");
     } finally {
@@ -218,13 +215,24 @@ export default function VacanciesPage() {
   // on a row and dropping it on another reorders both, then persists the
   // whole new sequence via the existing reorder endpoint (order = array of
   // every stage id for this vacancy in the desired sequence).
+  //
+  // Locking is per-round now: a locked round (one a candidate has already
+  // entered) can't be dragged, and nothing can be dropped onto/before a
+  // locked round either, since that would shuffle a locked round out of its
+  // recorded position. Only the untouched rounds after the locked ones can
+  // move. The backend enforces the same rule independently (source of
+  // truth) -- these checks are just to stop an obviously-invalid drag before
+  // it round-trips to the server.
   function handleStageDragStart(stageId: number) {
-    if (stagesLocked) return;
+    const stage = stages.find((s) => s.id === stageId);
+    if (!stage || stage.locked) return;
     setDragStageId(stageId);
   }
 
   function handleStageDragOver(e: DragEvent, stageId: number) {
-    if (stagesLocked || dragStageId === null) return;
+    if (dragStageId === null) return;
+    const target = stages.find((s) => s.id === stageId);
+    if (!target || target.locked) return;
     e.preventDefault();
     if (stageId !== dragOverStageId) setDragOverStageId(stageId);
   }
@@ -237,7 +245,8 @@ export default function VacanciesPage() {
   async function handleStageDrop(e: DragEvent, targetStageId: number) {
     e.preventDefault();
     setDragOverStageId(null);
-    if (!editingId || stagesLocked || dragStageId === null || dragStageId === targetStageId) {
+    const targetStage = stages.find((s) => s.id === targetStageId);
+    if (!editingId || !targetStage || targetStage.locked || dragStageId === null || dragStageId === targetStageId) {
       setDragStageId(null);
       return;
     }
@@ -254,8 +263,12 @@ export default function VacanciesPage() {
     setReordering(true);
     setStageError("");
     try {
-      const updated = await reorderVacancyStages(editingId, reordered.map((s) => s.id));
-      setStages(updated);
+      await reorderVacancyStages(editingId, reordered.map((s) => s.id));
+      // Re-fetch rather than use the mutation's own response -- that
+      // response doesn't carry each round's locked flag (only
+      // listVacancyStages computes it), so this is what keeps the lock
+      // state accurate after a successful reorder too, not just on failure.
+      await refreshStages(editingId);
     } catch (err) {
       setStageError(err instanceof Error ? err.message : "Could not reorder rounds");
       await refreshStages(editingId); // roll back to server truth
@@ -422,10 +435,10 @@ export default function VacanciesPage() {
             <label htmlFor="vac-description-input">Description</label>
             <textarea id="vac-description-input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
 
-            <label htmlFor="vac-requirements-input">Requirements</label>
+            <label htmlFor="vac-requirements-input">Requirements (optional)</label>
             <textarea id="vac-requirements-input" value={form.requirements} onChange={(e) => setForm({ ...form, requirements: e.target.value })} rows={2} />
 
-            <label htmlFor="vac-skills-input">Preferred Skills</label>
+            <label htmlFor="vac-skills-input">Preferred Skills (optional)</label>
             <textarea id="vac-skills-input" value={form.preferredSkills} onChange={(e) => setForm({ ...form, preferredSkills: e.target.value })} rows={2} />
 
             <label htmlFor="vac-target-date-input">Expected Hiring Date (optional)</label>
@@ -439,11 +452,6 @@ export default function VacanciesPage() {
             {editingId && (
               <div className="vac-stages-section" ref={stagesSectionRef}>
                 <label>Interview Stages (optional)</label>
-                {stagesLocked && (
-                  <p className="vac-stages-hint">
-                    Locked - a candidate has already entered a round on this vacancy. Rounds can no longer be added, renamed, or removed.
-                  </p>
-                )}
                 {stagesLoading && <p className="vac-muted">Loading rounds...</p>}
                 {stageError && <p className="vac-error">{stageError}</p>}
                 {reordering && <p className="vac-muted">Saving new order...</p>}
@@ -462,12 +470,12 @@ export default function VacanciesPage() {
                       <div className="vac-stage-left">
                         <span
                           className="vac-stage-drag-handle"
-                          draggable={!stagesLocked}
-                          aria-disabled={stagesLocked}
+                          draggable={!s.locked}
+                          aria-disabled={s.locked}
                           onDragStart={() => handleStageDragStart(s.id)}
                           onDragEnd={handleStageDragEnd}
                           aria-label="Drag to reorder round"
-                          title={stagesLocked ? "Locked" : "Drag to reorder"}
+                          title={s.locked ? "Locked - a candidate has already entered this round" : "Drag to reorder"}
                         >
                           &#8801;
                         </span>
@@ -503,9 +511,9 @@ export default function VacanciesPage() {
                               type="button"
                               className="vac-stage-icon-btn"
                               onClick={() => startRenameStage(s)}
-                              disabled={stagesLocked}
+                              disabled={s.locked}
                               aria-label="Rename round"
-                              title={stagesLocked ? "Locked" : "Rename round"}
+                              title={s.locked ? "Locked - a candidate has already entered this round" : "Rename round"}
                             >
                               &#9998;
                             </button>
@@ -513,9 +521,9 @@ export default function VacanciesPage() {
                               type="button"
                               className="vac-stage-icon-btn"
                               onClick={() => handleDeleteStage(s.id)}
-                              disabled={stagesLocked || stageSavingId === s.id}
+                              disabled={s.locked || stageSavingId === s.id}
                               aria-label="Remove round"
-                              title={stagesLocked ? "Locked" : "Remove round"}
+                              title={s.locked ? "Locked - a candidate has already entered this round" : "Remove round"}
                             >
                               &#10005;
                             </button>
@@ -525,29 +533,31 @@ export default function VacanciesPage() {
                     </div>
                   ))}
                 </div>
-                {!stagesLocked && (
-                  <div className="vac-stage-add-row">
-                    <input
-                      placeholder="New round name (e.g. Technical Interview)"
-                      value={newStageName}
-                      onChange={(e) => setNewStageName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newStageName.trim() && stageSavingId !== "new") {
-                          e.preventDefault();
-                          handleAddStage();
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="vac-stage-add-btn"
-                      onClick={handleAddStage}
-                      disabled={!newStageName.trim() || stageSavingId === "new"}
-                    >
-                      {stageSavingId === "new" ? "Adding..." : "+"}
-                    </button>
-                  </div>
-                )}
+                {/* Adding a new round is always allowed, even while earlier
+                    rounds are locked -- it only ever appends after the
+                    current last round, so it can't touch anything a
+                    candidate has already been through. */}
+                <div className="vac-stage-add-row">
+                  <input
+                    placeholder="New round name (e.g. Technical Interview)"
+                    value={newStageName}
+                    onChange={(e) => setNewStageName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newStageName.trim() && stageSavingId !== "new") {
+                        e.preventDefault();
+                        handleAddStage();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="vac-stage-add-btn"
+                    onClick={handleAddStage}
+                    disabled={!newStageName.trim() || stageSavingId === "new"}
+                  >
+                    {stageSavingId === "new" ? "Adding..." : "+"}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -558,7 +568,7 @@ export default function VacanciesPage() {
                 Cancel
               </button>
               <button className="vac-save-btn" onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : "Save"}
+                {saving ? (editingId ? "Saving..." : "Creating...") : editingId ? "Save" : "Create"}
               </button>
             </div>
           </div>

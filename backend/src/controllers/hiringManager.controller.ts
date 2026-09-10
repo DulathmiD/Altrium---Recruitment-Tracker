@@ -31,7 +31,13 @@ function dateRangeCutoff(dateRange: DateRangeFilter): Date | null {
 
 async function getMyVacancyIds(
   hiringManagerId: number,
-  filters?: { dateRange?: DateRangeFilter; vacancyId?: number; department?: string }
+  // `| undefined` spelled out explicitly on each property (not just `?`):
+  // exactOptionalPropertyTypes treats `vacancyId?: number` as "omit the key
+  // entirely, or a real number" -- it does NOT accept a present key holding
+  // `undefined`. Callers build this object via `vacancyId: x ? Number(x) :
+  // undefined`, which always includes the key, so the param type has to
+  // allow that explicitly.
+  filters?: { dateRange?: DateRangeFilter; vacancyId?: number | undefined; department?: string | undefined }
 ): Promise<number[]> {
   const cutoff = dateRangeCutoff(filters?.dateRange);
   const rows = await prisma.candidateApplication.findMany({
@@ -264,7 +270,11 @@ async function getPendingDecisionsForHm(hiringManagerId: number, vacancyIds?: nu
       // .scheduledAt/.panelists directly) didn't need to change at all.
       interviews: {
         include: {
-          feedback: { include: { interviewer: { select: { id: true, name: true } } } },
+          // auditLog (count only, via select id) added so feedbackHistory
+          // below can flag entries that were edited after submission --
+          // FeedbackAuditLog rows were already being written on every edit
+          // (updateFeedback), just never surfaced anywhere in the UI.
+          feedback: { include: { interviewer: { select: { id: true, name: true } }, auditLog: { select: { id: true } } } },
           slot: { include: { panelists: true, vacancyStage: true } },
         },
       },
@@ -303,7 +313,7 @@ async function getPendingDecisionsForHm(hiringManagerId: number, vacancyIds?: nu
     feedbackHistory: {
       round: { id: number; name: string; order: number };
       scheduledAt: Date;
-      entries: { interviewerId: number; interviewerName: string; score: number; comments: string }[];
+      entries: { feedbackId: number; interviewerId: number; interviewerName: string; score: number; comments: string; edited: boolean }[];
     }[];
   }[] = [];
 
@@ -325,10 +335,12 @@ async function getPendingDecisionsForHm(hiringManagerId: number, vacancyIds?: nu
         round: { id: iv.vacancyStage.id, name: iv.vacancyStage.name, order: iv.vacancyStage.order },
         scheduledAt: iv.scheduledAt,
         entries: iv.feedback.map((f) => ({
+          feedbackId: f.id,
           interviewerId: f.interviewerId,
           interviewerName: f.interviewer.name,
           score: f.score,
           comments: f.comments,
+          edited: f.auditLog.length > 0,
         })),
       }));
 
@@ -551,6 +563,30 @@ export async function getMyDecisionHistory(req: Request, res: Response) {
       },
     });
 
+    // HIRE/REJECT (via recordHiringDecision) still has no dedicated comments
+    // column on CandidateApplication -- a comment typed on that action is
+    // only ever written to AuditLog (action "HM_DECISION_COMMENT", see
+    // application.controller.ts). Comments below used to hardcode `null` for
+    // a straight Reject and silently borrow an earlier ADVANCE
+    // recommendation's comment for Hired -- neither actually surfaced what
+    // the HM typed on the decision itself, which is why this column read
+    // "--" even when a real comment had been entered. Fixed by reading the
+    // audit trail back: one query, most-recent-per-application via a Map
+    // (results already ordered createdAt desc, so the first hit per id wins).
+    const appIds = applications.map((a) => a.id);
+    const decisionCommentLogs = appIds.length
+      ? await prisma.auditLog.findMany({
+          where: { entityType: "CandidateApplication", entityId: { in: appIds }, action: "HM_DECISION_COMMENT" },
+          orderBy: { createdAt: "desc" },
+        })
+      : [];
+    const decisionComments = new Map<number, string>();
+    for (const log of decisionCommentLogs) {
+      if (log.entityId === null || decisionComments.has(log.entityId)) continue;
+      const meta = log.metadata as { comments?: string } | null;
+      if (meta?.comments) decisionComments.set(log.entityId, meta.comments);
+    }
+
     type Bucket = "HIRED" | "PROCEED" | "REJECTED";
     const bucketOrder: Record<Bucket, number> = { HIRED: 0, PROCEED: 1, REJECTED: 2 };
 
@@ -567,7 +603,7 @@ export async function getMyDecisionHistory(req: Request, res: Response) {
         bucket = "HIRED";
         outcome = "Hired";
         decidedAt = app.decidedAt ?? latestRecommendation?.createdAt ?? app.appliedAt;
-        comments = latestRecommendation?.comments ?? null;
+        comments = decisionComments.get(app.id) ?? latestRecommendation?.comments ?? null;
       } else if (app.stage === "REJECTED" && hasDoNotProgress) {
         bucket = "PROCEED";
         outcome = "Do Not Proceed";
@@ -577,7 +613,10 @@ export async function getMyDecisionHistory(req: Request, res: Response) {
         bucket = "REJECTED";
         outcome = "Rejected";
         decidedAt = app.decidedAt ?? app.appliedAt;
-        comments = null; // recordHiringDecision has no comments column (see application.controller.ts)
+        // Still legitimately null for a CV-stage reject -- HR rejected the
+        // candidate before this HM ever made a decision, so there is no HM
+        // comment to show (not a bug; see decision log).
+        comments = decisionComments.get(app.id) ?? null;
       } else {
         // SHORTLISTED with at least one ADVANCE recommendation on record --
         // still mid-pipeline, but the HM has made a call on them.
@@ -688,7 +727,9 @@ export async function getApplicationForDecision(req: Request, res: Response) {
         currentVacancyStage: true,
         interviews: {
           include: {
-            feedback: { include: { interviewer: { select: { id: true, name: true } } } },
+            // See getMyPendingDecisions's identical comment -- auditLog here
+            // only to flag edited entries in feedbackHistory below.
+            feedback: { include: { interviewer: { select: { id: true, name: true } }, auditLog: { select: { id: true } } } },
             slot: { include: { panelists: true, vacancyStage: true } },
           },
         },
@@ -734,10 +775,12 @@ export async function getApplicationForDecision(req: Request, res: Response) {
         round: { id: iv.vacancyStage.id, name: iv.vacancyStage.name, order: iv.vacancyStage.order },
         scheduledAt: iv.scheduledAt,
         entries: iv.feedback.map((f) => ({
+          feedbackId: f.id,
           interviewerId: f.interviewerId,
           interviewerName: f.interviewer.name,
           score: f.score,
           comments: f.comments,
+          edited: f.auditLog.length > 0,
         })),
       }));
 

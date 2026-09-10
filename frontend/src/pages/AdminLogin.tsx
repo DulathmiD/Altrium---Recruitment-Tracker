@@ -25,7 +25,7 @@ export default function AdminLogin() {
     try {
       const { token, user } = await adminLoginRequest(email.trim(), password);
       setAuth(token, user);
-      navigate("/admin/users");
+      navigate(user.mustChangePassword ? "/change-password" : "/admin/users");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password");
     } finally {

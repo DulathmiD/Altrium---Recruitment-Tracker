@@ -267,6 +267,8 @@ export async function sendCandidateInvite(req: Request, res: Response) {
       recipient: interview.application.candidate.email,
       channel: "email",
       reason: "interview_scheduled_candidate",
+      subject: subject.trim(),
+      body: message.trim(),
     });
 
     res.status(200).json({ sent: true });

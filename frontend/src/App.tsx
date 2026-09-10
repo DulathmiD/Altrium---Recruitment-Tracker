@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import AdminLogin from "./pages/AdminLogin";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import HRLayout from "./pages/hr/HRLayout";
@@ -45,6 +46,7 @@ export default function App() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/change-password" element={<ChangePasswordPage />} />
       <Route path="/admin" element={<AdminLogin />} />
 
       <Route element={<ProtectedRoute allowedRoles={["HR"]} />}>

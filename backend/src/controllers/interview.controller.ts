@@ -84,6 +84,36 @@ async function validatePanelistsAndConflict(
   return null;
 }
 
+// Gap found while testing: validatePanelistsAndConflict above only checks
+// the PANELISTS for a double-booking at the exact scheduled timestamp -- it
+// never looks at the candidate being interviewed at all. A candidate can
+// legitimately have applications for more than one vacancy at the same time
+// (nothing in the AC docs or schema restricts that -- US-29/Applicant
+// History explicitly assumes it), so nothing stopped HR from scheduling the
+// same person into two different interviews (different vacancies, or even
+// two rounds of the same vacancy) at the identical date/time. Same 409
+// pattern as the panelist check, just keyed on candidateId instead of
+// userId.
+async function findCandidateScheduleConflict(
+  candidateId: number,
+  scheduledDate: Date
+): Promise<{ error: string; status: number } | null> {
+  const conflicting = await prisma.interview.findFirst({
+    where: {
+      application: { candidateId },
+      slot: { scheduledAt: scheduledDate },
+    },
+    include: { application: { include: { candidate: true, vacancy: true } } },
+  });
+  if (conflicting) {
+    return {
+      status: 409,
+      error: `Scheduling conflict: ${conflicting.application.candidate.name} already has another interview (for "${conflicting.application.vacancy.title}") at this exact time`,
+    };
+  }
+  return null;
+}
+
 // Corrections doc: "THE MANAGEMENT HAS TO ATTEND THE LAST INTERVIEW" -- an
 // enforced rule (confirmed via AskUserQuestion), not just a UI nudge. Blocks
 // scheduling a vacancy's final configured round unless at least one assigned
@@ -158,6 +188,18 @@ export async function scheduleInterview(req: Request, res: Response) {
       });
     }
 
+    // ON_HOLD freeze (see application.controller.ts's assertVacancyNotOnHold
+    // for the full reasoning): scheduling a new interview progresses this
+    // candidate through a frozen vacancy's pipeline just as much as an
+    // ADVANCE recommendation would, so it's blocked the same way.
+    const scheduleVacancy = await prisma.vacancy.findUnique({
+      where: { id: application.vacancyId },
+      select: { status: true },
+    });
+    if (scheduleVacancy?.status === "ON_HOLD") {
+      return res.status(400).json({ error: "This vacancy is on hold -- reopen it before scheduling interviews" });
+    }
+
     // The round being scheduled must actually belong to this application's
     // vacancy -- rounds are per-vacancy under the US-05 redesign, so a
     // vacancyStageId from a different vacancy is invalid here even if it
@@ -168,6 +210,10 @@ export async function scheduleInterview(req: Request, res: Response) {
     }
 
     const scheduledDate = new Date(scheduledAt);
+    const candidateConflict = await findCandidateScheduleConflict(application.candidateId, scheduledDate);
+    if (candidateConflict) {
+      return res.status(candidateConflict.status).json({ error: candidateConflict.error });
+    }
     const conflict = await validatePanelistsAndConflict(application.vacancyId, panelistUserIds, scheduledDate);
     if (conflict) {
       return res.status(conflict.status).json({ error: conflict.error });
@@ -261,6 +307,8 @@ export async function scheduleInterview(req: Request, res: Response) {
           recipient: candidate.email,
           channel: "email",
           reason: "interview_scheduled_candidate",
+          subject: candidateEmail.subject,
+          body: candidateEmail.body,
         });
       }
     } catch (emailErr) {
@@ -448,6 +496,17 @@ export async function addCandidatesToSlot(req: Request, res: Response) {
       return res.status(404).json({ error: "Interview slot not found" });
     }
 
+    // ON_HOLD freeze -- same reasoning as scheduleInterview above. One check
+    // for the whole batch since every candidate in this call shares the same
+    // slot, and therefore the same vacancy.
+    const slotVacancy = await prisma.vacancy.findUnique({
+      where: { id: slot.vacancyStage.vacancyId },
+      select: { status: true },
+    });
+    if (slotVacancy?.status === "ON_HOLD") {
+      return res.status(400).json({ error: "This vacancy is on hold -- reopen it before scheduling interviews" });
+    }
+
     const added: number[] = [];
     const failed: { applicationId: number; error: string }[] = [];
 
@@ -466,6 +525,11 @@ export async function addCandidatesToSlot(req: Request, res: Response) {
       }
       if (application.stage !== "SHORTLISTED") {
         failed.push({ applicationId, error: "Candidate must be shortlisted before an interview can be scheduled" });
+        continue;
+      }
+      const candidateConflict = await findCandidateScheduleConflict(application.candidateId, slot.scheduledAt);
+      if (candidateConflict) {
+        failed.push({ applicationId, error: candidateConflict.error });
         continue;
       }
 
@@ -488,6 +552,8 @@ export async function addCandidatesToSlot(req: Request, res: Response) {
               recipient: application.candidate.email,
               channel: "email",
               reason: "interview_scheduled_candidate",
+              subject: candidateEmail.subject,
+              body: candidateEmail.body,
             });
           } catch (emailErr) {
             console.error("Candidate added to interview but notification email failed:", emailErr);

@@ -54,7 +54,18 @@ export function getMyVacancies() {
 export type FeedbackHistoryEntry = {
   round: { id: number; name: string; order: number };
   scheduledAt: string;
-  entries: { interviewerId: number; interviewerName: string; score: number; comments: string }[];
+  entries: {
+    feedbackId: number;
+    interviewerId: number;
+    interviewerName: string;
+    score: number;
+    comments: string;
+    // True if this entry has ever been edited after its original submission
+    // (backend checks FeedbackAuditLog, not just a boolean flag) -- click
+    // through via getFeedbackAuditLog(feedbackId) in api/feedback.ts for the
+    // full before/after/reason trail.
+    edited: boolean;
+  }[];
 };
 
 export type PendingDecision = {

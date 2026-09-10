@@ -404,14 +404,18 @@
   width: auto !important;
 }
 
-/* Schedule Interview's Panel field -- a click-to-expand summary of the
-   vacancy's already-assigned panel (all members are included automatically,
-   no per-person selection), rather than a checklist. */
+/* Schedule Interview's Panels field -- one row per named panel for the
+   selected vacancy, each with a checkbox (pick one or more) and a
+   click-to-expand member list. Also reused, read-only, wherever a single
+   panel's member list needs the same expand/collapse treatment. */
 .ivw-panel-summary {
   margin-top: 4px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   overflow: hidden;
+}
+.ivw-panel-summary + .ivw-panel-summary {
+  margin-top: 6px;
 }
 
 .ivw-panel-summary-row {
@@ -426,15 +430,19 @@
   font-size: 13.5px;
   font-weight: 500;
   color: var(--altrium-ink);
-  cursor: pointer;
 }
 .ivw-panel-summary-row:hover {
   background: #f3f1ec;
 }
 
 .ivw-panel-summary-arrow {
+  background: none;
+  border: none;
+  padding: 2px 4px;
   color: var(--altrium-ink-soft);
   font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .ivw-panel-summary-list {

@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
   listCandidates,
   getCandidateDetail,
   saveCandidateReviewNote,
+  markCandidateReviewed,
+  fetchCvBlobUrl,
   type CandidateApplicationRow,
   type CandidateDetail,
   type RecruitmentStage,
 } from "../../api/candidates";
 import { updateApplicationStatus, assignHiringManager } from "../../api/applications";
-import { listVacancyStages, type VacancyStage } from "../../api/vacancyStages";
-import { listVacancyInterviewers, type VacancyInterviewer } from "../../api/vacancyInterviewers";
-import { listAssignableStaff, roleLabel, type StaffMember } from "../../api/staff";
-import { listInterviewsForApplication, scheduleInterview, type Interview } from "../../api/interviews";
+import { listAssignableStaff, type StaffMember } from "../../api/staff";
+import { listInterviewsForApplication, type Interview } from "../../api/interviews";
 import { stageDisplayFor } from "../../utils/candidateStage";
 import "./CandidatesPage.css";
 
@@ -20,7 +20,13 @@ import "./CandidatesPage.css";
 // routed page ("/hr/candidates/:applicationId") per user feedback, with
 // sections reordered: CV Preview first, then Review Notes, Applicant
 // History, Hiring Manager, Interviews, Schedule Interview, and finally the
-// Reject/Shortlist decision buttons at the very bottom (previously top).
+// Reject/Shortlist decision row. Restyled as solid pill buttons matching the
+// Hiring Manager's Reject/Hire buttons on Pending Decisions. Placement went
+// through three rounds: bottom-of-page (original) -> top-right of the header
+// -> position: fixed bottom-right of the viewport -> back to bottom-of-page,
+// per explicit user correction ("not floating, just put it at the end of the
+// screen once they scroll down") -- lands back where it started, just with
+// the new solid-pill styling instead of the original thin outline.
 // There's no single "get one application, shaped like the list row" backend
 // endpoint, so this re-fetches the full candidates list and finds the
 // matching row by id -- fine at this app's data scale, and keeps the row's
@@ -45,8 +51,6 @@ export default function CandidateDetailPage() {
   const [actionError, setActionError] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
 
-  const [detailStages, setDetailStages] = useState<VacancyStage[]>([]);
-  const [detailPanel, setDetailPanel] = useState<VacancyInterviewer[]>([]);
   const [detailInterviews, setDetailInterviews] = useState<Interview[]>([]);
   const [detailError, setDetailError] = useState("");
 
@@ -55,17 +59,16 @@ export default function CandidateDetailPage() {
   const [hmSaving, setHmSaving] = useState(false);
   const [hmError, setHmError] = useState("");
 
-  const [scheduleStageId, setScheduleStageId] = useState<number | "">("");
-  const [scheduleDateTime, setScheduleDateTime] = useState("");
-  const [schedulePanelistIds, setSchedulePanelistIds] = useState<number[]>([]);
-  const [scheduling, setScheduling] = useState(false);
-  const [scheduleError, setScheduleError] = useState("");
-
   const [candidateDetail, setCandidateDetail] = useState<CandidateDetail | null>(null);
+  // Email History rows are collapsed by default (subject/body can be long) --
+  // clicking a row toggles it open instead of navigating anywhere.
+  const [expandedEmailId, setExpandedEmailId] = useState<number | null>(null);
   const [candidateDetailLoading, setCandidateDetailLoading] = useState(true);
   const [reviewNoteDraft, setReviewNoteDraft] = useState("");
   const [reviewNoteSaving, setReviewNoteSaving] = useState(false);
   const [reviewNoteError, setReviewNoteError] = useState("");
+  const [cvViewBusy, setCvViewBusy] = useState(false);
+  const [cvViewError, setCvViewError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -100,25 +103,10 @@ export default function CandidateDetailPage() {
     if (!row) return;
     let cancelled = false;
     setDetailError("");
-    Promise.all([
-      listVacancyStages(row.vacancyId),
-      listVacancyInterviewers(row.vacancyId),
-      listInterviewsForApplication(row.id),
-    ])
-      .then(([stages, panel, interviews]) => {
+    listInterviewsForApplication(row.id)
+      .then((interviews) => {
         if (cancelled) return;
-        setDetailStages(stages.stages);
-        setDetailPanel(panel);
         setDetailInterviews(interviews);
-        // Default the round picker to the next uncompleted round, matching
-        // the same "next round" logic the ADVANCE recommendation uses
-        // server-side -- just a sensible default, HR can still pick any
-        // configured round.
-        const idx = row.currentVacancyStageId
-          ? stages.stages.findIndex((s) => s.id === row.currentVacancyStageId)
-          : -1;
-        const next = stages.stages[idx + 1];
-        if (next) setScheduleStageId(next.id);
       })
       .catch((err) => {
         if (!cancelled) setDetailError(err instanceof Error ? err.message : "Could not load application details");
@@ -152,7 +140,7 @@ export default function CandidateDetailPage() {
     setActionError("");
     try {
       await updateApplicationStatus(row.id, "REJECTED");
-      navigate("/hr/candidates");
+      navigate("/hr/candidates", { state: { toast: `${row.candidate.name} was rejected.` } });
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Could not reject candidate");
     } finally {
@@ -166,11 +154,60 @@ export default function CandidateDetailPage() {
     setActionError("");
     try {
       await updateApplicationStatus(row.id, "SHORTLISTED");
-      navigate("/hr/candidates");
+      navigate("/hr/candidates", { state: { toast: `${row.candidate.name} was shortlisted.` } });
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Could not shortlist candidate");
     } finally {
       setActionBusy(false);
+    }
+  }
+
+  // The one path back from an early CV-screening rejection -- HR rejected
+  // the CV before it was ever shortlisted, and there's currently no way to
+  // reapply (a second application for the same candidate+vacancy is blocked
+  // outright, see the 409 duplicate handling on the Candidates list upload
+  // flow) or otherwise reconsider them. Only offered when hiringDecision is
+  // null (see the CandidateApplicationRow comment) -- a REJECTED application
+  // that came out of a real post-interview hiring decision is a final
+  // outcome, not reopened here.
+  async function handleReconsider() {
+    if (!row) return;
+    setActionBusy(true);
+    setActionError("");
+    try {
+      await updateApplicationStatus(row.id, "SHORTLISTED");
+      navigate("/hr/candidates", {
+        state: { toast: `${row.candidate.name} was reconsidered and moved back to Shortlisted.` },
+      });
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Could not reconsider candidate");
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  // Opens the CV in a new tab and, in the same click, marks the candidate
+  // as reviewed. Deliberately two calls fired together rather than folding
+  // the stamp into downloadCv() itself -- that route is shared with the
+  // Candidates list's standalone "View" link, which should stay a plain
+  // fetch with no side effect (see markCvReviewed's comment on the backend).
+  async function handleViewCv() {
+    if (!candidateDetail) return;
+    setCvViewBusy(true);
+    setCvViewError("");
+    try {
+      const url = await fetchCvBlobUrl(candidateDetail.id);
+      window.open(url, "_blank");
+      const updated = await markCandidateReviewed(candidateDetail.id);
+      setCandidateDetail((prev) =>
+        prev
+          ? { ...prev, lastCvReviewedByUserId: updated.lastCvReviewedByUserId, lastCvReviewedAt: updated.lastCvReviewedAt, lastCvReviewedBy: updated.lastCvReviewedBy }
+          : prev
+      );
+    } catch (err) {
+      setCvViewError(err instanceof Error ? err.message : "Could not load CV");
+    } finally {
+      setCvViewBusy(false);
     }
   }
 
@@ -205,42 +242,16 @@ export default function CandidateDetailPage() {
     }
   }
 
-  function togglePanelist(userId: number) {
-    setSchedulePanelistIds((prev) => (prev.includes(userId) ? prev.filter((x) => x !== userId) : [...prev, userId]));
-  }
-
-  async function handleScheduleInterview() {
-    if (!row) return;
-    if (!scheduleStageId) {
-      setScheduleError("Select a stage to schedule.");
-      return;
-    }
-    if (!scheduleDateTime) {
-      setScheduleError("Pick a date and time.");
-      return;
-    }
-    if (schedulePanelistIds.length === 0) {
-      setScheduleError("Select at least one panelist.");
-      return;
-    }
-    setScheduling(true);
-    setScheduleError("");
-    try {
-      await scheduleInterview(row.id, {
-        vacancyStageId: scheduleStageId,
-        scheduledAt: new Date(scheduleDateTime).toISOString(),
-        panelistUserIds: schedulePanelistIds,
-      });
-      setSchedulePanelistIds([]);
-      setScheduleDateTime("");
-      const interviews = await listInterviewsForApplication(row.id);
-      setDetailInterviews(interviews);
-    } catch (err) {
-      setScheduleError(err instanceof Error ? err.message : "Could not schedule interview");
-    } finally {
-      setScheduling(false);
-    }
-  }
+  // Split by scheduledAt vs now -- there's no separate "completed" flag on
+  // an Interview, a past-dated one just means it already happened.
+  const upcomingInterviews = useMemo(
+    () => detailInterviews.filter((iv) => new Date(iv.scheduledAt).getTime() > Date.now()),
+    [detailInterviews]
+  );
+  const completedInterviews = useMemo(
+    () => detailInterviews.filter((iv) => new Date(iv.scheduledAt).getTime() <= Date.now()),
+    [detailInterviews]
+  );
 
   if (loading) {
     return (
@@ -261,6 +272,40 @@ export default function CandidateDetailPage() {
     );
   }
 
+  // A final hiring decision (HIRE or REJECT via recordHiringDecision) is a
+  // done deal for THIS application -- there's nothing left to review or
+  // reassign here. Deliberately narrower than `stage === "REJECTED"` alone:
+  // an early CV-screening rejection leaves hiringDecision null and stays
+  // fully editable/reconsiderable (see handleReconsider above), same
+  // distinction the Reconsider row below already relies on.
+  // Note this only locks the view for *this* application -- Review Notes
+  // lives on the Candidate record, not the application, so if this person
+  // has another still-open application, the same note stays editable from
+  // there.
+  const isFinalDecision = row.hiringDecision !== null;
+
+  // Review Notes lock separately from isFinalDecision, and earlier --
+  // correction: the note is literally the reason HR shortlisted or rejected
+  // at CV-review time, not a running note that stays open through the whole
+  // interview process, so it should stop being editable the moment that CV
+  // decision is made (row.stage leaves APPLIED), not only once a much later
+  // final HIRE/REJECT decision lands. Still per-application like above (a
+  // CV-stage REJECTED here doesn't lock the same candidate's note on a
+  // different, still-APPLIED application), and Reconsider (which sets this
+  // application's stage back to SHORTLISTED, never back to APPLIED) doesn't
+  // reopen it either -- once a CV decision has been made once, it stays
+  // locked, consistent with "this is what was decided and why" rather than
+  // an editable-forever field.
+  const isCvReviewLocked = row.stage !== "APPLIED";
+
+  // ON_HOLD freeze: mirrors the backend's assertVacancyNotOnHold checks
+  // (application.controller.ts) -- while the vacancy is on hold, this
+  // candidate can't be shortlisted/rejected/reconsidered, and can't get a
+  // Hiring Manager assigned. This is purely a UI-level mirror of an already
+  // server-enforced rule, not the source of truth -- a direct API call would
+  // still be blocked even if this check were removed.
+  const isVacancyOnHold = row.vacancy.status === "ON_HOLD";
+
   return (
     <div className="cnd-page cnd-detail-page">
       <Link to="/hr/candidates" className="cnd-back-link">
@@ -272,8 +317,28 @@ export default function CandidateDetailPage() {
       </p>
       <div className="cnd-divider" />
 
+      {isVacancyOnHold && (
+        <p className="cnd-muted cnd-locked-hint">
+          This vacancy is on hold -- this candidate can't be shortlisted, rejected, or progressed until it's reopened.
+        </p>
+      )}
       {detailError && <p className="cnd-error">{detailError}</p>}
       {actionError && <p className="cnd-error">{actionError}</p>}
+
+      <div className="cnd-detail-section">
+        <label>CV</label>
+        <div className="cnd-inline-row">
+          <button
+            type="button"
+            className="cnd-save-btn"
+            onClick={handleViewCv}
+            disabled={cvViewBusy || candidateDetailLoading}
+          >
+            {cvViewBusy ? "Opening..." : "View CV"}
+          </button>
+        </div>
+        {cvViewError && <p className="cnd-error">{cvViewError}</p>}
+      </div>
 
       <div className="cnd-detail-section">
         <label htmlFor="cnd-review-note">Review Notes</label>
@@ -281,26 +346,34 @@ export default function CandidateDetailPage() {
           Last Reviewed By: {candidateDetail?.lastCvReviewedBy ? candidateDetail.lastCvReviewedBy.name : "Not yet reviewed"}
           {candidateDetail?.lastCvReviewedAt && ` on ${new Date(candidateDetail.lastCvReviewedAt).toLocaleDateString()}`}
         </p>
-        <textarea
-          id="cnd-review-note"
-          className="cnd-review-note-input"
-          rows={3}
-          placeholder="Notes on this candidate's CV..."
-          value={reviewNoteDraft}
-          onChange={(e) => setReviewNoteDraft(e.target.value)}
-          disabled={candidateDetailLoading}
-        />
-        <div className="cnd-inline-row">
-          <button
-            type="button"
-            className="cnd-save-btn"
-            onClick={handleSaveReviewNote}
-            disabled={reviewNoteSaving || candidateDetailLoading || !candidateDetail}
-          >
-            {reviewNoteSaving ? "Saving..." : "Save Note"}
-          </button>
-        </div>
-        {reviewNoteError && <p className="cnd-error">{reviewNoteError}</p>}
+        {isCvReviewLocked ? (
+          <p className="cnd-review-note-locked">
+            {candidateDetail?.lastCvReviewNote || "No notes were left."}
+          </p>
+        ) : (
+          <>
+            <textarea
+              id="cnd-review-note"
+              className="cnd-review-note-input"
+              rows={3}
+              placeholder="Notes on this candidate's CV..."
+              value={reviewNoteDraft}
+              onChange={(e) => setReviewNoteDraft(e.target.value)}
+              disabled={candidateDetailLoading}
+            />
+            <div className="cnd-inline-row">
+              <button
+                type="button"
+                className="cnd-save-btn"
+                onClick={handleSaveReviewNote}
+                disabled={reviewNoteSaving || candidateDetailLoading || !candidateDetail}
+              >
+                {reviewNoteSaving ? "Saving..." : "Save Note"}
+              </button>
+            </div>
+            {reviewNoteError && <p className="cnd-error">{reviewNoteError}</p>}
+          </>
+        )}
       </div>
 
       <div className="cnd-detail-section">
@@ -336,44 +409,95 @@ export default function CandidateDetailPage() {
           <p className="cnd-muted">No emails sent to this candidate yet.</p>
         )}
         <div className="cnd-review-list">
-          {candidateDetail?.emailHistory.map((e) => (
-            <div key={e.id} className="cnd-summary-row">
-              <span className="cnd-summary-name">{e.label}</span>
-              <span className="cnd-muted">Sent &middot; {new Date(e.sentAt).toLocaleString()}</span>
-            </div>
-          ))}
+          {candidateDetail?.emailHistory.map((e) => {
+            const expanded = expandedEmailId === e.id;
+            return (
+              <div key={e.id} className="cnd-email-history-item">
+                <button
+                  type="button"
+                  className="cnd-summary-row cnd-email-history-toggle"
+                  onClick={() => setExpandedEmailId(expanded ? null : e.id)}
+                  aria-expanded={expanded}
+                >
+                  <span className="cnd-summary-name">{e.label}</span>
+                  <span className="cnd-muted">Sent &middot; {new Date(e.sentAt).toLocaleString()}</span>
+                </button>
+                {expanded && (
+                  <div className="cnd-email-history-body">
+                    {e.body ? (
+                      <>
+                        <p className="cnd-email-history-subject">{e.subject}</p>
+                        <p className="cnd-email-history-text">{e.body}</p>
+                      </>
+                    ) : (
+                      <p className="cnd-muted">Content not available for this email.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       <div className="cnd-detail-section">
         <label>Hiring Manager</label>
         <p className="cnd-muted">Currently: {row.hiringManager ? row.hiringManager.name : "Unassigned"}</p>
-        <div className="cnd-inline-row">
-          <select value={hmSelection} onChange={(e) => setHmSelection(e.target.value ? Number(e.target.value) : "")}>
-            <option value="">Select a hiring manager</option>
-            {hmOptions.map((h) => (
-              <option key={h.id} value={h.id}>
-                {h.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="cnd-save-btn"
-            onClick={handleAssignHm}
-            disabled={hmSaving || !hmSelection}
-          >
-            {hmSaving ? "Saving..." : "Assign"}
-          </button>
-        </div>
-        {hmError && <p className="cnd-error">{hmError}</p>}
+        {isFinalDecision ? (
+          <p className="cnd-muted cnd-locked-hint">
+            This application already has a final hiring decision, so the Hiring Manager can't be changed here.
+          </p>
+        ) : row.stage === "APPLIED" ? (
+          <p className="cnd-muted cnd-locked-hint">
+            This candidate hasn't been shortlisted yet -- shortlist them first before assigning a Hiring Manager.
+          </p>
+        ) : row.stage === "REJECTED" ? (
+          <p className="cnd-muted cnd-locked-hint">
+            This application was rejected at CV review, so a Hiring Manager can't be assigned.
+          </p>
+        ) : isVacancyOnHold ? (
+          <p className="cnd-muted cnd-locked-hint">
+            This vacancy is on hold, so a Hiring Manager can't be assigned until it's reopened.
+          </p>
+        ) : (
+          <>
+            <div className="cnd-inline-row">
+              <select value={hmSelection} onChange={(e) => setHmSelection(e.target.value ? Number(e.target.value) : "")}>
+                <option value="">Select a hiring manager</option>
+                {hmOptions.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="cnd-save-btn"
+                onClick={handleAssignHm}
+                disabled={hmSaving || !hmSelection}
+              >
+                {hmSaving ? "Saving..." : "Assign"}
+              </button>
+            </div>
+            {hmError && <p className="cnd-error">{hmError}</p>}
+          </>
+        )}
       </div>
 
+      {/* Interviews are scheduled from the main HR Interviews page (Assign
+          Panel -> Schedule Interview -> Add Candidate(s) to Interview), not
+          from here -- this page used to also have its own one-off "Schedule
+          Interview" form, but it duplicated that flow with a separate,
+          older per-person panel picker (one that didn't reflect named,
+          reusable Panels or the Hiring-Manager-excluded eligibility rule).
+          Read-only here instead: upcoming interviews so HR can see what's
+          coming up for this candidate, and completed ones as a record of
+          what's already happened as they move further into the stages. */}
       <div className="cnd-detail-section">
-        <label>Interviews</label>
-        {detailInterviews.length === 0 && <p className="cnd-muted">No interviews scheduled yet.</p>}
+        <label>Upcoming Interviews</label>
+        {upcomingInterviews.length === 0 && <p className="cnd-muted">No interviews scheduled yet.</p>}
         <div className="cnd-review-list">
-          {detailInterviews.map((iv) => (
+          {upcomingInterviews.map((iv) => (
             <div key={iv.id} className="cnd-summary-row">
               <span className="cnd-summary-name">
                 {iv.vacancyStage.order}. {iv.vacancyStage.name} - {new Date(iv.scheduledAt).toLocaleString()}
@@ -385,79 +509,58 @@ export default function CandidateDetailPage() {
       </div>
 
       <div className="cnd-detail-section">
-        <label>Schedule Interview</label>
-        {row.stage !== "SHORTLISTED" && (
-          <p className="cnd-muted">
-            {row.stage === "APPLIED"
-              ? "Shortlist this candidate first before scheduling an interview."
-              : `This application has reached a final outcome (${STAGE_LABELS[row.stage]}) - no further interviews can be scheduled.`}
-          </p>
-        )}
-        {row.stage === "SHORTLISTED" && detailStages.length === 0 && (
-          <p className="cnd-muted">This vacancy has no interview stages configured yet - add one via Edit Vacancy first.</p>
-        )}
-        {row.stage === "SHORTLISTED" && detailPanel.length === 0 && (
-          <p className="cnd-muted">This vacancy has no interview panel assigned yet - add staff via Edit Vacancy first.</p>
-        )}
-        {row.stage === "SHORTLISTED" && detailStages.length > 0 && detailPanel.length > 0 && (
-          <>
-            <label htmlFor="cnd-schedule-stage">Stage</label>
-            <select
-              id="cnd-schedule-stage"
-              value={scheduleStageId}
-              onChange={(e) => setScheduleStageId(e.target.value ? Number(e.target.value) : "")}
-            >
-              <option value="">Select a stage</option>
-              {detailStages.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.order}. {s.name}
-                </option>
-              ))}
-            </select>
-
-            <label htmlFor="cnd-schedule-datetime">Date &amp; Time</label>
-            <input
-              id="cnd-schedule-datetime"
-              type="datetime-local"
-              value={scheduleDateTime}
-              onChange={(e) => setScheduleDateTime(e.target.value)}
-            />
-
-            <label>Panel</label>
-            <div className="cnd-panel-checklist">
-              {detailPanel.map((p) => (
-                <label key={p.userId} className="cnd-panel-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={schedulePanelistIds.includes(p.userId)}
-                    onChange={() => togglePanelist(p.userId)}
-                  />
-                  {p.user.name} - {roleLabel(p.user.role)}
-                </label>
-              ))}
+        <label>Completed Interviews</label>
+        {completedInterviews.length === 0 && <p className="cnd-muted">No interviews completed yet.</p>}
+        <div className="cnd-review-list">
+          {completedInterviews.map((iv) => (
+            <div key={iv.id} className="cnd-summary-row">
+              <span className="cnd-summary-name">
+                {iv.vacancyStage.order}. {iv.vacancyStage.name} - {new Date(iv.scheduledAt).toLocaleString()}
+              </span>
+              <span className="cnd-muted">{iv.panelists.map((p) => p.user.name).join(", ")}</span>
             </div>
-
-            {scheduleError && <p className="cnd-error">{scheduleError}</p>}
-
-            <div className="cnd-inline-row">
-              <button className="cnd-save-btn" onClick={handleScheduleInterview} disabled={scheduling}>
-                {scheduling ? "Scheduling..." : "Schedule Interview"}
-              </button>
-            </div>
-          </>
-        )}
+          ))}
+        </div>
       </div>
 
       {row.stage === "APPLIED" && (
-        <div className="cnd-detail-decision-row cnd-detail-decision-row-bottom">
-          <button className="cnd-action-btn cnd-action-reject" onClick={handleReject} disabled={actionBusy}>
+        <div className="cnd-detail-decision-row">
+          <button
+            className="cnd-action-btn cnd-action-reject"
+            onClick={handleReject}
+            disabled={actionBusy || isVacancyOnHold}
+            title={isVacancyOnHold ? "This vacancy is on hold" : undefined}
+          >
             Reject
           </button>
-          <button className="cnd-action-btn cnd-action-shortlist" onClick={handleShortlist} disabled={actionBusy}>
+          <button
+            className="cnd-action-btn cnd-action-shortlist"
+            onClick={handleShortlist}
+            disabled={actionBusy || isVacancyOnHold}
+            title={isVacancyOnHold ? "This vacancy is on hold" : undefined}
+          >
             Shortlist
           </button>
         </div>
       )}
+
+      {row.stage === "REJECTED" && !row.hiringDecision && (
+        <div className="cnd-detail-decision-row cnd-detail-decision-row-space">
+          <p className="cnd-muted">
+            Rejected before being shortlisted. There's no way to reapply for this vacancy, but you can reconsider
+            them instead.
+          </p>
+          <button
+            className="cnd-action-btn cnd-action-shortlist"
+            onClick={handleReconsider}
+            disabled={actionBusy || isVacancyOnHold}
+            title={isVacancyOnHold ? "This vacancy is on hold" : undefined}
+          >
+            Reconsider
+          </button>
+        </div>
+      )}
+
     </div>
   );
 }

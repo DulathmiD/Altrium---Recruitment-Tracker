@@ -160,16 +160,43 @@
   background: white;
   border-radius: 12px;
   padding: 24px;
-  width: 420px;
+  width: 640px;
   max-height: 85vh;
   overflow-y: auto;
   font-family: var(--sans);
 }
 
 .usr-modal h2 {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 17px;
   color: var(--altrium-black);
+}
+
+.usr-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.usr-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--altrium-ink-soft);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.usr-modal-close:hover { color: var(--altrium-black); }
+
+.usr-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
 }
 
 .usr-modal label {
@@ -178,6 +205,12 @@
   font-weight: 500;
   color: var(--altrium-ink);
   margin: 12px 0 4px;
+}
+
+/* Overrides the top margin above -- fields sit in a grid here, not stacked,
+   so each label only needs space below it, not above. */
+.usr-edit-field label {
+  margin: 0 0 4px;
 }
 
 .usr-modal input,
@@ -195,6 +228,13 @@
   outline: none;
   border-color: var(--altrium-gold);
   box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+.usr-modal input:disabled,
+.usr-modal select:disabled {
+  background: #f3f4f6;
+  color: var(--altrium-ink-soft);
+  cursor: not-allowed;
 }
 
 .usr-modal-actions {

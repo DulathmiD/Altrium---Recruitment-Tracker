@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { prisma } from "../prisma.js";
 import { writeAuditLog } from "../utils/auditLog.js";
+import { notifyUser } from "../utils/notify.js";
 
 const VALID_STATUSES = ["OPEN", "CLOSED", "ON_HOLD"] as const;
 type VacancyStatusValue = (typeof VALID_STATUSES)[number];
@@ -194,16 +195,32 @@ export async function assignInterviewerToVacancy(req: Request, res: Response) {
 
   try {
     const targetUser = await prisma.user.findUnique({ where: { id: userId } });
-    if (!targetUser || !["INTERVIEWER", "MANAGEMENT", "HIRING_MANAGER"].includes(targetUser.role)) {
+    // Hiring Managers don't sit on interview panels -- see the same note in
+    // interviewPanel.controller.ts. Kept in sync so this older endpoint
+    // (superseded by POST /vacancies/:id/panels for panel-building, but
+    // still the thing that owns the underlying pool) can't be used to add
+    // one via a stale client either.
+    if (!targetUser || !["INTERVIEWER", "MANAGEMENT"].includes(targetUser.role)) {
       return res.status(400).json({
-        error: "userId must belong to an Interviewer, Management, or Hiring Manager user",
+        error: "userId must belong to an Interviewer or Management user",
       });
     }
 
     const assignment = await prisma.vacancyInterviewer.create({
       data: { vacancyId, userId },
-      include: { user: true },
+      include: { user: true, vacancy: true },
     });
+
+    // Notify the person they've been put on this vacancy's standing pool --
+    // previously only interview *scheduling* fired a notification, so being
+    // added to a vacancy's interviewer pool was silent. Best-effort, same as
+    // every other notifyUser() call site: never blocks the assignment itself.
+    await notifyUser(
+      userId,
+      "vacancy_interviewer_assigned",
+      `You've been added to the interviewer pool for ${assignment.vacancy.title}.`
+    );
+
     res.status(201).json(assignment);
   } catch (err: any) {
     if (err.code === "P2002") {
@@ -256,17 +273,47 @@ export async function listVacancyInterviewers(req: Request, res: Response) {
   }
 }
 
-// US-05: HR-configurable interview rounds. The round list is locked once any
-// candidate application on this vacancy has entered a round -- there's no
-// stored lock flag, it's derived by checking whether any
-// CandidateApplication.currentVacancyStageId is set for this vacancy (see the
-// field comment in schema.prisma for why that value persists after
-// HIRED/REJECTED instead of being nulled out).
-async function isRoundsLocked(vacancyId: number): Promise<boolean> {
-  const count = await prisma.candidateApplication.count({
-    where: { vacancyId, currentVacancyStageId: { not: null } },
+// US-05: HR-configurable interview rounds.
+//
+// Per-round lock (corrected from an earlier whole-vacancy lock): a specific
+// round is locked once any candidate has ever entered it -- checked against
+// ApplicationStageHistory, not CandidateApplication.currentVacancyStageId.
+// currentVacancyStageId only reflects where a candidate sits *right now*, so
+// once someone advances past round 1 into round 2, round 1 would wrongly
+// read as "untouched" if checked that way -- ApplicationStageHistory keeps a
+// permanent row per round ever entered (see transitionApplicationStage in
+// utils/stageTransition.ts), so it's the correct signal for "has this round
+// EVER been used," not just "is anyone sitting in it this second."
+//
+// Because ADVANCE always moves a candidate to the next round in live `order`
+// sequence (see submitStageRecommendation), and a candidate can only ever
+// reach round N by having passed through rounds 1..N-1 first, the set of
+// locked rounds across a vacancy is always a contiguous prefix of the
+// current round list -- "round 1 and 2 are locked, 3 onward are still
+// untouched," never a locked round sitting after an unlocked one. Creating a
+// brand new round only ever appends after the current last round, so it
+// never touches an existing round's data and doesn't need a lock check at
+// all -- see createVacancyStage below.
+async function isStageLocked(vacancyStageId: number): Promise<boolean> {
+  const count = await prisma.applicationStageHistory.count({
+    where: { vacancyStageId },
   });
   return count > 0;
+}
+
+// Batch version for listVacancyStages / reorderVacancyStages, which both
+// need every round's lock status at once rather than one at a time.
+async function lockedStageIdSet(vacancyId: number): Promise<Set<number>> {
+  const stageIds = (await prisma.vacancyStage.findMany({ where: { vacancyId }, select: { id: true } })).map(
+    (s) => s.id
+  );
+  if (stageIds.length === 0) return new Set();
+  const rows = await prisma.applicationStageHistory.findMany({
+    where: { vacancyStageId: { in: stageIds } },
+    select: { vacancyStageId: true },
+    distinct: ["vacancyStageId"],
+  });
+  return new Set(rows.map((r) => r.vacancyStageId).filter((id): id is number => id !== null));
 }
 
 export async function listVacancyStages(req: Request, res: Response) {
@@ -278,9 +325,12 @@ export async function listVacancyStages(req: Request, res: Response) {
   try {
     const [stages, locked] = await Promise.all([
       prisma.vacancyStage.findMany({ where: { vacancyId }, orderBy: { order: "asc" } }),
-      isRoundsLocked(vacancyId),
+      lockedStageIdSet(vacancyId),
     ]);
-    res.json({ stages, locked });
+    // `locked` is now per-round (was a single vacancy-wide boolean) -- each
+    // stage carries its own lock flag so untouched later rounds stay
+    // editable even while earlier rounds are locked.
+    res.json({ stages: stages.map((s) => ({ ...s, locked: locked.has(s.id) })) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Could not list interview rounds" });
@@ -303,11 +353,9 @@ export async function createVacancyStage(req: Request, res: Response) {
     if (!vacancy) {
       return res.status(404).json({ error: "Vacancy not found" });
     }
-    if (await isRoundsLocked(vacancyId)) {
-      return res.status(400).json({
-        error: "This vacancy's interview rounds are locked - a candidate has already entered a round",
-      });
-    }
+    // No lock check -- a new round always appends after the current last
+    // round (below), so it never touches an existing round's data or order,
+    // locked or not. See the comment above isStageLocked().
 
     const lastRound = await prisma.vacancyStage.findFirst({ where: { vacancyId }, orderBy: { order: "desc" } });
     const stage = await prisma.vacancyStage.create({
@@ -337,9 +385,9 @@ export async function updateVacancyStage(req: Request, res: Response) {
     if (!existing || existing.vacancyId !== vacancyId) {
       return res.status(404).json({ error: "Interview round not found on this vacancy" });
     }
-    if (await isRoundsLocked(vacancyId)) {
+    if (await isStageLocked(stageId)) {
       return res.status(400).json({
-        error: "This vacancy's interview rounds are locked - a candidate has already entered a round",
+        error: "This round is locked - a candidate has already entered it",
       });
     }
 
@@ -363,15 +411,18 @@ export async function deleteVacancyStage(req: Request, res: Response) {
     if (!existing || existing.vacancyId !== vacancyId) {
       return res.status(404).json({ error: "Interview round not found on this vacancy" });
     }
-    if (await isRoundsLocked(vacancyId)) {
+    if (await isStageLocked(stageId)) {
       return res.status(400).json({
-        error: "This vacancy's interview rounds are locked - a candidate has already entered a round",
+        error: "This round is locked - a candidate has already entered it",
       });
     }
 
-    // Safe to renumber the remaining rounds here -- deletion is only ever
-    // reachable while unlocked, i.e. before any candidate has entered any
-    // round on this vacancy, so no history references the order being shifted.
+    // Safe to renumber the remaining rounds here even though earlier rounds
+    // on this vacancy may be locked: only rounds at or after the deleted
+    // round's position shift order, and per the prefix invariant above, a
+    // round only reaches "unlocked" (reachable here) if every round after it
+    // is also still unlocked -- so nothing that shifts was ever locked.
+    // Rounds before the deleted one keep their existing order untouched.
     await prisma.$transaction(async (tx) => {
       await tx.vacancyStage.delete({ where: { id: stageId } });
       const remaining = await tx.vacancyStage.findMany({ where: { vacancyId }, orderBy: { order: "asc" } });
@@ -402,16 +453,26 @@ export async function reorderVacancyStages(req: Request, res: Response) {
   }
 
   try {
-    if (await isRoundsLocked(vacancyId)) {
-      return res.status(400).json({
-        error: "This vacancy's interview rounds are locked - a candidate has already entered a round",
-      });
-    }
-
-    const existing = await prisma.vacancyStage.findMany({ where: { vacancyId } });
+    const existing = await prisma.vacancyStage.findMany({ where: { vacancyId }, orderBy: { order: "asc" } });
     const existingIds = new Set(existing.map((s) => s.id));
     if (order.length !== existing.length || !order.every((id) => existingIds.has(id))) {
       return res.status(400).json({ error: "order must contain exactly this vacancy's current round ids, each once" });
+    }
+
+    // Locked rounds (already entered by a candidate) must keep both their
+    // relative order AND their position as a prefix of the list -- moving an
+    // unlocked round to before a locked one would make it look, after the
+    // fact, like every candidate who already passed through that locked
+    // round had skipped the newly-inserted one. Only the untouched rounds
+    // after the locked prefix can be freely reordered among themselves.
+    const locked = await lockedStageIdSet(vacancyId);
+    const lockedPrefix = existing.filter((s) => locked.has(s.id)).map((s) => s.id);
+    const requestedPrefix = order.slice(0, lockedPrefix.length);
+    const prefixUnchanged = lockedPrefix.every((id, i) => requestedPrefix[i] === id);
+    if (!prefixUnchanged) {
+      return res.status(400).json({
+        error: "Locked rounds (already entered by a candidate) must stay in their current order and position",
+      });
     }
 
     // Two-phase update: an arbitrary permutation can require moving some rows

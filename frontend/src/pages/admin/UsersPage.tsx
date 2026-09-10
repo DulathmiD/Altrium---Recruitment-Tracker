@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -24,7 +24,28 @@ const ROLE_LABELS: Record<Role, string> = {
   LEADERSHIP_MANAGEMENT: "Leadership Management",
 };
 
-type EditFormState = { name: string; email: string; department: string };
+// Same canonical 8-department list used on Create User and the Vacancies
+// page's department-browse cards -- one shared vocabulary everywhere a
+// department gets picked, not typed.
+const DEPARTMENTS = [
+  "HR",
+  "Finance and Accounting",
+  "Operations",
+  "Marketing",
+  "Sales",
+  "IT",
+  "Customer Service",
+  "Legal",
+];
+
+type EditFormState = { name: string; email: string; phoneNumber: string; department: string; role: Role };
+
+// The "Active Now" indicator that briefly lived on this page (per-user
+// lastActiveAt dot/column) has moved to the System Monitoring page instead
+// -- IT Admin's Users page is account management (who exists, what role,
+// enabled/disabled), not a live activity monitor; System is where the other
+// "how healthy/busy is the system right now" signals already live
+// (server load, response time, concurrent users). See SystemPage.tsx.
 
 export default function UsersPage() {
   const navigate = useNavigate();
@@ -37,20 +58,32 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<Role | "">("");
   const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive">("");
 
+  // Edit now goes through two password gates, not one: confirm to even open
+  // someone's record (pendingEditUser -> editingUser), and confirm again to
+  // actually save (confirmingSave), same as clicking Deactivate. This is
+  // deliberately heavier than a single confirm -- explicit ask, not an
+  // oversight -- since Edit now also covers role, which used to be its own
+  // separately-confirmed action.
+  const [pendingEditUser, setPendingEditUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState<EditFormState>({ name: "", email: "", department: "" });
+  const [editForm, setEditForm] = useState<EditFormState>({ name: "", email: "", phoneNumber: "", department: DEPARTMENTS[0], role: "HR" });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
+  const [confirmingSave, setConfirmingSave] = useState(false);
 
-  const [roleTarget, setRoleTarget] = useState<User | null>(null);
-  const [roleForm, setRoleForm] = useState<Role>("HR");
-  const [roleSaving, setRoleSaving] = useState(false);
-  const [roleError, setRoleError] = useState("");
-
-  // Password-confirm gates: one for the Create User redirect, one for
-  // deactivating/activating the account currently open in the edit popup.
   const [confirmingCreate, setConfirmingCreate] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
+
+  // Inactive accounts sink to the bottom rather than being interleaved with
+  // active ones -- a disabled account is the exception, not something that
+  // should compete for attention at the top of the list. `.sort` is stable
+  // (guaranteed by spec), so within each group the original (server-given,
+  // effectively creation-order) ordering is preserved -- this only ever
+  // reorders across the active/inactive boundary, never within a group.
+  const sortedUsers = useMemo(
+    () => [...users].sort((a, b) => Number(b.isActive) - Number(a.isActive)),
+    [users]
+  );
 
   useEffect(() => {
     refresh();
@@ -75,16 +108,28 @@ export default function UsersPage() {
 
   function openEditForm(u: User) {
     setEditingUser(u);
-    setEditForm({ name: u.name, email: u.email, department: u.department ?? "" });
+    setEditForm({
+      name: u.name,
+      email: u.email,
+      phoneNumber: u.phoneNumber ?? "",
+      department: u.department ?? DEPARTMENTS[0],
+      role: u.role,
+    });
     setEditError("");
   }
 
-  async function handleEditSave() {
+  function requestSave() {
     if (!editingUser) return;
     if (!editForm.name.trim() || !editForm.email.trim()) {
       setEditError("Name and email are required.");
       return;
     }
+    setEditError("");
+    setConfirmingSave(true);
+  }
+
+  async function handleSaveConfirmed() {
+    if (!editingUser) return;
     setEditSaving(true);
     setEditError("");
     try {
@@ -92,39 +137,27 @@ export default function UsersPage() {
         name: editForm.name.trim(),
         email: editForm.email.trim(),
         department: editForm.department.trim(),
+        phoneNumber: editForm.phoneNumber.trim(),
       });
+      // Role change is still its own endpoint/audit event (ROLE_CHANGED) --
+      // only call it when the role actually changed, and never for your own
+      // account (self-role-change is blocked server-side anyway).
+      if (editForm.role !== editingUser.role) {
+        await setUserRole(editingUser.id, editForm.role);
+      }
+      setConfirmingSave(false);
       setEditingUser(null);
       await refresh();
     } catch (err) {
+      setConfirmingSave(false);
       setEditError(err instanceof Error ? err.message : "Could not update user");
     } finally {
       setEditSaving(false);
     }
   }
 
-  function openRoleForm(u: User) {
-    setRoleTarget(u);
-    setRoleForm(u.role);
-    setRoleError("");
-  }
-
-  async function handleRoleSave() {
-    if (!roleTarget) return;
-    setRoleSaving(true);
-    setRoleError("");
-    try {
-      await setUserRole(roleTarget.id, roleForm);
-      setRoleTarget(null);
-      await refresh();
-    } catch (err) {
-      setRoleError(err instanceof Error ? err.message : "Could not update role");
-    } finally {
-      setRoleSaving(false);
-    }
-  }
-
-  // Deactivate/activate now lives behind a password-confirm step, launched
-  // from inside the edit popup rather than a standalone row button.
+  // Deactivate/activate lives behind its own password-confirm step, launched
+  // from inside the edit popup.
   function requestToggleActive() {
     if (!editingUser) return;
     setDeactivateTarget(editingUser);
@@ -182,54 +215,88 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => {
-              const isSelf = currentUser?.id === u.id;
-              return (
-                <tr key={u.id}>
-                  <td>{u.name}</td>
-                  <td>{u.email}</td>
-                  <td>
-                    <button
-                      className="usr-role-btn"
-                      onClick={() => openRoleForm(u)}
-                      disabled={isSelf}
-                      title={isSelf ? "You cannot change your own role" : "Change role"}
-                    >
-                      {ROLE_LABELS[u.role]}
-                    </button>
-                  </td>
-                  <td>{u.department ?? "—"}</td>
-                  <td>
-                    <span className={"usr-status-pill " + (u.isActive ? "active" : "inactive")}>
-                      {u.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td>{new Date(u.createdAt).toLocaleDateString()}</td>
-                  <td className="usr-row-actions">
-                    <button className="usr-edit-btn" onClick={() => openEditForm(u)} aria-label="Edit user">
-                      &#9998;
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {sortedUsers.map((u) => (
+              <tr key={u.id}>
+                <td>{u.name}</td>
+                <td>{u.email}</td>
+                <td>{ROLE_LABELS[u.role]}</td>
+                <td>{u.department ?? "—"}</td>
+                <td>
+                  <span className={"usr-status-pill " + (u.isActive ? "active" : "inactive")}>
+                    {u.isActive ? "Active" : "Inactive"}
+                  </span>
+                </td>
+                <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td className="usr-row-actions">
+                  <button className="usr-edit-btn" onClick={() => setPendingEditUser(u)} aria-label="Edit user">
+                    &#9998;
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       )}
 
-      {editingUser && (
+      {editingUser && (() => {
+        // Self-deactivation and self-role-change are already blocked
+        // server-side (so a single IT Admin can never lock everyone out
+        // with no one left able to undo it). Locking the whole form here
+        // makes the UI match that: no partial-edit state where Role and
+        // Deactivate are greyed out but Name/Email/etc. quietly still work.
+        // Retiring an admin account has to be done by a *second* IT Admin
+        // account -- that's the point of the restriction, not a bug.
+        const isSelf = currentUser?.id === editingUser.id;
+        return (
         <div className="usr-modal-backdrop" onClick={() => setEditingUser(null)}>
           <div className="usr-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Edit User</h2>
+            <div className="usr-modal-header">
+              <h2>Edit User</h2>
+              <button className="usr-modal-close" onClick={() => setEditingUser(null)} aria-label="Close">&times;</button>
+            </div>
 
-            <label htmlFor="usr-edit-name">Name</label>
-            <input id="usr-edit-name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            {isSelf && (
+              <p className="usr-hint" style={{ marginBottom: 12 }}>
+                Editing is restricted for your own account.
+              </p>
+            )}
 
-            <label htmlFor="usr-edit-email">Email</label>
-            <input id="usr-edit-email" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            <div className="usr-edit-grid">
+              <div className="usr-edit-field">
+                <label htmlFor="usr-edit-name">Name</label>
+                <input id="usr-edit-name" disabled={isSelf} value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
 
-            <label htmlFor="usr-edit-department">Department</label>
-            <input id="usr-edit-department" value={editForm.department} onChange={(e) => setEditForm({ ...editForm, department: e.target.value })} />
+              <div className="usr-edit-field">
+                <label htmlFor="usr-edit-phone">Contact Number</label>
+                <input id="usr-edit-phone" disabled={isSelf} value={editForm.phoneNumber} onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })} />
+              </div>
+
+              <div className="usr-edit-field">
+                <label htmlFor="usr-edit-email">Email</label>
+                <input id="usr-edit-email" type="email" disabled={isSelf} value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+              </div>
+
+              <div className="usr-edit-field">
+                <label htmlFor="usr-edit-role">Role</label>
+                <select
+                  id="usr-edit-role"
+                  value={editForm.role}
+                  disabled={isSelf}
+                  title={isSelf ? "You cannot change your own role" : undefined}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value as Role })}
+                >
+                  {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                </select>
+              </div>
+
+              <div className="usr-edit-field">
+                <label htmlFor="usr-edit-department">Department</label>
+                <select id="usr-edit-department" disabled={isSelf} value={editForm.department} onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}>
+                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+            </div>
 
             <div className="usr-edit-created">Created: {new Date(editingUser.createdAt).toLocaleString()}</div>
 
@@ -239,42 +306,44 @@ export default function UsersPage() {
               <button
                 className={"usr-toggle-btn " + (editingUser.isActive ? "deactivate" : "activate")}
                 onClick={requestToggleActive}
-                disabled={currentUser?.id === editingUser.id && editingUser.isActive}
-                title={currentUser?.id === editingUser.id && editingUser.isActive ? "You cannot deactivate your own account" : undefined}
+                disabled={isSelf && editingUser.isActive}
+                title={isSelf && editingUser.isActive ? "You cannot deactivate your own account" : undefined}
               >
                 {editingUser.isActive ? "Deactivate" : "Activate"}
               </button>
               <div className="usr-modal-actions">
                 <button className="usr-cancel-btn" onClick={() => setEditingUser(null)}>Cancel</button>
-                <button className="usr-save-btn" onClick={handleEditSave} disabled={editSaving}>
+                <button className="usr-save-btn" onClick={requestSave} disabled={editSaving || isSelf}>
                   {editSaving ? "Saving..." : "Save"}
                 </button>
               </div>
             </div>
           </div>
         </div>
+        );
+      })()}
+
+      {pendingEditUser && (
+        <PasswordConfirmModal
+          title="Confirm Your Password"
+          message={`Enter your password to edit ${pendingEditUser.name}'s account.`}
+          confirmLabel="Continue"
+          onCancel={() => setPendingEditUser(null)}
+          onConfirmed={() => {
+            openEditForm(pendingEditUser);
+            setPendingEditUser(null);
+          }}
+        />
       )}
 
-      {roleTarget && (
-        <div className="usr-modal-backdrop" onClick={() => setRoleTarget(null)}>
-          <div className="usr-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Change Role — {roleTarget.name}</h2>
-
-            <label htmlFor="usr-role-select">Role</label>
-            <select id="usr-role-select" value={roleForm} onChange={(e) => setRoleForm(e.target.value as Role)}>
-              {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-            </select>
-
-            {roleError && <p className="usr-error">{roleError}</p>}
-
-            <div className="usr-modal-actions">
-              <button className="usr-cancel-btn" onClick={() => setRoleTarget(null)}>Cancel</button>
-              <button className="usr-save-btn" onClick={handleRoleSave} disabled={roleSaving}>
-                {roleSaving ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {confirmingSave && (
+        <PasswordConfirmModal
+          title="Confirm Your Password"
+          message="Enter your password to save these changes."
+          confirmLabel="Save Changes"
+          onCancel={() => setConfirmingSave(false)}
+          onConfirmed={handleSaveConfirmed}
+        />
       )}
 
       {confirmingCreate && (

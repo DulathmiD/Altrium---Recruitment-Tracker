@@ -84,6 +84,86 @@ export async function getCandidate(req: Request, res: Response) {
   }
 
   try {
+    // Read-only. This used to also stamp lastCvReviewedByUserId/At on every
+    // fetch ("viewing the detail page IS the review") -- corrected per user
+    // feedback: simply opening a candidate's row shouldn't silently count as
+    // having reviewed their CV before HR has actually looked at it. The
+    // review stamp now only happens via markCvReviewed() below, which the
+    // frontend fires from an explicit "View CV" action on this same page --
+    // so it takes both opening the candidate AND actually viewing the CV,
+    // not either alone.
+    const candidate = await prisma.candidate.findUnique({
+      where: { id },
+      include: {
+        applications: {
+          include: { vacancy: true, currentVacancyStage: true },
+          orderBy: { appliedAt: "desc" },
+        },
+        lastCvReviewedBy: true,
+      },
+    });
+    if (!candidate) {
+      return res.status(404).json({ error: "Candidate not found" });
+    }
+
+    // Task #44 (Email History): AuditLog's metadata originally only stored
+    // {recipient, channel, reason} for a NOTIFICATION_SENT entry -- no way to
+    // show the actual message content, just "what kind of email, when." The
+    // three candidate-facing send sites (recordHiringDecision's HIRE/REJECT
+    // email, scheduleInterview/addCandidatesToSlot's round-1 auto-invite, and
+    // Follow Ups' manual invite send) now also persist `subject`/`body` in
+    // that same metadata blob, so a real email sent after this change carries
+    // its content here; anything sent before it just won't have `subject`/
+    // `body` set, and the frontend falls back to "not available" for those.
+    // Filtering happens in JS rather than a JSON-path Prisma query (metadata
+    // is a generic Json column shared by 10 other AuditActions with
+    // different shapes) -- simpler and safer than relying on the DB driver's
+    // JSON path filter syntax for one field.
+    const notificationLogs = await prisma.auditLog.findMany({
+      where: { action: "NOTIFICATION_SENT" },
+      orderBy: { createdAt: "desc" },
+    });
+    const emailHistory = notificationLogs
+      .filter((log) => {
+        const recipient = (log.metadata as Record<string, unknown> | null)?.recipient;
+        return typeof recipient === "string" && recipient.toLowerCase() === candidate.email.toLowerCase();
+      })
+      .map((log) => {
+        const meta = log.metadata as Record<string, unknown> | null;
+        const reason = meta?.reason;
+        const reasonStr = typeof reason === "string" ? reason : "";
+        const subject = typeof meta?.subject === "string" ? meta.subject : null;
+        const body = typeof meta?.body === "string" ? meta.body : null;
+        return {
+          id: log.id,
+          label: CANDIDATE_EMAIL_LABEL[reasonStr] ?? "Email",
+          sentAt: log.createdAt,
+          subject,
+          body,
+        };
+      });
+
+    res.json({ ...candidate, emailHistory });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not fetch candidate" });
+  }
+}
+
+// The actual review-stamp write, moved out of getCandidate() above. Fired
+// by the frontend's "View CV" button on the candidate detail page -- so it
+// takes both opening the candidate's row (to reach that page) AND clicking
+// to view the CV, not either action alone. Doesn't touch the standalone
+// "View" link on the Candidates list page (downloadCv, below), which stays
+// a plain CV fetch with no side effect -- viewing a CV from the list
+// without ever opening the candidate shouldn't count as a review either.
+export async function markCvReviewed(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (Number.isNaN(id)) {
+    return res.status(400).json({ error: "Invalid candidate id" });
+  }
+
+  try {
     const existing = await prisma.candidate.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ error: "Candidate not found" });
@@ -95,46 +175,13 @@ export async function getCandidate(req: Request, res: Response) {
         lastCvReviewedByUserId: req.user!.id,
         lastCvReviewedAt: new Date(),
       },
-      include: {
-        applications: {
-          include: { vacancy: true, currentVacancyStage: true },
-          orderBy: { appliedAt: "desc" },
-        },
-        lastCvReviewedBy: true,
-      },
+      include: { lastCvReviewedBy: true },
     });
 
-    // Task #44 (Email History): AuditLog's metadata only ever stored
-    // {recipient, channel, reason} for a NOTIFICATION_SENT entry -- there's
-    // no subject/body column, so this can only show "what kind of email,
-    // when," not the actual message content, unless the send paths are also
-    // updated to persist subject/body. Filtering happens in JS rather than a
-    // JSON-path Prisma query (metadata is a generic Json column shared by 10
-    // other AuditActions with different shapes) -- simpler and safer than
-    // relying on the DB driver's JSON path filter syntax for one field.
-    const notificationLogs = await prisma.auditLog.findMany({
-      where: { action: "NOTIFICATION_SENT" },
-      orderBy: { createdAt: "desc" },
-    });
-    const emailHistory = notificationLogs
-      .filter((log) => {
-        const recipient = (log.metadata as Record<string, unknown> | null)?.recipient;
-        return typeof recipient === "string" && recipient.toLowerCase() === candidate.email.toLowerCase();
-      })
-      .map((log) => {
-        const reason = (log.metadata as Record<string, unknown> | null)?.reason;
-        const reasonStr = typeof reason === "string" ? reason : "";
-        return {
-          id: log.id,
-          label: CANDIDATE_EMAIL_LABEL[reasonStr] ?? "Email",
-          sentAt: log.createdAt,
-        };
-      });
-
-    res.json({ ...candidate, emailHistory });
+    res.json(candidate);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Could not fetch candidate" });
+    res.status(500).json({ error: "Could not mark candidate as reviewed" });
   }
 }
 

@@ -11,12 +11,21 @@ import {
 } from "../../api/interviews";
 import { listVacancies, type Vacancy } from "../../api/vacancy";
 import { listVacancyStages, type VacancyStage } from "../../api/vacancyStages";
-import { listVacancyInterviewers, assignInterviewerToVacancy, type VacancyInterviewer } from "../../api/vacancyInterviewers";
+import { listInterviewPanels, createInterviewPanel, type InterviewPanel } from "../../api/interviewPanels";
 import { listAssignableStaff, roleLabel, type StaffMember } from "../../api/staff";
 import { listCandidates, type CandidateApplicationRow } from "../../api/candidates";
 import Toast from "../../components/Toast";
 import { formatSlotTimeRange } from "../../utils/interviewTime";
 import "./InterviewsPage.css";
+
+// Interviewers first (most panel members), then Hiring Managers, Management
+// last -- used to order the Assign Interview Panel checklist by role instead
+// of the raw alphabetical-by-name order /staff returns.
+const PANEL_ROLE_ORDER: Record<StaffMember["role"], number> = {
+  INTERVIEWER: 0,
+  HIRING_MANAGER: 1,
+  MANAGEMENT: 2,
+};
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -316,8 +325,9 @@ export default function InterviewsPage() {
 function AssignPanelModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [vacancyId, setVacancyId] = useState<number | "">("");
-  const [pool, setPool] = useState<VacancyInterviewer[]>([]);
+  const [existingPanels, setExistingPanels] = useState<InterviewPanel[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [name, setName] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -330,29 +340,29 @@ function AssignPanelModal({ onClose, onDone }: { onClose: () => void; onDone: ()
   useEffect(() => {
     setSelected(new Set());
     if (!vacancyId) {
-      setPool([]);
+      setExistingPanels([]);
       return;
     }
-    listVacancyInterviewers(vacancyId).then(setPool).catch(() => {});
+    listInterviewPanels(vacancyId).then(setExistingPanels).catch(() => {});
   }, [vacancyId]);
-
-  const poolUserIds = useMemo(() => new Set(pool.map((p) => p.userId)), [pool]);
 
   async function handleSave() {
     if (!vacancyId) {
       setError("Select a vacancy.");
       return;
     }
+    if (!name.trim()) {
+      setError("Name this panel.");
+      return;
+    }
     if (selected.size === 0) {
-      setError("Select at least one staff member to add.");
+      setError("Select at least one staff member.");
       return;
     }
     setSaving(true);
     setError("");
     try {
-      for (const userId of selected) {
-        await assignInterviewerToVacancy(vacancyId, userId);
-      }
+      await createInterviewPanel(vacancyId, name.trim(), [...selected]);
       onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save panel");
@@ -367,6 +377,9 @@ function AssignPanelModal({ onClose, onDone }: { onClose: () => void; onDone: ()
         <h2>Assign Interview Panel</h2>
         {error && <p className="ivw-error">{error}</p>}
 
+        <label>Panel Name</label>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Panel 1" />
+
         <label>Vacancy</label>
         <select value={vacancyId} onChange={(e) => setVacancyId(e.target.value ? Number(e.target.value) : "")}>
           <option value="">Select a vacancy</option>
@@ -377,19 +390,46 @@ function AssignPanelModal({ onClose, onDone }: { onClose: () => void; onDone: ()
           ))}
         </select>
 
+        {vacancyId !== "" && existingPanels.length > 0 && (
+          <p className="ivw-muted">Existing panels for this vacancy: {existingPanels.map((p) => p.name).join(", ")}</p>
+        )}
+
         {vacancyId !== "" && (
           <>
-            <label>Panel</label>
+            <label>Staff</label>
             <div className="ivw-checklist">
-              {staff.length === 0 && <p className="ivw-muted">No assignable interviewers found.</p>}
-              {staff.map((s) => {
-                const already = poolUserIds.has(s.id);
+              {staff.filter((s) => s.role !== "HIRING_MANAGER").length === 0 && (
+                <p className="ivw-muted">No assignable interviewers found.</p>
+              )}
+              {staff
+                // Hiring Managers don't sit on interview panels in this
+                // system -- they decide Proceed/Do Not Proceed/Hire/Reject
+                // from other people's feedback, not by attending interviews
+                // themselves (see project-decisions-log.md, 23rd pass, which
+                // reversed an earlier attempt to give them one). /staff
+                // still returns them for the separate "assign a Hiring
+                // Manager to an application" use elsewhere, so filter here
+                // rather than at the shared endpoint.
+                .filter((s) => s.role !== "HIRING_MANAGER")
+                .sort((a, b) => {
+                  // Interviewers first (they're who's actually assigned to
+                  // most rounds), Management last -- instead of the raw
+                  // alphabetical-by-name order the /staff endpoint returns
+                  // them in.
+                  const diff = PANEL_ROLE_ORDER[a.role] - PANEL_ROLE_ORDER[b.role];
+                  return diff !== 0 ? diff : a.name.localeCompare(b.name);
+                })
+                .map((s) => {
+                // Staff are never disabled here -- the same person can
+                // legitimately sit on more than one named panel for the same
+                // vacancy (e.g. an Interviewer who's on both Panel 1 and
+                // Panel 2), so reuse across panels is intentional, not
+                // blocked.
                 return (
                   <label key={s.id} className="ivw-check-row">
                     <input
                       type="checkbox"
-                      disabled={already}
-                      checked={already || selected.has(s.id)}
+                      checked={selected.has(s.id)}
                       onChange={(e) => {
                         setSelected((prev) => {
                           const next = new Set(prev);
@@ -401,7 +441,6 @@ function AssignPanelModal({ onClose, onDone }: { onClose: () => void; onDone: ()
                     />
                     <span>
                       {s.name} - {roleLabel(s.role)}
-                      {already ? " - already on panel" : ""}
                     </span>
                   </label>
                 );
@@ -449,8 +488,9 @@ function ScheduleInterviewModal({ onClose, onDone }: { onClose: () => void; onDo
   const [hour, setHour] = useState<number | "">("");
   const [minute, setMinute] = useState("");
   const time = hour !== "" && minute !== "" ? `${String(hour).padStart(2, "0")}:${minute}` : "";
-  const [pool, setPool] = useState<VacancyInterviewer[]>([]);
-  const [panelExpanded, setPanelExpanded] = useState(false);
+  const [panels, setPanels] = useState<InterviewPanel[]>([]);
+  const [selectedPanelIds, setSelectedPanelIds] = useState<Set<number>>(new Set());
+  const [expandedPanelIds, setExpandedPanelIds] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -460,25 +500,39 @@ function ScheduleInterviewModal({ onClose, onDone }: { onClose: () => void; onDo
 
   useEffect(() => {
     setVacancyStageId("");
-    setPanelExpanded(false);
+    setSelectedPanelIds(new Set());
+    setExpandedPanelIds(new Set());
     if (!vacancyId) {
       setStages([]);
-      setPool([]);
+      setPanels([]);
       return;
     }
     listVacancyStages(vacancyId)
       .then((r) => setStages(r.stages))
       .catch(() => {});
-    listVacancyInterviewers(vacancyId).then(setPool).catch(() => {});
+    listInterviewPanels(vacancyId).then(setPanels).catch(() => {});
   }, [vacancyId]);
+
+  // Union of every selected panel's members -- a person on two selected
+  // panels only ends up as one panelist, and picking multiple panels for
+  // one interview is expected (per the "choose one or more" flow), not an
+  // edge case to guard against.
+  const selectedPanelistUserIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const panel of panels) {
+      if (!selectedPanelIds.has(panel.id)) continue;
+      for (const m of panel.members) ids.add(m.userId);
+    }
+    return [...ids];
+  }, [panels, selectedPanelIds]);
 
   async function handleSave() {
     if (!vacancyStageId || !date || !time) {
       setError("Stage, date, and time are required.");
       return;
     }
-    if (pool.length === 0) {
-      setError('This vacancy has no panel yet -- use "Assign Interview Panel" first.');
+    if (selectedPanelistUserIds.length === 0) {
+      setError("Select at least one panel.");
       return;
     }
     setSaving(true);
@@ -487,7 +541,7 @@ function ScheduleInterviewModal({ onClose, onDone }: { onClose: () => void; onDo
       await createInterviewSlotOnly({
         vacancyStageId,
         scheduledAt: new Date(`${date}T${time}`).toISOString(),
-        panelistUserIds: pool.map((p) => p.userId),
+        panelistUserIds: selectedPanelistUserIds,
         roundLabel: roundLabel.trim() || undefined,
       });
       onDone();
@@ -559,31 +613,62 @@ function ScheduleInterviewModal({ onClose, onDone }: { onClose: () => void; onDo
               </select>
             </div>
 
-            <label>Panel</label>
-            {pool.length === 0 ? (
-              <p className="ivw-muted">No interviewers assigned to this vacancy yet - use "Assign Interview Panel" first.</p>
+            <label>Panels</label>
+            {panels.length === 0 ? (
+              <p className="ivw-muted">No panels created for this vacancy yet - use "Assign Interview Panel" first.</p>
             ) : (
-              <div className="ivw-panel-summary">
-                <button
-                  type="button"
-                  className="ivw-panel-summary-row"
-                  onClick={() => setPanelExpanded((v) => !v)}
-                  aria-expanded={panelExpanded}
-                >
-                  <span>
-                    Panel ({pool.length} {pool.length === 1 ? "member" : "members"})
-                  </span>
-                  <span className="ivw-panel-summary-arrow">{panelExpanded ? "▴" : "▾"}</span>
-                </button>
-                {panelExpanded && (
-                  <ul className="ivw-plain-list ivw-panel-summary-list">
-                    {pool.map((p) => (
-                      <li key={p.userId}>
-                        {p.user.name} - {roleLabel(p.user.role)}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              <div className="ivw-checklist">
+                {panels.map((panel) => {
+                  const checked = selectedPanelIds.has(panel.id);
+                  const expanded = expandedPanelIds.has(panel.id);
+                  return (
+                    <div key={panel.id} className="ivw-panel-summary">
+                      <div className="ivw-panel-summary-row">
+                        <label className="ivw-check-row">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setSelectedPanelIds((prev) => {
+                                const next = new Set(prev);
+                                if (e.target.checked) next.add(panel.id);
+                                else next.delete(panel.id);
+                                return next;
+                              });
+                            }}
+                          />
+                          <span>
+                            {panel.name} ({panel.members.length} {panel.members.length === 1 ? "member" : "members"})
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          className="ivw-panel-summary-arrow"
+                          onClick={() =>
+                            setExpandedPanelIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(panel.id)) next.delete(panel.id);
+                              else next.add(panel.id);
+                              return next;
+                            })
+                          }
+                          aria-expanded={expanded}
+                        >
+                          {expanded ? "▴" : "▾"}
+                        </button>
+                      </div>
+                      {expanded && (
+                        <ul className="ivw-plain-list ivw-panel-summary-list">
+                          {panel.members.map((m) => (
+                            <li key={m.userId}>
+                              {m.user.name} - {roleLabel(m.user.role)}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </>

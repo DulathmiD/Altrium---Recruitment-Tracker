@@ -148,7 +148,7 @@ export async function listFeedbackAuditLog(req: Request, res: Response) {
   try {
     const log = await prisma.feedbackAuditLog.findMany({
       where: { feedbackId },
-      include: { editedBy: true },
+      include: { editedBy: { select: { id: true, name: true, email: true } } },
       orderBy: { editedAt: "asc" },
     });
     res.json(log);

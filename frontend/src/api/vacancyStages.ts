@@ -5,11 +5,14 @@ export type VacancyStage = {
   vacancyId: number;
   name: string;
   order: number;
+  // Per-round now (was a single vacancy-wide flag) -- true once a candidate
+  // has ever entered this specific round. Later, still-untouched rounds stay
+  // editable even while earlier rounds are locked.
+  locked: boolean;
 };
 
 export type VacancyStagesResponse = {
   stages: VacancyStage[];
-  locked: boolean;
 };
 
 export function listVacancyStages(vacancyId: number) {

@@ -5,6 +5,23 @@ import { initializeApplicationStage, transitionApplicationStage } from "../utils
 import { writeAuditLog } from "../utils/auditLog.js";
 import { renderTemplate } from "../utils/notificationTemplates.js";
 
+// ON_HOLD freeze: putting a vacancy ON_HOLD is meant to actually pause its
+// pipeline (budget freeze, role re-scoped, etc.), not just hide it from the
+// "open vacancies" KPI count. While frozen: no candidate/CV can be added to
+// it (applyCandidateToVacancy), and no existing application on it can change
+// stage (submitStageRecommendation), get a final hiring decision
+// (recordHiringDecision), or get a Hiring Manager assigned
+// (assignHiringManager). Reopening the vacancy (status back to OPEN) is the
+// only way to resume -- there's no separate "unfreeze this one candidate"
+// escape hatch, since that would defeat the point of freezing the vacancy.
+async function assertVacancyNotOnHold(vacancyId: number): Promise<string | null> {
+  const vacancy = await prisma.vacancy.findUnique({ where: { id: vacancyId }, select: { status: true } });
+  if (vacancy?.status === "ON_HOLD") {
+    return "This vacancy is on hold -- reopen it before adding or progressing candidates";
+  }
+  return null;
+}
+
 export async function applyCandidateToVacancy(req: Request, res: Response) {
   const vacancyId = Number(req.params.id);
   if (Number.isNaN(vacancyId)) {
@@ -16,6 +33,11 @@ export async function applyCandidateToVacancy(req: Request, res: Response) {
     return res.status(400).json({ error: "candidateId is required" });
   }
 
+  const onHoldError = await assertVacancyNotOnHold(vacancyId);
+  if (onHoldError) {
+    return res.status(400).json({ error: onHoldError });
+  }
+
   try {
     const application = await prisma.candidateApplication.create({
       data: { candidateId, vacancyId },
@@ -24,7 +46,16 @@ export async function applyCandidateToVacancy(req: Request, res: Response) {
     res.status(201).json(application);
   } catch (err: any) {
     if (err.code === "P2002") {
-      return res.status(409).json({ error: "This candidate has already applied to this vacancy" });
+      // Named so the frontend can link straight to the existing application
+      // (e.g. from the CV-upload duplicate flow) instead of just naming the
+      // conflict in text with nowhere to go.
+      const existing = await prisma.candidateApplication.findUnique({
+        where: { candidateId_vacancyId: { candidateId, vacancyId } },
+      });
+      return res.status(409).json({
+        error: "This candidate has already applied to this vacancy",
+        existingApplicationId: existing?.id ?? null,
+      });
     }
     if (err.code === "P2003") {
       return res.status(404).json({ error: "Candidate or vacancy not found" });
@@ -108,6 +139,11 @@ export async function recordHiringDecision(req: Request, res: Response) {
       return res.status(400).json({ error: "This application has already reached a final outcome" });
     }
 
+    const onHoldError = await assertVacancyNotOnHold(existing.vacancyId);
+    if (onHoldError) {
+      return res.status(400).json({ error: onHoldError });
+    }
+
     // Hiring can only be confirmed once a candidate has completed the
     // vacancy's full (HR-configured) interview round list -- consistent with
     // the no-skip rule enforced in submitStageRecommendation. Rejection has
@@ -167,6 +203,8 @@ export async function recordHiringDecision(req: Request, res: Response) {
           recipient: candidate.email,
           channel: "email",
           reason: templateKey,
+          subject,
+          body,
         });
       } catch (emailErr) {
         console.error("Hiring decision recorded but notification email failed:", emailErr);
@@ -248,6 +286,11 @@ export async function submitStageRecommendation(req: Request, res: Response) {
 
     if (application.stage === "REJECTED" || application.stage === "HIRED") {
       return res.status(400).json({ error: "This application has already reached a final outcome" });
+    }
+
+    const onHoldError = await assertVacancyNotOnHold(application.vacancyId);
+    if (onHoldError) {
+      return res.status(400).json({ error: onHoldError });
     }
 
     if (recommendation === "ADVANCE") {
@@ -344,6 +387,21 @@ export async function assignHiringManager(req: Request, res: Response) {
       return res.status(404).json({ error: "Application not found" });
     }
 
+    // Mirrors the frontend's HR-detail-page lock: an HM should only ever be
+    // attached to a candidate HR has actually shortlisted. Enforced here too
+    // (not just disabling the button) since this endpoint has no other
+    // stage check and is reachable directly, not only through that page.
+    if (application.stage !== "SHORTLISTED") {
+      return res.status(400).json({
+        error: `Cannot assign a Hiring Manager to an application in ${application.stage} stage -- candidate must be shortlisted first`,
+      });
+    }
+
+    const onHoldError = await assertVacancyNotOnHold(application.vacancyId);
+    if (onHoldError) {
+      return res.status(400).json({ error: onHoldError });
+    }
+
     const targetUser = await prisma.user.findUnique({ where: { id: hiringManagerId } });
     if (!targetUser || targetUser.role !== "HIRING_MANAGER") {
       return res.status(400).json({ error: "hiringManagerId must belong to a user with the HIRING_MANAGER role" });
@@ -399,8 +457,29 @@ export async function updateApplicationStatus(req: Request, res: Response) {
     if (!existing) {
       return res.status(404).json({ error: "Application not found" });
     }
-    if (existing.stage !== "APPLIED") {
-      return res.status(400).json({ error: "Can only shortlist or reject an application that is still in the Applied stage" });
+
+    // "Reconsider" -- the one path back from REJECTED, and only for an
+    // early CV-screening rejection (HR rejected the CV before it was ever
+    // shortlisted), never for a rejection that came out of `recordHiringDecision`
+    // after a real interview process (that's a `hiringDecision` value, a
+    // separate field, and reopening a genuine final outcome is a bigger,
+    // more deliberate action than this endpoint is meant for -- see
+    // application.controller.ts's recordHiringDecision, which already
+    // blocks re-deciding once stage is HIRED/REJECTED). Distinguished by
+    // `hiringDecision` being null: an early-rejected application never had
+    // one set in the first place.
+    const isReconsider = status === "SHORTLISTED" && existing.stage === "REJECTED" && existing.hiringDecision === null;
+    if (existing.stage !== "APPLIED" && !isReconsider) {
+      return res.status(400).json({
+        error: existing.hiringDecision
+          ? "This application already has a final hiring decision recorded and cannot be reopened here."
+          : "Can only shortlist or reject an application that is still in the Applied stage, or reconsider one that was rejected before any hiring decision.",
+      });
+    }
+
+    const onHoldError = await assertVacancyNotOnHold(existing.vacancyId);
+    if (onHoldError) {
+      return res.status(400).json({ error: onHoldError });
     }
 
     const updated = await transitionApplicationStage(id, { stage: status as any }, req.user!.id);

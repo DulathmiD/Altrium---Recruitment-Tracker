@@ -58,9 +58,18 @@ model User {
   department          String?
   phoneNumber         String?
   isActive            Boolean   @default(true)
+  mustChangePassword  Boolean   @default(false)
   createdAt           DateTime  @default(now())
   resetTokenHash      String?
   resetTokenExpiresAt DateTime?
+  // Approximate "is this person currently using the system" signal --
+  // updated (throttled, fire-and-forget) by requireAuth on every
+  // authenticated request. Not a true session registry: JWTs are stateless
+  // by design (no server-side login/logout record), so this can only ever
+  // answer "made an authenticated request recently," not "has an open
+  // session right now." IT Admin's Users page treats anyone with a
+  // lastActiveAt inside the last ~10 minutes as "active now."
+  lastActiveAt        DateTime?
 
   feedbackGiven        Feedback[]
   panelistOn           InterviewPanelist[]
@@ -71,6 +80,7 @@ model User {
   stageChangesMade      ApplicationStageHistory[]
   recommendationsMade   StageRecommendation[]
   vacancyInterviewerOn  VacancyInterviewer[]
+  interviewPanelMemberships InterviewPanelMember[]
   auditLogEntries       AuditLog[]
   // SCRUM2-45: IT Admin edits to notification templates, audited by who/when.
   notificationTemplateEdits NotificationTemplate[]
@@ -102,6 +112,7 @@ model Vacancy {
   applications CandidateApplication[]
   interviewers VacancyInterviewer[]
   stages       VacancyStage[]
+  panels       InterviewPanel[]
 
   // US-04: creating a duplicate vacancy (same title+department) is rejected.
   @@unique([title, department])
@@ -109,13 +120,14 @@ model Vacancy {
 
 // US-05: HR-configurable interview rounds, per vacancy. `order` (1-based) is
 // the authoritative sequence for "no skipping, no moving backwards" within
-// the interview phase. The round list is locked (no create/rename/reorder/
-// delete) once any candidate application on this vacancy has entered a round
-// -- derived by checking whether any CandidateApplication for this vacancy
-// has a non-null currentVacancyStageId, not a stored flag (see
-// isRoundsLocked() in vacancy.controller.ts). Cross-vacancy reports must
-// aggregate by `order`, not `name` -- names aren't consistent across
-// vacancies (different HR users can call round 1 anything).
+// the interview phase. Locking is per-round, not whole-vacancy: a specific
+// round is locked (no rename/delete, and can't be reordered past) once any
+// candidate has ever entered it -- derived from ApplicationStageHistory
+// rows for that vacancyStageId, not a stored flag (see isStageLocked() /
+// lockedStageIdSet() in vacancy.controller.ts). New rounds always append
+// and are never locked. Cross-vacancy reports must aggregate by `order`,
+// not `name` -- names aren't consistent across vacancies (different HR
+// users can call round 1 anything).
 model VacancyStage {
   id        Int     @id @default(autoincrement())
   vacancyId Int
@@ -141,6 +153,39 @@ model VacancyInterviewer {
   user      User    @relation(fields: [userId], references: [id])
 
   @@unique([vacancyId, userId])
+}
+
+// Named, reusable subset of a vacancy's interviewer pool ("Panel 1",
+// "Panel 2"), so HR can save a specific grouping once and pick it again at
+// Schedule Interview time instead of re-selecting individual people every
+// time. Deliberately additive alongside VacancyInterviewer, not a
+// replacement -- VacancyInterviewer stays "everyone assigned to this
+// vacancy across all its panels" (what validatePanelistsAndConflict checks
+// against), while InterviewPanel is a named grouping within that pool.
+// Creating a panel upserts its members into VacancyInterviewer too, so
+// existing scheduling validation needs no changes. Same person can be a
+// member of multiple panels for the same vacancy -- reuse is intentional,
+// not blocked.
+model InterviewPanel {
+  id        Int      @id @default(autoincrement())
+  vacancyId Int
+  vacancy   Vacancy  @relation(fields: [vacancyId], references: [id])
+  name      String
+  createdAt DateTime @default(now())
+
+  members InterviewPanelMember[]
+
+  @@unique([vacancyId, name])
+}
+
+model InterviewPanelMember {
+  id      Int            @id @default(autoincrement())
+  panelId Int
+  panel   InterviewPanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
+  userId  Int
+  user    User           @relation(fields: [userId], references: [id])
+
+  @@unique([panelId, userId])
 }
 
 model Candidate {
@@ -181,10 +226,11 @@ model CandidateApplication {
   // Which HR-configured interview round this candidate is currently in. Null
   // until they enter the vacancy's first round. Deliberately NOT nulled out
   // when the candidate is later HIRED or REJECTED -- it persists as a
-  // historical breadcrumb ("which round were they in when this concluded"),
-  // and is also what the round edit-lock check relies on
-  // (isRoundsLocked() treats any non-null value here, on any application for
-  // the vacancy, as "rounds have been used, lock the list").
+  // historical breadcrumb ("which round were they in when this concluded").
+  // NOTE: the per-round lock check (isStageLocked() / lockedStageIdSet() in
+  // vacancy.controller.ts) does NOT use this field -- it only reflects where
+  // a candidate sits right now, not every round they've ever passed through.
+  // The lock check uses ApplicationStageHistory instead (see that model).
   currentVacancyStageId Int?
   currentVacancyStage   VacancyStage? @relation(fields: [currentVacancyStageId], references: [id])
 
@@ -203,9 +249,15 @@ model CandidateApplication {
   @@unique([candidateId, vacancyId])
 }
 
-// US-20/US-37: every stage transition is logged with entry/exit timestamps so
-// reports can compute time-in-stage and stage-progression history. Exactly
-// one of `stage` / `vacancyStageId` is set per row: `stage` for an anchor
+// US-33 (bottleneck identification / time in stage): every stage transition
+// is logged with entry/exit timestamps so reports can compute time-in-stage
+// and stage-progression history. Previously mislabeled "US-20/US-37" in this
+// comment -- US-20 was a stale citation to the original raw backlog's
+// informal "Interviewer updates candidate progression stages" story (a
+// "zombie" entry, not real AC-doc content -- see project-decisions-log.md),
+// and US-37 is actually "vacancy-specific reports" (the PDF report screens),
+// not this table specifically. Corrected once the real numbering was
+// confirmed. Exactly one of `stage` / `vacancyStageId` is set per row: `stage` for an anchor
 // transition (APPLIED/SHORTLISTED/HIRED/REJECTED), `vacancyStageId` for
 // entering a specific HR-configured interview round. Reports must group by
 // vacancyStage.order (round index) when aggregating across vacancies, not by

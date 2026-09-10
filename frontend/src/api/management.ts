@@ -82,7 +82,9 @@ export type UpcomingInterviewRow = {
   scheduledAt: string;
   candidate: { id: number; name: string };
   vacancy: { id: number; title: string };
-  round: { name: string; order: number; roundLabel: string | null };
+  round: { name: string; order: number; roundLabel: string | null; isFinal: boolean };
+  panelists: { id: number; userId: number; name: string }[];
+  feedbackSubmitted: boolean;
 };
 
 export type UpcomingInterviewsResponse =
