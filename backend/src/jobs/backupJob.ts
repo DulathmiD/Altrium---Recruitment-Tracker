@@ -1,27 +1,29 @@
 // Backlog item: "As an IT administrator, I want automatic system backups to
 // prevent data loss." Previously entirely fake -- system.controller.ts's
 // buildSimulatedBackupHistory() generated a deterministic "always
-// Successful" history with no backup job, no mysqldump, and no storage
-// target behind it at all (see that file's own comment, now stale and
-// removed as part of this change). This replaces the simulation with a real
-// scheduled `mysqldump` writing timestamped .sql files to backend/backups/,
-// which system.controller.ts now lists for real instead of fabricating.
+// Successful" history with no backup job, no dump, and no storage target
+// behind it at all (see that file's own comment, now stale and removed as
+// part of this change). This replaces the simulation with a real scheduled
+// database dump writing timestamped .sql files to backend/backups/, which
+// system.controller.ts now lists for real instead of fabricating.
 //
 // Connection details are parsed from DATABASE_URL (already required for
 // Prisma) rather than duplicating SMTP-style separate env vars -- one fewer
 // thing to configure.
 //
-// Binary name: MySQL ships `mysqldump`; some newer MariaDB packages ship
-// `mariadb-dump` instead (with `mysqldump` not present or only a
-// compatibility symlink depending on the install). Defaults to `mysqldump`,
-// overridable via BACKUP_DUMP_BIN if that's not what's on this machine's
-// PATH -- not something this sandbox can detect, since it has no DB access
-// to test against.
+// Dump generation: originally shelled out to the `mysqldump` command-line
+// tool via execFile. That assumed the deploy environment has it installed --
+// it doesn't (Render's standard Node runtime has no MySQL client tools, and
+// there's no supported way to apt-get install one there), which surfaced as
+// "spawn mysqldump ENOENT" the first time this actually ran on Render rather
+// than locally. Replaced with the `mysqldump` npm package, which generates
+// the dump itself in pure JS via the same mysql2 driver already used
+// elsewhere in this project (Prisma's adapter), so it needs nothing
+// installed on the host at all.
 import cron from "node-cron";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
+import mysqldump from "mysqldump";
 import { PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { prisma } from "../prisma.js";
 import { Role } from "../../generated/prisma/index.js";
@@ -37,8 +39,6 @@ import { cloudClient, cloudBucketName } from "../utils/fileStorage.js";
 // "backups/" prefix -- no separate bucket needed), each dump is also
 // uploaded there, which is what actually survives a restart.
 const CLOUD_BACKUP_PREFIX = "backups/";
-
-const execFileAsync = promisify(execFile);
 
 const CHECK_CRON = "0 3 * * *"; // once a day, 03:00 server time
 const BACKUP_DIR = path.join(process.cwd(), "backups");
@@ -90,25 +90,29 @@ export async function runBackupNow(opts: { actorUserId?: number; trigger?: "sche
 
   const filename = `${conn.database}-${timestampForFilename(new Date())}.sql`;
   const filePath = path.join(BACKUP_DIR, filename);
-  const dumpBin = process.env.BACKUP_DUMP_BIN || "mysqldump";
 
   try {
-    // Password passed via MYSQL_PWD env var, not a --password= command-line
-    // flag -- command-line args are visible to other processes/users on the
-    // same machine (e.g. `ps`/Task Manager command-line column), MYSQL_PWD
-    // isn't.
-    const { stdout } = await execFileAsync(
-      dumpBin,
-      ["--host", conn.host, "--port", conn.port, "--user", conn.user, "--single-transaction", "--routines", conn.database],
-      { env: { ...process.env, MYSQL_PWD: conn.password }, maxBuffer: 1024 * 1024 * 200 }
-    );
-    fs.writeFileSync(filePath, stdout);
-    console.log(`Backup job: wrote ${filePath} (${(stdout.length / 1024).toFixed(1)} KB).`);
+    const result = await mysqldump({
+      connection: {
+        host: conn.host,
+        port: Number(conn.port),
+        user: conn.user,
+        password: conn.password,
+        database: conn.database,
+      },
+    });
+    // The library splits schema/data/triggers out separately (each null if
+    // the DB has none) -- concatenated back into one .sql file, same shape
+    // as a single mysqldump CLI output would have produced.
+    const sql = [result.dump.schema, result.dump.trigger, result.dump.data].filter((part) => part).join("\n\n");
+
+    fs.writeFileSync(filePath, sql);
+    console.log(`Backup job: wrote ${filePath} (${(sql.length / 1024).toFixed(1)} KB).`);
 
     if (cloudClient) {
       try {
         await cloudClient.send(
-          new PutObjectCommand({ Bucket: cloudBucketName, Key: `${CLOUD_BACKUP_PREFIX}${filename}`, Body: Buffer.from(stdout) })
+          new PutObjectCommand({ Bucket: cloudBucketName, Key: `${CLOUD_BACKUP_PREFIX}${filename}`, Body: Buffer.from(sql) })
         );
         console.log(`Backup job: also uploaded ${filename} to cloud storage (${CLOUD_BACKUP_PREFIX}).`);
       } catch (err) {
@@ -132,7 +136,7 @@ export async function runBackupNow(opts: { actorUserId?: number; trigger?: "sche
     if (actorUserId !== undefined) {
       await writeAuditLog(actorUserId, "SYSTEM_BACKUP_RUN", "System", null, {
         filename,
-        sizeBytes: stdout.length,
+        sizeBytes: sql.length,
         trigger,
       });
     } else {
@@ -142,10 +146,7 @@ export async function runBackupNow(opts: { actorUserId?: number; trigger?: "sche
     return { ok: true, file: filename };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(
-      `Backup job: mysqldump failed (tried binary "${dumpBin}" -- if that's not on this machine's PATH, e.g. a MariaDB install that ships "mariadb-dump" instead, set BACKUP_DUMP_BIN):`,
-      message
-    );
+    console.error("Backup job: database dump failed:", message);
     return { ok: false, error: message };
   }
 }
