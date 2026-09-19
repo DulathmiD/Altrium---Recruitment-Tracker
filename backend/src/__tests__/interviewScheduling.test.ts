@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // since these tests need to control return values per model and assert on
 // which ones were/weren't called.
 const candidateApplicationFindUnique = vi.fn();
+const vacancyFindUnique = vi.fn();
 const vacancyStageFindUnique = vi.fn();
 const vacancyStageFindFirst = vi.fn();
 const interviewFindFirst = vi.fn();
@@ -19,6 +20,14 @@ const transactionMock = vi.fn();
 vi.mock("../prisma.js", () => ({
   prisma: {
     candidateApplication: { findUnique: (...args: unknown[]) => candidateApplicationFindUnique(...args) },
+    // Added along with the ON_HOLD-freeze check in scheduleInterview() --
+    // this mock predates that check, so it was missing entirely here and
+    // every test in this file was throwing ("Cannot read properties of
+    // undefined (reading 'findUnique')") and failing with a 500 instead of
+    // actually testing the double-booking behaviour this file is for. Found
+    // by finally running this suite in CI rather than relying on someone
+    // remembering to run it locally -- exactly the R-11 scenario.
+    vacancy: { findUnique: (...args: unknown[]) => vacancyFindUnique(...args) },
     vacancyStage: {
       findUnique: (...args: unknown[]) => vacancyStageFindUnique(...args),
       findFirst: (...args: unknown[]) => vacancyStageFindFirst(...args),
@@ -77,6 +86,7 @@ function makeReq(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   candidateApplicationFindUnique.mockReset();
+  vacancyFindUnique.mockReset();
   vacancyStageFindUnique.mockReset();
   vacancyStageFindFirst.mockReset();
   interviewFindFirst.mockReset();
@@ -90,6 +100,11 @@ beforeEach(() => {
   notifyUserMock.mockReset().mockResolvedValue(undefined);
 
   candidateApplicationFindUnique.mockResolvedValue({ id: 501, candidateId: 9, vacancyId: 1, stage: "SHORTLISTED" });
+  // Not on hold by default -- both tests in this file are about the
+  // candidate-double-booking check, not the ON_HOLD freeze, so this should
+  // never be what blocks either scenario unless a test deliberately
+  // overrides it.
+  vacancyFindUnique.mockResolvedValue({ status: "OPEN" });
   vacancyStageFindUnique.mockResolvedValue({ id: 10, vacancyId: 1, order: 1, name: "Technical Interview" });
 });
 

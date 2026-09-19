@@ -1,0 +1,45 @@
+name: Tests
+
+# R-11 in the risk register: there was no automated test run on push before
+# this -- every test run depended on someone remembering to do it manually,
+# so a regression could ship unnoticed. This runs both suites on every push
+# and pull request against main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      # Needed before the test run: schema.prisma generates a client into
+      # backend/generated/prisma, which is gitignored (correctly -- it's a
+      # build artifact, not source) so a fresh checkout doesn't have it.
+      # Only reads schema.prisma to generate code -- no database connection
+      # needed, since every test here mocks Prisma rather than hitting a
+      # real DB.
+      - run: npx prisma generate
+      - run: npm test
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
