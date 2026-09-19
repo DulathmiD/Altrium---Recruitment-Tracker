@@ -23,12 +23,43 @@
 import cron from "node-cron";
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import mysqldump from "mysqldump";
 import { PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { prisma } from "../prisma.js";
 import { Role } from "../../generated/prisma/index.js";
 import { writeAuditLog } from "../utils/auditLog.js";
 import { cloudClient, cloudBucketName } from "../utils/fileStorage.js";
+
+// R-01 in the risk register: backup dumps contain every candidate's personal
+// data and every user account's password hash in one plaintext file -- a
+// real instance of exactly this was found already committed to source
+// control (see the .gitignore fix and git history note in the project
+// decision log). Encrypts the dump before it's ever written anywhere --
+// local disk or B2 -- when BACKUP_ENCRYPTION_KEY is set, following this
+// project's established fallback pattern (same idea as SMTP_*/B2_* falling
+// back to a simpler local behaviour when unconfigured). Local dev without
+// the key still gets a working plaintext backup rather than erroring, but
+// the deployed environment MUST set this key for the mitigation to actually
+// apply -- code capability alone doesn't close this risk, the env var does.
+//
+// AES-256-GCM: authenticated encryption, so a tampered/corrupted backup
+// fails to decrypt loudly rather than silently restoring corrupted data.
+// Key is a 32-byte value, base64-encoded in the env var (generate with
+// `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`).
+const BACKUP_ENCRYPTION_KEY = process.env.BACKUP_ENCRYPTION_KEY;
+const GCM_IV_LENGTH = 12;
+
+function encryptBackup(plaintext: Buffer): Buffer {
+  const key = Buffer.from(BACKUP_ENCRYPTION_KEY!, "base64");
+  const iv = crypto.randomBytes(GCM_IV_LENGTH);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  // Self-contained envelope: [12-byte IV][16-byte auth tag][ciphertext] --
+  // everything needed to decrypt is in the file itself except the key.
+  return Buffer.concat([iv, authTag, ciphertext]);
+}
 
 // Local dump files still get written to BACKUP_DIR below regardless of
 // cloud config -- that part is unchanged from before. But BACKUP_DIR lives
@@ -86,9 +117,21 @@ export async function runBackupNow(opts: { actorUserId?: number; trigger?: "sche
     return { ok: false, error: "Could not parse DATABASE_URL" };
   }
 
-  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  fs.mkdirSync(BACKUP_DIR, { recursive: true, mode: 0o700 });
+  // R-01: restrict to owner-only, in case the directory already existed
+  // from before this fix (mkdirSync's mode only applies on creation, not to
+  // an already-existing directory). No-op on Windows -- chmod only has real
+  // effect on POSIX filesystems, but the deployed target (Render) is Linux.
+  try {
+    fs.chmodSync(BACKUP_DIR, 0o700);
+  } catch (err) {
+    console.error("Backup job: could not chmod backup directory:", err);
+  }
 
-  const filename = `${conn.database}-${timestampForFilename(new Date())}.sql`;
+  // .enc suffix reflects reality -- an encrypted file is not valid SQL text
+  // anymore, and system.controller.ts's history listing / pruneOldBackups
+  // below both match on this suffix.
+  const filename = `${conn.database}-${timestampForFilename(new Date())}.sql${BACKUP_ENCRYPTION_KEY ? ".enc" : ""}`;
   const filePath = path.join(BACKUP_DIR, filename);
 
   try {
@@ -105,14 +148,21 @@ export async function runBackupNow(opts: { actorUserId?: number; trigger?: "sche
     // the DB has none) -- concatenated back into one .sql file, same shape
     // as a single mysqldump CLI output would have produced.
     const sql = [result.dump.schema, result.dump.trigger, result.dump.data].filter((part) => part).join("\n\n");
+    const fileBytes = BACKUP_ENCRYPTION_KEY ? encryptBackup(Buffer.from(sql)) : Buffer.from(sql);
+    if (!BACKUP_ENCRYPTION_KEY) {
+      console.error(
+        "Backup job: BACKUP_ENCRYPTION_KEY is not set -- writing this backup UNENCRYPTED. Fine for local dev, but the deployed environment must set this for R-01 to actually be mitigated."
+      );
+    }
 
-    fs.writeFileSync(filePath, sql);
-    console.log(`Backup job: wrote ${filePath} (${(sql.length / 1024).toFixed(1)} KB).`);
+    fs.writeFileSync(filePath, fileBytes, { mode: 0o600 });
+    fs.chmodSync(filePath, 0o600); // belt-and-braces in case the file already existed
+    console.log(`Backup job: wrote ${filePath} (${(fileBytes.length / 1024).toFixed(1)} KB${BACKUP_ENCRYPTION_KEY ? ", encrypted" : ""}).`);
 
     if (cloudClient) {
       try {
         await cloudClient.send(
-          new PutObjectCommand({ Bucket: cloudBucketName, Key: `${CLOUD_BACKUP_PREFIX}${filename}`, Body: Buffer.from(sql) })
+          new PutObjectCommand({ Bucket: cloudBucketName, Key: `${CLOUD_BACKUP_PREFIX}${filename}`, Body: fileBytes })
         );
         console.log(`Backup job: also uploaded ${filename} to cloud storage (${CLOUD_BACKUP_PREFIX}).`);
       } catch (err) {
@@ -136,7 +186,7 @@ export async function runBackupNow(opts: { actorUserId?: number; trigger?: "sche
     if (actorUserId !== undefined) {
       await writeAuditLog(actorUserId, "SYSTEM_BACKUP_RUN", "System", null, {
         filename,
-        sizeBytes: sql.length,
+        sizeBytes: fileBytes.length,
         trigger,
       });
     } else {
@@ -155,7 +205,7 @@ function pruneOldBackups(): void {
   const cutoff = Date.now() - RETENTION_DAYS * MS_PER_DAY;
   let entries: string[];
   try {
-    entries = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith(".sql"));
+    entries = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith(".sql") || f.endsWith(".sql.enc"));
   } catch {
     return;
   }

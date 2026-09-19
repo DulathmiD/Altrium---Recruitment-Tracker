@@ -47,7 +47,7 @@ async function readBackupHistory(limit: number): Promise<{ at: string; status: "
     try {
       const listed = await cloudClient.send(new ListObjectsV2Command({ Bucket: cloudBucketName, Prefix: CLOUD_BACKUP_PREFIX }));
       return (listed.Contents ?? [])
-        .filter((obj) => obj.Key?.endsWith(".sql"))
+        .filter((obj) => obj.Key?.endsWith(".sql") || obj.Key?.endsWith(".sql.enc"))
         .map((obj) => ({
           at: (obj.LastModified ?? new Date(0)).toISOString(),
           status: "successful" as const,
@@ -64,7 +64,7 @@ async function readBackupHistory(limit: number): Promise<{ at: string; status: "
 
   let entries: string[];
   try {
-    entries = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith(".sql"));
+    entries = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith(".sql") || f.endsWith(".sql.enc"));
   } catch {
     return []; // directory doesn't exist yet -- no backup has ever run
   }
