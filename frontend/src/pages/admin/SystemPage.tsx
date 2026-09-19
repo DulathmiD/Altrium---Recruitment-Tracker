@@ -82,7 +82,7 @@ export default function SystemPage() {
           <div className="sys-kpi-grid">
             <div className="sys-kpi-tile sys-kpi-tile--blue">
               <div className="sys-kpi-label">Server Load</div>
-              <div className="sys-kpi-value">{data.serverLoadPercent}%</div>
+              <div className="sys-kpi-value">{data.serverLoadPercent !== null ? `${data.serverLoadPercent}%` : "Not available"}</div>
             </div>
             <div className="sys-kpi-tile sys-kpi-tile--gold">
               <div className="sys-kpi-label">Response Time</div>

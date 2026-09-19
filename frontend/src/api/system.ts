@@ -9,7 +9,7 @@ export type ActiveUser = {
 };
 
 export type SystemMetrics = {
-  serverLoadPercent: number;
+  serverLoadPercent: number | null;
   responseTimeMs: number | null;
   concurrentUsers: number;
   // Deliberately a different signal from concurrentUsers above --

@@ -26,12 +26,20 @@ export function getAverageResponseTimeMs(): number | null {
   return Math.round(sum / recentDurationsMs.length);
 }
 
-// os.loadavg() is a real 1-minute load average on Linux/macOS, but Node
-// always reports [0, 0, 0] on Windows (a Node/libuv limitation, not
-// something this app can work around) -- so this reads as 0% on a Windows
-// dev machine even under load. Flagged rather than faked with a synthetic
-// number.
-export function getServerLoadPercent(): number {
+// R-12 in the risk register, investigated: os.loadavg() is a real 1-minute
+// load average on Linux/macOS -- which is what this app actually runs on in
+// production (Render) -- confirmed working there already (the System
+// Monitoring page has shown real, changing values like 65% and 71% on the
+// live deployment). The described risk had it backwards: Node always
+// reports loadavg() as [0, 0, 0] on WINDOWS specifically (a Node/libuv
+// limitation with no workaround), which only affects a developer's local
+// Windows machine, not the deployed target. Previously this surfaced as a
+// silent, indistinguishable-from-real 0%, which could be misread as
+// "genuinely idle" rather than "not measurable here" -- now returns null on
+// an unsupported platform instead, so the caller/UI can show "Not available"
+// rather than a misleading number.
+export function getServerLoadPercent(): number | null {
+  if (os.platform() === "win32") return null;
   const oneMinuteLoad = os.loadavg()[0] ?? 0;
   const cpuCount = os.cpus().length || 1;
   const percent = (oneMinuteLoad / cpuCount) * 100;
