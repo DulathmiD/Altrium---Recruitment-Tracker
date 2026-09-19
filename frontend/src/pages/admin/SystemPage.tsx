@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getSystemMetrics, runBackupNow, type SystemMetrics } from "../../api/system";
+import PasswordConfirmModal from "../../components/PasswordConfirmModal";
 import "./SystemPage.css";
 
 function formatBytes(bytes: number): string {
@@ -36,6 +37,9 @@ export default function SystemPage() {
   const [error, setError] = useState("");
   const [backupRunning, setBackupRunning] = useState(false);
   const [backupMessage, setBackupMessage] = useState("");
+  // Only the manual "Run Backup Now" click goes through this -- the 3am
+  // scheduled run has no logged-in user present to ask, so it's unaffected.
+  const [confirmingBackup, setConfirmingBackup] = useState(false);
 
   function loadMetrics() {
     return getSystemMetrics()
@@ -123,11 +127,24 @@ export default function SystemPage() {
                 ? `Last backup: ${new Date(data.backups.lastBackupAt).toLocaleString()} - Successful`
                 : "No backups have run yet."}
             </span>
-            <button type="button" className="sys-btn" onClick={handleRunBackupNow} disabled={backupRunning}>
+            <button type="button" className="sys-btn" onClick={() => setConfirmingBackup(true)} disabled={backupRunning}>
               {backupRunning ? "Running..." : "Run Backup Now"}
             </button>
           </div>
           {backupMessage && <p className="sys-muted" style={{ margin: "8px 0 0" }}>{backupMessage}</p>}
+
+          {confirmingBackup && (
+            <PasswordConfirmModal
+              title="Confirm Your Password"
+              message="Enter your password to run a backup now."
+              confirmLabel="Run Backup"
+              onCancel={() => setConfirmingBackup(false)}
+              onConfirmed={async () => {
+                setConfirmingBackup(false);
+                await handleRunBackupNow();
+              }}
+            />
+          )}
 
           {data.backups.history.length === 0 ? (
             <p className="sys-muted" style={{ marginTop: 16 }}>
