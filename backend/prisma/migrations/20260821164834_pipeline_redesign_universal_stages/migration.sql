@@ -1,40 +1,40 @@
 /*
   Warnings:
 
-  - You are about to drop the column `currentStageId` on the `candidateapplication` table. All the data in the column will be lost.
-  - You are about to drop the column `status` on the `candidateapplication` table. All the data in the column will be lost.
-  - You are about to drop the column `stageId` on the `interview` table. All the data in the column will be lost.
-  - You are about to drop the `vacancystage` table. If the table is not empty, all the data it contains will be lost.
+  - You are about to drop the column `currentStageId` on the `CandidateApplication` table. All the data in the column will be lost.
+  - You are about to drop the column `status` on the `CandidateApplication` table. All the data in the column will be lost.
+  - You are about to drop the column `stageId` on the `Interview` table. All the data in the column will be lost.
+  - You are about to drop the `VacancyStage` table. If the table is not empty, all the data it contains will be lost.
   - A unique constraint covering the columns `[title,department]` on the table `Vacancy` will be added. If there are existing duplicate values, this will fail.
   - Added the required column `stage` to the `Interview` table without a default value. This is not possible if the table is not empty.
 
 */
 -- DropForeignKey
-ALTER TABLE `candidateapplication` DROP FOREIGN KEY `CandidateApplication_currentStageId_fkey`;
+ALTER TABLE `CandidateApplication` DROP FOREIGN KEY `CandidateApplication_currentStageId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `interview` DROP FOREIGN KEY `Interview_stageId_fkey`;
+ALTER TABLE `Interview` DROP FOREIGN KEY `Interview_stageId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `vacancystage` DROP FOREIGN KEY `VacancyStage_vacancyId_fkey`;
+ALTER TABLE `VacancyStage` DROP FOREIGN KEY `VacancyStage_vacancyId_fkey`;
 
 -- DropIndex
-DROP INDEX `CandidateApplication_currentStageId_fkey` ON `candidateapplication`;
+DROP INDEX `CandidateApplication_currentStageId_fkey` ON `CandidateApplication`;
 
 -- DropIndex
-DROP INDEX `Interview_stageId_fkey` ON `interview`;
+DROP INDEX `Interview_stageId_fkey` ON `Interview`;
 
 -- AlterTable
-ALTER TABLE `candidateapplication` DROP COLUMN `currentStageId`,
+ALTER TABLE `CandidateApplication` DROP COLUMN `currentStageId`,
     DROP COLUMN `status`,
     ADD COLUMN `stage` ENUM('APPLIED', 'SHORTLISTED', 'INTERVIEW_1', 'INTERVIEW_2', 'FINAL_INTERVIEW', 'HIRED', 'REJECTED') NOT NULL DEFAULT 'APPLIED';
 
 -- AlterTable
-ALTER TABLE `interview` DROP COLUMN `stageId`,
+ALTER TABLE `Interview` DROP COLUMN `stageId`,
     ADD COLUMN `stage` ENUM('APPLIED', 'SHORTLISTED', 'INTERVIEW_1', 'INTERVIEW_2', 'FINAL_INTERVIEW', 'HIRED', 'REJECTED') NOT NULL;
 
 -- DropTable
-DROP TABLE `vacancystage`;
+DROP TABLE `VacancyStage`;
 
 -- CreateTable
 CREATE TABLE `VacancyInterviewer` (

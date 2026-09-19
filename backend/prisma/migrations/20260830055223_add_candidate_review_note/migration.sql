@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `candidate` ADD COLUMN `lastCvReviewNote` TEXT NULL;
+ALTER TABLE `Candidate` ADD COLUMN `lastCvReviewNote` TEXT NULL;

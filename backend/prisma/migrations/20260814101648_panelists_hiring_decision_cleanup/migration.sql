@@ -2,36 +2,36 @@
   Warnings:
 
   - The values [ON_HOLD] on the enum `CandidateApplication_status` will be removed. If these variants are still used in the database, this will fail.
-  - You are about to drop the column `recommendation` on the `feedback` table. All the data in the column will be lost.
-  - You are about to drop the column `updatedAt` on the `feedback` table. All the data in the column will be lost.
-  - You are about to drop the column `interviewerId` on the `interview` table. All the data in the column will be lost.
+  - You are about to drop the column `recommendation` on the `Feedback` table. All the data in the column will be lost.
+  - You are about to drop the column `updatedAt` on the `Feedback` table. All the data in the column will be lost.
+  - You are about to drop the column `interviewerId` on the `Interview` table. All the data in the column will be lost.
   - A unique constraint covering the columns `[interviewId,interviewerId]` on the table `Feedback` will be added. If there are existing duplicate values, this will fail.
 
 */
 -- DropForeignKey
-ALTER TABLE `feedback` DROP FOREIGN KEY `Feedback_interviewId_fkey`;
+ALTER TABLE `Feedback` DROP FOREIGN KEY `Feedback_interviewId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `interview` DROP FOREIGN KEY `Interview_interviewerId_fkey`;
+ALTER TABLE `Interview` DROP FOREIGN KEY `Interview_interviewerId_fkey`;
 
 -- DropIndex
-DROP INDEX `Feedback_interviewId_key` ON `feedback`;
+DROP INDEX `Feedback_interviewId_key` ON `Feedback`;
 
 -- DropIndex
-DROP INDEX `Interview_interviewerId_fkey` ON `interview`;
+DROP INDEX `Interview_interviewerId_fkey` ON `Interview`;
 
 -- AlterTable
-ALTER TABLE `candidateapplication` ADD COLUMN `decidedAt` DATETIME(3) NULL,
+ALTER TABLE `CandidateApplication` ADD COLUMN `decidedAt` DATETIME(3) NULL,
     ADD COLUMN `decidedByUserId` INTEGER NULL,
     ADD COLUMN `hiringDecision` ENUM('HIRE', 'REJECT') NULL,
     MODIFY `status` ENUM('APPLIED', 'SHORTLISTED', 'REJECTED', 'IN_PROGRESS', 'HIRED') NOT NULL DEFAULT 'APPLIED';
 
 -- AlterTable
-ALTER TABLE `feedback` DROP COLUMN `recommendation`,
+ALTER TABLE `Feedback` DROP COLUMN `recommendation`,
     DROP COLUMN `updatedAt`;
 
 -- AlterTable
-ALTER TABLE `interview` DROP COLUMN `interviewerId`;
+ALTER TABLE `Interview` DROP COLUMN `interviewerId`;
 
 -- CreateTable
 CREATE TABLE `InterviewPanelist` (

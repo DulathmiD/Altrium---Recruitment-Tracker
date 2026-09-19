@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `candidate` ADD COLUMN `lastCvReviewedAt` DATETIME(3) NULL,
+ALTER TABLE `Candidate` ADD COLUMN `lastCvReviewedAt` DATETIME(3) NULL,
     ADD COLUMN `lastCvReviewedByUserId` INTEGER NULL;
 
 -- AddForeignKey

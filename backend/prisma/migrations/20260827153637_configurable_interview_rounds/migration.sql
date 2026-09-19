@@ -3,20 +3,20 @@
 
   - You are about to alter the column `stage` on the `applicationstagehistory` table. The data in that column could be lost. The data in that column will be cast from `Enum(EnumId(0))` to `Enum(EnumId(4))`.
   - The values [INTERVIEW_1,INTERVIEW_2,FINAL_INTERVIEW] on the enum `ApplicationStageHistory_stage` will be removed. If these variants are still used in the database, this will fail.
-  - You are about to drop the column `stage` on the `interview` table. All the data in the column will be lost.
+  - You are about to drop the column `stage` on the `Interview` table. All the data in the column will be lost.
   - Added the required column `vacancyStageId` to the `Interview` table without a default value. This is not possible if the table is not empty.
 
 */
 -- AlterTable
-ALTER TABLE `applicationstagehistory` ADD COLUMN `vacancyStageId` INTEGER NULL,
+ALTER TABLE `ApplicationStageHistory` ADD COLUMN `vacancyStageId` INTEGER NULL,
     MODIFY `stage` ENUM('APPLIED', 'SHORTLISTED', 'HIRED', 'REJECTED') NULL;
 
 -- AlterTable
-ALTER TABLE `candidateapplication` ADD COLUMN `currentVacancyStageId` INTEGER NULL,
+ALTER TABLE `CandidateApplication` ADD COLUMN `currentVacancyStageId` INTEGER NULL,
     MODIFY `stage` ENUM('APPLIED', 'SHORTLISTED', 'HIRED', 'REJECTED') NOT NULL DEFAULT 'APPLIED';
 
 -- AlterTable
-ALTER TABLE `interview` DROP COLUMN `stage`,
+ALTER TABLE `Interview` DROP COLUMN `stage`,
     ADD COLUMN `vacancyStageId` INTEGER NOT NULL;
 
 -- CreateTable

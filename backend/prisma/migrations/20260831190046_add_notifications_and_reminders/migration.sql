@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `interviewslot` ADD COLUMN `reminderSentAt` DATETIME(3) NULL;
+ALTER TABLE `InterviewSlot` ADD COLUMN `reminderSentAt` DATETIME(3) NULL;
 
 -- CreateTable
 CREATE TABLE `NotificationTemplate` (

@@ -1,9 +1,9 @@
 /*
   Warnings:
 
-  - You are about to drop the column `scheduledAt` on the `interview` table. All the data in the column will be lost.
-  - You are about to drop the column `vacancyStageId` on the `interview` table. All the data in the column will be lost.
-  - You are about to drop the column `interviewId` on the `interviewpanelist` table. All the data in the column will be lost.
+  - You are about to drop the column `scheduledAt` on the `Interview` table. All the data in the column will be lost.
+  - You are about to drop the column `vacancyStageId` on the `Interview` table. All the data in the column will be lost.
+  - You are about to drop the column `interviewId` on the `InterviewPanelist` table. All the data in the column will be lost.
   - A unique constraint covering the columns `[slotId,applicationId]` on the table `Interview` will be added. If there are existing duplicate values, this will fail.
   - A unique constraint covering the columns `[slotId,userId]` on the table `InterviewPanelist` will be added. If there are existing duplicate values, this will fail.
   - Added the required column `slotId` to the `Interview` table without a default value. This is not possible if the table is not empty.
@@ -11,24 +11,24 @@
 
 */
 -- DropForeignKey
-ALTER TABLE `interview` DROP FOREIGN KEY `Interview_vacancyStageId_fkey`;
+ALTER TABLE `Interview` DROP FOREIGN KEY `Interview_vacancyStageId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `interviewpanelist` DROP FOREIGN KEY `InterviewPanelist_interviewId_fkey`;
+ALTER TABLE `InterviewPanelist` DROP FOREIGN KEY `InterviewPanelist_interviewId_fkey`;
 
 -- DropIndex
-DROP INDEX `Interview_vacancyStageId_fkey` ON `interview`;
+DROP INDEX `Interview_vacancyStageId_fkey` ON `Interview`;
 
 -- DropIndex
-DROP INDEX `InterviewPanelist_interviewId_userId_key` ON `interviewpanelist`;
+DROP INDEX `InterviewPanelist_interviewId_userId_key` ON `InterviewPanelist`;
 
 -- AlterTable
-ALTER TABLE `interview` DROP COLUMN `scheduledAt`,
+ALTER TABLE `Interview` DROP COLUMN `scheduledAt`,
     DROP COLUMN `vacancyStageId`,
     ADD COLUMN `slotId` INTEGER NOT NULL;
 
 -- AlterTable
-ALTER TABLE `interviewpanelist` DROP COLUMN `interviewId`,
+ALTER TABLE `InterviewPanelist` DROP COLUMN `interviewId`,
     ADD COLUMN `slotId` INTEGER NOT NULL;
 
 -- CreateTable

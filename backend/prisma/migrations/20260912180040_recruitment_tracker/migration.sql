@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `candidate` ADD COLUMN `pendingCvFileId` VARCHAR(191) NULL;
+ALTER TABLE `Candidate` ADD COLUMN `pendingCvFileId` VARCHAR(191) NULL;

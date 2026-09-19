@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `candidate` ADD COLUMN `pendingCvIsIdentical` BOOLEAN NULL,
+ALTER TABLE `Candidate` ADD COLUMN `pendingCvIsIdentical` BOOLEAN NULL,
     ADD COLUMN `pendingCvVacancyId` INTEGER NULL;
 
 -- CreateTable
