@@ -108,7 +108,14 @@ export async function renameFile(oldFilename: string, newFilename: string): Prom
     return;
   }
   await ensureDir();
-  await fs.rename(resolveSafePath(oldFilename), resolveSafePath(newFilename));
+  // newFilename may include a subfolder-style prefix (e.g. "rejected/foo.pdf"
+  // for the CV archiving feature) -- fs.rename() doesn't create missing
+  // parent directories itself, so make sure the destination's parent exists
+  // first. No-op when newFilename has no subfolder (parent is just CV_DIR,
+  // already created by ensureDir() above).
+  const destination = resolveSafePath(newFilename);
+  await fs.mkdir(path.dirname(destination), { recursive: true });
+  await fs.rename(resolveSafePath(oldFilename), destination);
 }
 
 export async function deleteFile(filename: string): Promise<void> {

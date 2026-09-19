@@ -474,8 +474,13 @@ export async function downloadCv(req: Request, res: Response) {
       return res.status(404).json({ error: "CV file not found in storage" });
     }
 
+    // cvUrl is the storage key, which may carry a "rejected/" archive prefix
+    // (see stageTransition.ts) -- strip any folder-style prefix so the
+    // browser-facing filename doesn't expose internal storage layout.
+    const displayFilename = candidate.cvUrl.split("/").pop() || candidate.cvUrl;
+
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename="${candidate.cvUrl}"`);
+    res.setHeader("Content-Disposition", `inline; filename="${displayFilename}"`);
     res.send(buffer);
   } catch (err) {
     console.error(err);

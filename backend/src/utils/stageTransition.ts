@@ -1,5 +1,6 @@
 import { prisma } from "../prisma.js";
 import type { RecruitmentStage } from "../../generated/prisma/index.js";
+import { renameFile } from "./fileStorage.js";
 
 // The 4 fixed pipeline anchors (US-05 redesign). Interview rounds are no
 // longer part of this enum -- they're HR-configurable per vacancy via
@@ -24,6 +25,50 @@ export async function initializeApplicationStage(applicationId: number, userId: 
       changedByUserId: userId,
     },
   });
+}
+
+// CV archiving (organisational separation, not deletion -- see decision log):
+// a candidate's CV file is shared across all of their applications (Candidate
+// stores one cvUrl, not each CandidateApplication), so it's only moved into
+// the "rejected/" prefix once EVERY application this candidate has is
+// REJECTED -- if they're still active on another vacancy, moving the shared
+// file would break that other application's CV lookup. Reconsidering an
+// application back to APPLIED (the one path back out of REJECTED, see
+// application.controller.ts's updateApplicationStatus) always restores the
+// file, since that unconditionally makes the candidate active again.
+const REJECTED_CV_PREFIX = "rejected/";
+
+async function archiveCvIfCandidateFullyRejected(candidateId: number): Promise<void> {
+  const activeElsewhere = await prisma.candidateApplication.count({
+    where: { candidateId, stage: { not: "REJECTED" } },
+  });
+  if (activeElsewhere > 0) return;
+
+  const candidate = await prisma.candidate.findUnique({ where: { id: candidateId }, select: { cvUrl: true } });
+  if (!candidate?.cvUrl || candidate.cvUrl.startsWith(REJECTED_CV_PREFIX)) return;
+
+  const archivedKey = `${REJECTED_CV_PREFIX}${candidate.cvUrl}`;
+  try {
+    await renameFile(candidate.cvUrl, archivedKey);
+    await prisma.candidate.update({ where: { id: candidateId }, data: { cvUrl: archivedKey } });
+  } catch (err) {
+    // Never let archiving failure block the actual stage transition it's
+    // attached to -- worst case the CV stays in its current location.
+    console.error(`Could not archive CV for candidate ${candidateId}:`, err);
+  }
+}
+
+async function restoreCvFromArchive(candidateId: number): Promise<void> {
+  const candidate = await prisma.candidate.findUnique({ where: { id: candidateId }, select: { cvUrl: true } });
+  if (!candidate?.cvUrl || !candidate.cvUrl.startsWith(REJECTED_CV_PREFIX)) return;
+
+  const restoredKey = candidate.cvUrl.slice(REJECTED_CV_PREFIX.length);
+  try {
+    await renameFile(candidate.cvUrl, restoredKey);
+    await prisma.candidate.update({ where: { id: candidateId }, data: { cvUrl: restoredKey } });
+  } catch (err) {
+    console.error(`Could not restore archived CV for candidate ${candidateId}:`, err);
+  }
 }
 
 export type StageUpdate = { stage: RecruitmentStage } | { vacancyStageId: number };
@@ -83,6 +128,24 @@ export async function transitionApplicationStage(
 
   const results = await prisma.$transaction(operations);
   // The candidateApplication.update is always the last operation in the array,
-  // regardless of whether the conditional "close open entry" step ran.
-  return results[results.length - 1];
+  // regardless of whether the conditional "close open entry" step ran. Not
+  // narrowing/casting this -- existing callers rely on its full inferred
+  // shape (stage, vacancy, candidate, etc.), so only read the one field CV
+  // archiving needs off a separate reference, and return the original as-is.
+  const updatedApplication = results[results.length - 1];
+  const candidateId = (updatedApplication as { candidateId: number }).candidateId;
+
+  // CV archiving runs after the transaction commits (file storage isn't
+  // transactional with the DB anyway) and only reacts to anchor-stage moves,
+  // not interview-round moves (vacancyStageId updates leave `stage` alone).
+  if ("stage" in update) {
+    if (update.stage === "REJECTED") {
+      await archiveCvIfCandidateFullyRejected(candidateId);
+    } else if (update.stage === "APPLIED") {
+      // The only route back to APPLIED is Reconsider, out of REJECTED.
+      await restoreCvFromArchive(candidateId);
+    }
+  }
+
+  return updatedApplication;
 }
