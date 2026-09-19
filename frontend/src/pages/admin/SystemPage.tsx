@@ -51,8 +51,12 @@ export default function SystemPage() {
     setBackupRunning(true);
     setBackupMessage("");
     try {
-      const result = await runBackupNow();
-      setBackupMessage(`Backup complete${result.filename ? `: ${result.filename}` : ""}.`);
+      // No success message shown here on purpose -- the "Last backup: ..."
+      // banner and the history table below already update via loadMetrics()
+      // to reflect the new backup, so a separate "Backup complete: ..."
+      // line was redundant clutter. Failures still surface a message below,
+      // since that's the one case where the rest of the page doesn't change.
+      await runBackupNow();
       await loadMetrics();
     } catch (err) {
       setBackupMessage(err instanceof Error ? err.message : "Backup failed");
