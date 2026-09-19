@@ -59,7 +59,7 @@ export default function ReportsPage() {
       <div className="mr-divider" />
 
       {!hasDepartment && (
-        <p className="mr-muted">No department is set on your account, so there's nothing to scope reports to yet -- ask IT Admin to set your department.</p>
+        <p className="mr-muted">No department is set on your account, so there's nothing to scope reports to yet. Ask IT Admin to set your department.</p>
       )}
       {loading && <p className="mr-muted">Loading...</p>}
       {error && <p className="mr-error">{error}</p>}

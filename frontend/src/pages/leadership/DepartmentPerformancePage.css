@@ -65,37 +65,68 @@
   font-weight: 500;
 }
 
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile rather than one fixed system-wide width. */
 .dp-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
   gap: 16px;
   margin-bottom: 40px;
 }
 
+/* KPI tile + panel styling matches hiringManager/DashboardPage.css's
+   .hmd-kpi-tile / .hmd-panel exactly, per direct user request to bring
+   every dashboard/leaderboard/KPI display in the system to the same look:
+   white card, soft shadow, and a 4px accent-color bar along the top instead
+   of a flat tinted background. */
 .dp-kpi-tile {
-  /* Follow-up correction: tinted background + bigger value, to match the
-     "big and pretty" treatment now standardized across every dashboard's
-     KPI tiles. Gap/padding brought to the same values as every other
-     dashboard's tile (was 6px/22px 18px) for a true pixel-for-pixel match,
-     not just a similar-looking one. */
+  position: relative;
+  box-sizing: border-box;
+  width: 220px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: #faf5ea;
-  border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 24px 20px;
+  align-items: center;
   text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
+.dp-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.dp-kpi-tile--blue,
+.dp-kpi-tile--gold,
+.dp-kpi-tile--green,
+.dp-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
 .dp-kpi-label {
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--altrium-ink);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
 }
 
 .dp-kpi-value {
-  font-size: 44px;
+  font-size: 42px;
   font-weight: 700;
   color: var(--altrium-black);
   line-height: 1;
@@ -117,13 +148,14 @@
 .dp-panel {
   background: var(--altrium-white);
   border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 22px 24px;
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
 .dp-panel-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--altrium-black);
   margin: 0 0 16px;
 }
@@ -169,9 +201,12 @@
   background: var(--altrium-gold, #c9a24b);
 }
 
+/* Per direct scrum-master feedback: Rejected no longer reads as a muted red
+   warning -- deepest step of the same gold ramp used everywhere else on
+   this page, at full strength since it's no longer meant to read as an
+   alert color. */
 .dp-bar-fill-rejected {
-  background: #b91c1c;
-  opacity: 0.75;
+  background: var(--altrium-gold-deep);
 }
 
 .dp-bar-value {

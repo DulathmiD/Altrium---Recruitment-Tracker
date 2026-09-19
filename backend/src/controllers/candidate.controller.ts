@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "../prisma.js";
 import { writeAuditLog } from "../utils/auditLog.js";
 import { extractCvData } from "../utils/cvExtraction.js";
-import { deleteFile, fileExists, getFile, renameFile, sanitizeForFilename, saveFile } from "../utils/fileStorage.js";
+import { fileExists, getFile, renameFile, sanitizeForFilename, saveFile } from "../utils/fileStorage.js";
+import { initializeApplicationStage } from "../utils/stageTransition.js";
 
 // US-05 redesign: only the 4 fixed anchors filter here via `stage`.
 // Filtering by a specific interview round is separate -- `vacancyStageId`
@@ -212,6 +213,7 @@ export async function updateCandidate(req: Request, res: Response) {
         ...(reviewNote !== undefined ? { lastCvReviewNote: reviewNote } : {}),
       },
     });
+
     res.json(candidate);
   } catch (err: any) {
     if (err.code === "P2025") {
@@ -285,22 +287,28 @@ export async function extractCvFiles(req: Request, res: Response) {
 // This is the point where Candidate rows actually get created.
 //
 // SCRUM2-30 (duplicate candidate detection): looks up an existing Candidate
-// by email BEFORE attempting to create one, rather than the old approach of
-// attempting the create and reacting to Prisma's P2002 unique-constraint
-// error. That old approach worked (the frontend caught the specific error
-// string and looked the candidate up itself to re-apply), but it made
-// "duplicate found" an implicit side effect of a DB-constraint error message
-// instead of a real, deliberately-built detection path -- fragile (a future
-// wording change to that error string would have silently broken the
-// re-apply logic) and invisible to HR (the merge happened silently, with no
-// indication a new CV was actually an existing person). Matched entries are
-// now their own explicit array in the response, and the frontend surfaces a
-// clear warning naming who matched and which other vacancies they'd already
-// applied to (see decision log: "warn, don't block" -- HR is told, but the
-// application still gets created against the existing record either way).
+// by email before attempting to create one. Two outcomes on a match:
+//
+// - Same vacancy (this exact candidate already has an application for the
+//   vacancy this upload targets): a genuine duplicate-application attempt,
+//   same as any other "already applied" case elsewhere in the app. Nothing
+//   changes -- the CV already on file stays as-is, no application is
+//   created or reset -- and the match is reported back so HR can click
+//   through and confirm it's really the same person, but there is no
+//   decision to make here (see the reverted-feature note in the project
+//   decision log for why this was deliberately simplified back down from a
+//   multi-round "use new CV / keep current CV" review flow).
+// - A genuinely different vacancy they've never applied to (or no target
+//   vacancy at all): not a conflict -- reuses the existing Candidate row
+//   (email is unique at the DB level), silently updates their CV/name/
+//   phone, and proceeds exactly like a brand-new upload. The
+//   CandidateApplication itself is created by the frontend's existing
+//   post-confirm loop (one applyCandidateToVacancy call per `created`
+//   entry), same as for a brand-new candidate.
 export async function confirmCvUpload(req: Request, res: Response) {
-  const { candidates } = req.body as {
+  const { candidates, vacancyId } = req.body as {
     candidates?: { fileId?: string; name?: string; email?: string; phoneNumber?: string }[];
+    vacancyId?: number;
   };
 
   if (!candidates || candidates.length === 0) {
@@ -308,14 +316,25 @@ export async function confirmCvUpload(req: Request, res: Response) {
   }
 
   const created: { fileId: string; candidateId: number; email: string }[] = [];
+  // One entry per email match this batch produced, purely informational --
+  // the frontend uses this to show "existing candidate(s) found" with a
+  // link to their profile. `applicationId` is only set for the same-vacancy
+  // case (the existing application to link to); for the cross-vacancy case
+  // the frontend already knows the new application's id from its own
+  // per-`created`-entry applyCandidateToVacancy call.
   const matched: {
     fileId: string;
     candidateId: number;
     email: string;
     existingName: string;
-    existingVacancies: string[];
+    alreadyOnThisVacancy: boolean;
+    applicationId: number | null;
   }[] = [];
   const failed: { fileId?: string; error: string }[] = [];
+
+  const targetVacancy = vacancyId
+    ? await prisma.vacancy.findUnique({ where: { id: vacancyId }, select: { id: true, title: true } })
+    : null;
 
   for (const entry of candidates) {
     const { fileId, name, email, phoneNumber } = entry;
@@ -336,20 +355,59 @@ export async function confirmCvUpload(req: Request, res: Response) {
         include: { applications: { include: { vacancy: true } } },
       });
 
-      if (existing) {
-        // Duplicate detected (CV+email, cross-vacancy scope per the decision
-        // log): don't create a second Candidate row -- email is unique at
-        // the DB level anyway -- link this upload to the existing person
-        // instead. The newly-uploaded CV file itself is left in storage
-        // unused; only the previously reviewed/confirmed CV stays attached
-        // to the candidate record.
+      const existingApplicationOnTarget = targetVacancy
+        ? existing?.applications.find((a) => a.vacancyId === targetVacancy.id) ?? null
+        : null;
+
+      if (existing && existingApplicationOnTarget) {
+        // Already applied to this exact vacancy -- the newly uploaded file
+        // is simply not used (left in storage, same as any other
+        // never-attached upload). Nothing about the existing application
+        // changes.
         matched.push({
           fileId,
           candidateId: existing.id,
           email: existing.email,
           existingName: existing.name,
-          existingVacancies: existing.applications.map((a) => a.vacancy.title),
+          alreadyOnThisVacancy: true,
+          applicationId: existingApplicationOnTarget.id,
         });
+        continue;
+      }
+
+      if (existing) {
+        // Existing candidate (matched by email), but a genuinely different
+        // vacancy (or no target vacancy at all) -- reuses this Candidate row
+        // instead of erroring on the unique email constraint, and proceeds
+        // exactly like a brand-new upload.
+        await prisma.candidate.update({
+          where: { id: existing.id },
+          data: { cvUrl: fileId, name, ...(phoneNumber !== undefined ? { phoneNumber } : {}) },
+        });
+
+        const finalFilename = `${existing.id}_${sanitizeForFilename(name)}.pdf`;
+        try {
+          await renameFile(fileId, finalFilename);
+          await prisma.candidate.update({ where: { id: existing.id }, data: { cvUrl: finalFilename } });
+        } catch (renameErr) {
+          console.error(`Could not rename CV file for candidate ${existing.id}, keeping original filename:`, renameErr);
+        }
+
+        await writeAuditLog(req.user!.id, "CV_UPLOADED", "Candidate", existing.id, {
+          name,
+          email: existing.email,
+          source: "file",
+        });
+
+        matched.push({
+          fileId,
+          candidateId: existing.id,
+          email: existing.email,
+          existingName: existing.name,
+          alreadyOnThisVacancy: false,
+          applicationId: null,
+        });
+        created.push({ fileId, candidateId: existing.id, email: existing.email });
         continue;
       }
 

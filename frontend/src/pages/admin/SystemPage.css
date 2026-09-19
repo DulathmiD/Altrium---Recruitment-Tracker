@@ -25,46 +25,82 @@
   font-size: 13px;
 }
 
+/* Was `max-width: 900px; margin: 48px auto 0;` -- centering this block
+   under the page's own 90vw width shifted it right relative to the
+   left-aligned title/divider above it, and the 900px cap was too narrow to
+   fit all three 290px KPI tiles plus their gaps (926px) on one row, so
+   "Concurrent Users" silently wrapped onto its own second row. Dropping
+   both fixes each: no cap means the KPI row has room, and no auto-margin
+   means this block stays flush-left like the rest of the page. */
 .sys-content {
-  max-width: 900px;
-  margin: 48px auto 0;
+  margin: 48px 0 0;
 }
 
+/* Follow-up correction: after seeing the flat-tile revert on its own, the
+   user asked for these to go back to the same white background + accent-bar
+   colour treatment as every other KPI in the system, but bigger than the
+   sitewide standard -- these are meant to be the eye-catching thing on this
+   page, not just consistent with everyone else's. */
 .sys-kpi-grid {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
   gap: 28px;
   margin-bottom: 44px;
 }
 
 .sys-kpi-tile {
-  flex: 1;
+  position: relative;
+  box-sizing: border-box;
+  width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
   background: var(--altrium-white);
   border: 1px solid var(--altrium-line);
-  border-radius: 12px;
-  padding: 40px 28px;
-  text-align: center;
+  border-radius: 14px;
+  padding: 28px 26px 26px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
+.sys-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.sys-kpi-tile--blue,
+.sys-kpi-tile--gold,
+.sys-kpi-tile--green { --accent-color: var(--altrium-gold); }
+
 .sys-kpi-label {
-  font-size: 13.5px;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--altrium-ink-soft);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .sys-kpi-value {
-  font-size: 52px;
+  font-size: 48px;
   font-weight: 700;
   color: var(--altrium-black);
   line-height: 1;
 }
 
 .sys-section-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--altrium-black);
   margin: 0 0 14px;
 }

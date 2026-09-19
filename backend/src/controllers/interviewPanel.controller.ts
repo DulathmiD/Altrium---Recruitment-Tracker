@@ -40,7 +40,7 @@ export async function createInterviewPanel(req: Request, res: Response) {
     const ineligible = users.find((u) => !PANEL_ELIGIBLE_ROLES.includes(u.role));
     if (ineligible) {
       return res.status(400).json({
-        error: `${ineligible.name} cannot be added to an interview panel -- must be an Interviewer or Management user`,
+        error: `${ineligible.name} cannot be added to an interview panel. Must be an Interviewer or Management user.`,
       });
     }
 

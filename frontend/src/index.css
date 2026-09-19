@@ -3,6 +3,22 @@
 :root {
   --altrium-gold: #f5a623;
   --altrium-gold-dark: #dc9010;
+  /* Per direct scrum-master feedback: the mixed blue/green/red/gold accent
+     scheme on KPI tiles and progress bars didn't match Altrium's actual
+     brand color (yellow/gold) -- these two extend the existing pair into a
+     4-step warm ramp (pale -> gold -> dark -> deep) so charts that need
+     multiple visually distinct segments can still tell them apart without
+     leaving the gold family. */
+  --altrium-gold-pale: #ffdf9e;
+  --altrium-gold-deep: #b5730a;
+  /* Follow-up correction: the pale/dark/deep ramp above mixed in ambers
+     that read as different colors rather than "lighter gold" once actually
+     rendered on the Recruitment Progress bars. This is a pure tint ramp
+     instead -- each step is #f5a623 mixed with white only, so every step
+     reads as unmistakably the same gold, just lighter. Lightest first. */
+  --altrium-gold-100: #fdedd3;
+  --altrium-gold-200: #fad79c;
+  --altrium-gold-300: #f8bf61;
   --altrium-black: #111111;
   --altrium-white: #ffffff;
   --altrium-ink: #0f172a;

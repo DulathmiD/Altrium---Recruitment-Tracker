@@ -95,7 +95,7 @@ app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
       return res.status(400).json({ error: "That file is over the 5MB size limit. Please upload a smaller PDF." });
     }
     if (err.code === "LIMIT_FILE_COUNT") {
-      return res.status(400).json({ error: "Too many files at once -- please upload 20 or fewer PDFs at a time." });
+      return res.status(400).json({ error: "Too many files at once. Please upload 20 or fewer PDFs at a time." });
     }
     return res.status(400).json({ error: "Could not upload that file. Please try again." });
   }

@@ -66,15 +66,27 @@ async function main() {
   for (const u of testUsers) {
     const passwordHash = await bcrypt.hash(u.password, 10);
 
-    // Deliberately does NOT touch passwordHash on update -- a rerun after
-    // this script has already created the account should never silently
-    // reset a password someone changed via the real change/reset flow since.
+    // Follow-up correction: this used to skip passwordHash on update, on the
+    // reasoning that a rerun shouldn't clobber a real password change made
+    // via the app's own change/reset flow. In practice that meant this
+    // credentials list silently stopped being true the moment any account's
+    // password drifted (a Create User test, a forced first-login change, a
+    // reset-password trial run) -- and the console log below still printed
+    // the original password unconditionally either way, so there was no
+    // warning that it had gone stale. For a fixed demo/viva roster, always
+    // matching this list is worth more than protecting against clobbering a
+    // password nobody is meant to be changing -- every run now force-resets
+    // passwordHash (and mustChangePassword back to false, in case a Create
+    // User test ever set it) so this table is always accurate after a
+    // `prisma db seed` run alone, no full `migrate reset` required.
     await prisma.user.upsert({
       where: { email: u.email },
       update: {
         name: u.name,
         department: u.department,
         isActive: u.isActive,
+        passwordHash,
+        mustChangePassword: false,
       },
       create: {
         name: u.name,

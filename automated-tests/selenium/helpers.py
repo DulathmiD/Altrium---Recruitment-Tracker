@@ -24,6 +24,7 @@ import os
 import time
 import traceback
 import urllib.request
+from urllib.parse import urlsplit
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -348,7 +349,24 @@ def login_as(driver, email, password=None, admin=False, expect_success=True, rol
 def logout_as(driver, role):
     try:
         driver.find_element(By.CSS_SELECTOR, LOGOUT_SELECTOR[role]).click()
-        wait_url_contains(driver, "/login")
+        # ProtectedRoute.tsx redirects an unauthenticated IT_ADMIN-gated
+        # route to "/admin" specifically (its own login door), never
+        # "/login" -- every other role's ProtectedRoute falls back to
+        # "/login". Confirmed by test_forced_password_change.py being the
+        # first caller to ever pass role="IT_ADMIN" here; every existing
+        # IT Admin test avoided this path entirely by not calling logout_as.
+        #
+        # Can't reuse wait_url_contains(driver, "/admin") here: every admin
+        # page (e.g. /admin/users) already contains "/admin" as a substring
+        # *before* the click, so a plain "contains" check would report
+        # success immediately without ever confirming logout happened. Wait
+        # for the exact bare path instead.
+        if role == "IT_ADMIN":
+            WebDriverWait(driver, DEFAULT_TIMEOUT).until(
+                lambda d: urlsplit(d.current_url).path.rstrip("/") == "/admin"
+            )
+        else:
+            wait_url_contains(driver, "/login")
     except NoSuchElementException:
         pass
 

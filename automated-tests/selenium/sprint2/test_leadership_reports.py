@@ -1,6 +1,7 @@
 """
-Sprint 2 - Leadership: Recruitment Overview, org-wide Recruitment Progress
-(US-35), Department Performance (US-35), Hiring Trends (US-36), and
+Sprint 2 - Leadership: Recruitment Overview (includes a "Recruitment
+Progress" section showing candidates per stage org-wide -- not a separate
+page/route), Department Performance (US-35), Hiring Trends (US-36), and
 Export Reports (US-37/38).
 
 Run: python test_leadership_reports.py
@@ -30,14 +31,20 @@ def test_dashboard_redirects_to_recruitment_overview():
         safe_quit(driver)
 
 
-def test_recruitment_progress_page_loads():
+def test_recruitment_progress_section_on_overview():
+    """Recruitment Progress isn't its own page -- it's a section inside
+    Recruitment Overview (RecruitmentOverviewPage.tsx) showing candidates
+    per stage across all vacancies."""
     driver = new_driver()
     try:
         login_as(driver, ACCOUNTS["LEADERSHIP_MANAGEMENT"], role="LEADERSHIP_MANAGEMENT")
-        driver.get(f"{BASE_URL}/leadership-management/recruitment-progress")
-        title = wait_visible(driver, By.CSS_SELECTOR, ".rp-title")
-        ok = title.text == "Recruitment Progress"
-        return report("test_recruitment_progress_page_loads", ok, title.text)
+        wait_visible(driver, By.CSS_SELECTOR, ".ro-title")
+        section = wait_visible(
+            driver, By.XPATH,
+            "//h2[contains(@class,'ro-section-title') and contains(text(),'Recruitment Progress')]",
+        )
+        ok = section.is_displayed()
+        return report("test_recruitment_progress_section_on_overview", ok, section.text)
     finally:
         safe_quit(driver)
 
@@ -85,16 +92,16 @@ def test_export_reports_view_report_opens_new_tab():
         safe_quit(driver)
 
 
-def test_leadership_nav_covers_all_five_sections():
+def test_leadership_nav_covers_all_four_sections():
     driver = new_driver()
     try:
         login_as(driver, ACCOUNTS["LEADERSHIP_MANAGEMENT"], role="LEADERSHIP_MANAGEMENT")
         wait_visible(driver, By.CSS_SELECTOR, ".ro-title")
         links = driver.find_elements(By.CSS_SELECTOR, "nav.ld-nav a")
         texts = {l.text.strip() for l in links if l.text.strip()}
-        expected = {"Recruitment Overview", "Recruitment Progress", "Department Performance", "Hiring Trends", "Export Reports"}
+        expected = {"Recruitment Overview", "Department Performance", "Hiring Trends", "Export Reports"}
         ok = expected.issubset(texts)
-        return report("test_leadership_nav_covers_all_five_sections", ok, texts)
+        return report("test_leadership_nav_covers_all_four_sections", ok, texts)
     finally:
         safe_quit(driver)
 
@@ -103,11 +110,11 @@ if __name__ == "__main__":
     check_servers_are_up()
     tests = [
         test_dashboard_redirects_to_recruitment_overview,
-        test_recruitment_progress_page_loads,
+        test_recruitment_progress_section_on_overview,
         test_department_performance_page_loads,
         test_hiring_trends_page_loads,
         test_export_reports_view_report_opens_new_tab,
-        test_leadership_nav_covers_all_five_sections,
+        test_leadership_nav_covers_all_four_sections,
     ]
     results = [run_safely(t.__name__, t) for t in tests]
     print(f"\n{sum(results)}/{len(results)} passed")

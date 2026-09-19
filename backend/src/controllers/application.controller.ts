@@ -17,7 +17,7 @@ import { renderTemplate } from "../utils/notificationTemplates.js";
 async function assertVacancyNotOnHold(vacancyId: number): Promise<string | null> {
   const vacancy = await prisma.vacancy.findUnique({ where: { id: vacancyId }, select: { status: true } });
   if (vacancy?.status === "ON_HOLD") {
-    return "This vacancy is on hold -- reopen it before adding or progressing candidates";
+    return "This vacancy is on hold. Reopen it before adding or progressing candidates.";
   }
   return null;
 }
@@ -393,7 +393,7 @@ export async function assignHiringManager(req: Request, res: Response) {
     // stage check and is reachable directly, not only through that page.
     if (application.stage !== "SHORTLISTED") {
       return res.status(400).json({
-        error: `Cannot assign a Hiring Manager to an application in ${application.stage} stage -- candidate must be shortlisted first`,
+        error: `Cannot assign a Hiring Manager to an application in ${application.stage} stage. Candidate must be shortlisted first.`,
       });
     }
 
@@ -438,7 +438,10 @@ export async function listApplicationsAssignedToMe(req: Request, res: Response) 
 // HR-only, CV-review-phase decision: shortlist or reject a fresh application.
 // Everything past this point is handled by updateApplicationStage
 // (interview progression) or recordHiringDecision (final outcome).
-const VALID_STATUS_TARGETS = ["SHORTLISTED", "REJECTED"] as const;
+// "APPLIED" is only ever valid here as the Reconsider target below -- it's
+// not a normal decision target (there's no UI path that lets HR send an
+// already-Applied application back to Applied).
+const VALID_STATUS_TARGETS = ["SHORTLISTED", "REJECTED", "APPLIED"] as const;
 
 export async function updateApplicationStatus(req: Request, res: Response) {
   const id = Number(req.params.id);
@@ -468,7 +471,16 @@ export async function updateApplicationStatus(req: Request, res: Response) {
     // blocks re-deciding once stage is HIRED/REJECTED). Distinguished by
     // `hiringDecision` being null: an early-rejected application never had
     // one set in the first place.
-    const isReconsider = status === "SHORTLISTED" && existing.stage === "REJECTED" && existing.hiringDecision === null;
+    //
+    // Correction (direct user feedback, caught by live testing): Reconsider
+    // moves the application back to APPLIED ("Unreviewed"), NOT straight to
+    // SHORTLISTED. It used to target SHORTLISTED, which let a reconsidered
+    // candidate skip the CV-review-note requirement below entirely --
+    // Shortlist/Reject always requires a freshly saved note, and Reconsider
+    // isn't exempt from that just because this candidate already has one on
+    // file from before. The stale note itself is cleared further down so
+    // "already has a note" can't be used to route around this either.
+    const isReconsider = status === "APPLIED" && existing.stage === "REJECTED" && existing.hiringDecision === null;
     if (existing.stage !== "APPLIED" && !isReconsider) {
       return res.status(400).json({
         error: existing.hiringDecision
@@ -482,7 +494,42 @@ export async function updateApplicationStatus(req: Request, res: Response) {
       return res.status(400).json({ error: onHoldError });
     }
 
+    // Real gap the user caught by using the app: HR could Shortlist or
+    // Reject straight off the CV-review screen without ever having written
+    // down why -- Review Notes existed but were purely optional, so a
+    // decision could leave zero record of the reasoning behind it. Only
+    // gated on the actual CV-screening moment (existing.stage === "APPLIED"),
+    // not the Reconsider path (existing.stage is "REJECTED" there -- there's
+    // nothing to write a note against yet, the note comes after
+    // reconsidering, when this candidate is screened again as Unreviewed).
+    // Checked against Candidate.lastCvReviewNote -- the persisted, saved
+    // note -- not whatever's sitting in the frontend's draft textarea, so a
+    // note that was typed but never actually saved still can't be used to
+    // unlock the decision.
+    if (existing.stage === "APPLIED") {
+      const candidate = await prisma.candidate.findUnique({
+        where: { id: existing.candidateId },
+        select: { lastCvReviewNote: true },
+      });
+      if (!candidate?.lastCvReviewNote?.trim()) {
+        return res.status(400).json({
+          error: "Write and save a CV review note before shortlisting or rejecting this candidate.",
+        });
+      }
+    }
+
     const updated = await transitionApplicationStage(id, { stage: status as any }, req.user!.id);
+
+    // Clear the stale review note as part of reconsidering, so HR is
+    // prompted to write a fresh one for this new look rather than the old
+    // rejection's note silently counting as "already reviewed."
+    if (isReconsider) {
+      await prisma.candidate.update({
+        where: { id: existing.candidateId },
+        data: { lastCvReviewNote: null, lastCvReviewedByUserId: null, lastCvReviewedAt: null },
+      });
+    }
+
     res.json(updated);
   } catch (err) {
     console.error(err);

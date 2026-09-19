@@ -10,6 +10,15 @@ import "./RecruitmentOverviewPage.css";
 
 type DateRangeFilter = "" | "30" | "90";
 
+// Visual redesign pass, per direct user feedback ("recreate the dashboards
+// ... make it nice and legite and corporate like and proffesional"): same
+// data/instructions as before, just restyled -- same pattern as the Hiring
+// Manager and Management dashboards, for a consistent look across every
+// role. Accent colors are pulled straight from the status-pill palette
+// already used across the app (CandidatesPage.css's .cnd-status-* colors),
+// not invented new.
+type ProgressRow = { key: string; label: string; count: number; accent: "green" | "gold" | "red" | "blue" };
+
 export default function RecruitmentOverviewPage() {
   const [data, setData] = useState<LeadershipDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,10 +55,36 @@ export default function RecruitmentOverviewPage() {
 
   const hasVacancies = useMemo(() => vacancyOptions.length > 0, [vacancyOptions]);
 
+  // Anchors + rounds combined into one comparable list so Recruitment
+  // Progress can render as proportional bars (relative to whichever stage
+  // has the most candidates) instead of a grid of same-size boxes.
+  const progressRows: ProgressRow[] = useMemo(() => {
+    if (!data) return [];
+    const anchorRows: ProgressRow[] = data.anchors
+      .filter((a) => a.stage !== "APPLIED")
+      .map((a) => ({
+        key: `anchor-${a.stage}`,
+        label: a.label,
+        count: a.candidateCount,
+        accent: a.stage === "HIRED" ? "gold" : a.stage === "REJECTED" ? "red" : "green",
+      }));
+    const roundRows: ProgressRow[] = data.rounds.map((r) => ({
+      key: `round-${r.order}`,
+      label: r.label,
+      count: r.candidateCount,
+      accent: "blue",
+    }));
+    return [...roundRows, ...anchorRows];
+  }, [data]);
+  const maxProgressCount = Math.max(1, ...progressRows.map((r) => r.count));
+
   return (
     <div className="ro-page">
+      {/* Title styling and the divider below it match VacanciesPage's
+          "Vacancies" heading exactly, per direct user request (applied to
+          HM's dashboard first, mirrored here for a consistent look across
+          all three role dashboards); the descriptive subtitle was dropped. */}
       <h1 className="ro-title">Recruitment Overview</h1>
-      <p className="ro-muted">Org-wide, across every department and vacancy.</p>
       <div className="ro-divider" />
 
       <div className="ro-filter-bar">
@@ -84,19 +119,19 @@ export default function RecruitmentOverviewPage() {
       {data && (
         <>
           <div className="ro-kpi-grid">
-            <div className="ro-kpi-tile">
+            <div className="ro-kpi-tile ro-kpi-tile--blue">
               <div className="ro-kpi-label">Open Vacancies</div>
               <div className="ro-kpi-value">{data.openVacancies}</div>
             </div>
-            <div className="ro-kpi-tile">
+            <div className="ro-kpi-tile ro-kpi-tile--gold">
               <div className="ro-kpi-label">Active Candidates</div>
               <div className="ro-kpi-value">{data.activeCandidates}</div>
             </div>
-            <div className="ro-kpi-tile">
+            <div className="ro-kpi-tile ro-kpi-tile--green">
               <div className="ro-kpi-label">Hires This Month</div>
               <div className="ro-kpi-value">{data.hiresThisMonth}</div>
             </div>
-            <div className="ro-kpi-tile">
+            <div className="ro-kpi-tile ro-kpi-tile--red">
               <div className="ro-kpi-label">Rejected</div>
               <div className="ro-kpi-value">{data.rejected}</div>
             </div>
@@ -116,22 +151,20 @@ export default function RecruitmentOverviewPage() {
               panel next to Recruitment Progress) and its CSS are recoverable
               from project-decisions-log.md's "Leadership Follow Ups"
               entries if that day comes. */}
-          <div className="ro-progress-col">
+          <div className="ro-panel">
             <h2 className="ro-section-title">Recruitment Progress</h2>
             <p className="ro-muted">Candidates currently at each stage, across all vacancies.</p>
-            <div className="ro-progress-grid">
-              {data.anchors
-                .filter((a) => a.stage !== "APPLIED")
-                .map((a) => (
-                  <div key={a.stage} className="ro-progress-tile">
-                    <div className="ro-progress-value">{a.candidateCount}</div>
-                    <div className="ro-kpi-label">{a.label}</div>
+            <div className="ro-progress-list">
+              {progressRows.map((r) => (
+                <div key={r.key} className="ro-progress-row">
+                  <span className="ro-progress-row-label">{r.label}</span>
+                  <div className="ro-progress-row-track">
+                    <div
+                      className={`ro-progress-row-fill ro-progress-row-fill--${r.accent}`}
+                      style={{ width: `${Math.max(4, (r.count / maxProgressCount) * 100)}%` }}
+                    />
                   </div>
-                ))}
-              {data.rounds.map((r) => (
-                <div key={r.order} className="ro-progress-tile">
-                  <div className="ro-progress-value">{r.candidateCount}</div>
-                  <div className="ro-kpi-label">{r.label}</div>
+                  <span className="ro-progress-row-value">{r.count}</span>
                 </div>
               ))}
             </div>

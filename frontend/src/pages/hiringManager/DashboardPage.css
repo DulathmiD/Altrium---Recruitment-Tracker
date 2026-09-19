@@ -1,8 +1,11 @@
 .hmd-page {
-  max-width: 90vw;
+  max-width: 1180px;
   font-family: var(--sans);
 }
 
+/* Matches VacanciesPage's .vac-title / .vac-divider exactly, per direct
+   user request -- same size, weight, and color heading with the same plain
+   divider underneath, rather than each page inventing its own header style. */
 .hmd-title {
   font-size: 22px;
   font-weight: 600;
@@ -25,17 +28,21 @@
   font-size: 13px;
 }
 
+/* Filter bar styling matches hiringManager/VacanciesPage.css's
+   .hmv-filter-bar exactly, per direct user request for one consistent
+   filter look sitewide: label stacked above its select, same label size and
+   color, same select border/radius/padding, across every filter bar. */
 .hmd-filter-bar {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .hmd-filter-fields {
   display: flex;
   align-items: flex-end;
-  gap: 28px;
+  gap: 24px;
 }
 
 .hmd-filter-field {
@@ -55,8 +62,15 @@
   padding: 8px 10px;
   font-size: 13.5px;
   font-family: var(--sans);
-  background: white;
-  min-width: 160px;
+  background: var(--altrium-white);
+  color: var(--altrium-ink);
+  min-width: 150px;
+}
+
+.hmd-filter-field select:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
 }
 
 .hmd-apply-btn {
@@ -70,77 +84,152 @@
   font-family: var(--sans);
   font-weight: 500;
 }
+.hmd-apply-btn:hover { background: #2a2a2a; }
 
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile rather than one fixed system-wide width
+   (which wouldn't fit vacancies-with-3-KPIs pages as well as 4-KPI ones). */
 .hmd-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
   gap: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 28px;
 }
 
+/* Card look: white surface, soft shadow, and a 4px accent bar along the top
+   (color set per-tile below) rather than the old flat beige box -- reads as
+   a proper dashboard KPI card, and the accent color gives each number a
+   distinct identity at a glance instead of four identical tiles. */
 .hmd-kpi-tile {
-  /* Corrections doc: give the KPI cards a background colour so they pop,
-     rather than sitting flush white against the page. */
+  position: relative;
+  box-sizing: border-box;
+  width: 220px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: #faf5ea;
-  border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 24px 20px;
+  align-items: center;
   text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
+.hmd-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system should use
+   the same brand gold as this page's own "Awaiting My Decision" tile,
+   instead of a different color per tile. Modifier classes are kept in the
+   JSX (harmless) rather than stripped, but all four now resolve to the same
+   accent color. */
+.hmd-kpi-tile--blue,
+.hmd-kpi-tile--gold,
+.hmd-kpi-tile--green,
+.hmd-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
 .hmd-kpi-value {
-  /* These 4 headline numbers are the first thing meant to catch the eye on
-     the landing page -- label reads first, then the number lands big.
-     Bigger than the Recruitment Progress tiles below (see
-     .hmd-progress-value), which are supporting detail, not the headline.
-     Was 48px (deliberately bigger than every other dashboard's 44px) --
-     brought down to 44px so every dashboard's KPI tile is now pixel-for-pixel
-     identical, not just "close." */
-  font-size: 44px;
+  font-size: 42px;
   font-weight: 700;
   color: var(--altrium-black);
   line-height: 1;
 }
 
 .hmd-kpi-label {
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--altrium-ink);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
+}
+
+/* Recruitment Progress now lives inside one card (like everything else on
+   this page) instead of floating tiles directly on the page background. */
+.hmd-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
 .hmd-section-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--altrium-black);
   margin: 0 0 4px;
 }
 
-.hmd-progress-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-  margin: 16px 0 0;
-}
-
-.hmd-progress-tile {
+.hmd-progress-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 0 0 calc(25% - 12px);
-  background: #faf5ea;
-  border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 20px 16px;
-  text-align: center;
-  box-sizing: border-box;
+  gap: 16px;
+  margin-top: 20px;
 }
 
-.hmd-progress-value {
-  font-size: 27px;
+/* Comparative bar list, per direct user feedback ("eye-catching and easy to
+   identify data") -- bar length is relative to whichever stage/round has
+   the most candidates, so the actual shape of the pipeline is visible at a
+   glance instead of reading a grid of same-size boxes number by number. */
+.hmd-progress-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 44px;
+  align-items: center;
+  gap: 16px;
+}
+
+.hmd-progress-row-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hmd-progress-row-track {
+  background: #f1f1ef;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.hmd-progress-row-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+/* Follow-up correction: the previous pale/dark/deep ramp used real ambers
+   that looked like different colors once rendered, not "lighter gold".
+   Switched to a pure white-mixed tint ramp of the exact brand hex
+   (#f5a623) instead -- lightest tint for Rounds, progressively closer to
+   the true gold for Shortlisted/Hired, and Rejected at the full,
+   unmixed brand color. Class names/accent keys are unchanged. */
+.hmd-progress-row-fill--blue { background: var(--altrium-gold-100); }
+.hmd-progress-row-fill--green { background: var(--altrium-gold-200); }
+.hmd-progress-row-fill--gold { background: var(--altrium-gold-300); }
+.hmd-progress-row-fill--red { background: var(--altrium-gold); }
+
+.hmd-progress-row-value {
+  font-size: 15px;
   font-weight: 700;
   color: var(--altrium-black);
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .hmd-progress-row { grid-template-columns: 140px 1fr 36px; gap: 10px; }
 }

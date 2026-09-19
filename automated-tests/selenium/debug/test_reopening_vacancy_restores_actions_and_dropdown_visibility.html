@@ -1,0 +1,7487 @@
+<html lang="en"><head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- This app is light-themed only. Declaring color-scheme here (not just
+         in CSS) tells the browser/OS up front not to auto-apply a forced
+         dark-mode color inversion to the page -- without it, some browsers'
+         "force dark" feature was inverting the AltriumLogo SVG's solid
+         shapes and producing a colored fringe along its edges. -->
+    <meta name="color-scheme" content="light">
+    <title>Altrium</title>
+  <style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/Login.css">.login-body {
+  position: relative;
+  margin: 0;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--altrium-white);
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  padding: 24px;
+  overflow: hidden;
+}
+
+.login-hex-pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='96' viewBox='0 0 84 96'%3E%3Cpolygon points='42,2 80,24 80,72 42,94 4,72 4,24' fill='none' stroke='%23e5e7eb' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 84px 96px;
+  opacity: 0.6;
+  -webkit-mask-image: radial-gradient(circle at center, black, transparent 75%);
+  mask-image: radial-gradient(circle at center, black, transparent 75%);
+}
+
+.login-wrap { position: relative; width: 100%; max-width: 360px; }
+.login-brand { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 24px; }
+.login-brand h1 { font-size: 20px; font-weight: 600; margin: 0; color: var(--altrium-black); }
+.login-brand-subtitle { font-size: 14px; color: var(--altrium-ink-soft); margin: 0; }
+
+.login-card { background: white; border: 1px solid var(--altrium-line); border-radius: 14px; box-shadow: 0 4px 16px rgba(15,23,42,0.06); padding: 28px; }
+.login-field { margin-bottom: 16px; }
+.login-field label { font-size: 13px; font-weight: 500; color: var(--altrium-ink); display: block; margin-bottom: 4px; }
+.login-field input { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: var(--sans); color: var(--altrium-ink); outline: none; box-sizing: border-box; }
+.login-field input:focus { border-color: var(--altrium-gold); box-shadow: 0 0 0 3px rgba(245,166,35,0.18); }
+
+.login-password-wrap { position: relative; }
+.login-password-wrap input { padding-right: 64px; }
+.login-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--altrium-gold-dark);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.login-toggle:hover { background: rgba(245,166,35,0.12); }
+
+.login-alert { border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; font-size: 12.5px; line-height: 1.4; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+
+.login-button {
+  width: 100%;
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 999px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: background 0.15s ease;
+}
+.login-button:hover:not(:disabled) { background: var(--altrium-gold-dark); }
+.login-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.login-forgot { display: block; width: 100%; text-align: center; background: none; border: none; color: var(--altrium-ink-soft); font-size: 13px; cursor: pointer; padding: 4px; font-family: var(--sans); }
+.login-forgot:hover { color: var(--altrium-black); }
+.login-forgot-notice { text-align: center; font-size: 12px; color: var(--altrium-ink-soft); margin: 8px 0 0; }
+
+.login-forgot-actions { display: flex; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--altrium-line); }
+.login-forgot-cancel { flex: 1; background: none; border: 1px solid var(--altrium-line); border-radius: 999px; padding: 9px; font-size: 12.5px; font-family: var(--sans); color: var(--altrium-ink-soft); cursor: pointer; }
+.login-forgot-cancel:hover { color: var(--altrium-black); border-color: var(--altrium-ink-soft); }
+.login-forgot-send { flex: 2; background: var(--altrium-gold); color: #1a1200; border: none; border-radius: 999px; padding: 9px; font-size: 12.5px; font-weight: 600; font-family: var(--sans); cursor: pointer; }
+.login-forgot-send:hover:not(:disabled) { background: var(--altrium-gold-dark); }
+.login-forgot-send:disabled { opacity: 0.6; cursor: not-allowed; }
+.login-footer { text-align: center; font-size: 11.5px; color: var(--altrium-ink-soft); margin-top: 16px; }
+.login-footer a { color: var(--altrium-black); font-weight: 500; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/components/Toast.css">.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--altrium-black);
+  color: white;
+  border-left: 4px solid var(--altrium-gold);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  z-index: 1000;
+  max-width: 90vw;
+  animation: toast-in 0.25s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 16px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Notification-style popup, anchored under the top-right bell instead of
+   bottom-center. Same look (black, gold accent), different corner + slide
+   direction so it doesn't collide with the bell/dropdown above it. */
+.toast-top-right {
+  bottom: auto;
+  left: auto;
+  top: 68px;
+  right: 20px;
+  transform: none;
+  animation: toast-in-top-right 0.25s ease-out;
+}
+
+@keyframes toast-in-top-right {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.toast-message {
+  color: white;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.toast-close:hover {
+  color: white;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/components/NotificationBell.css">/* Fixed to the viewport's top-right corner on every page, regardless of
+   which role layout mounts it -- this used to live inside each sidebar
+   (above the logout button), but the dropdown got clipped by the sidebar's
+   own edge there. Fixed positioning here means it always has the full
+   viewport to open into. */
+.ntf-bell-container {
+  position: fixed;
+  /* right:40 lines its edge up with the page content's own right padding
+     (40px on every role layout), so it sits inside the same boundary as the
+     header row/divider instead of poking further right than the content.
+     top:28 brings it down roughly level with a page header's button row. */
+  top: 28px;
+  right: 40px;
+  z-index: 70;
+}
+
+/* No circular chrome (no border/background/shadow) -- bare icon only, per
+   follow-up correction. Also shrinks the button's footprint so it clears
+   the top-right "+" add button some pages render right below it (both
+   sit in the same fixed top-right corner; the old 44px circle reached low
+   enough to overlap it). */
+.ntf-bell-btn {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 17px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ntf-bell-icon {
+  display: block;
+  color: var(--altrium-black);
+}
+
+.ntf-bell-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: #b91c1c;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 3px 5px;
+  min-width: 16px;
+  text-align: center;
+  border: 2px solid var(--altrium-white);
+}
+
+.ntf-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  max-width: 80vw;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(20, 18, 14, 0.14);
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+}
+
+.ntf-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--altrium-line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+}
+
+.ntf-mark-all-btn {
+  border: none;
+  background: none;
+  color: var(--altrium-ink-soft);
+  font-size: 11.5px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+}
+
+.ntf-dropdown-list {
+  overflow-y: auto;
+}
+
+.ntf-empty {
+  padding: 20px 14px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--altrium-ink-soft);
+  text-align: center;
+}
+
+.ntf-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: none;
+  border-bottom: 1px solid var(--altrium-line);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--sans);
+}
+
+.ntf-item:last-child {
+  border-bottom: none;
+}
+
+.ntf-item:hover {
+  background: #faf9f6;
+}
+
+.ntf-item-unread {
+  background: #fbf8f0;
+}
+
+.ntf-item-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #b45309;
+  margin-top: 5px;
+}
+
+.ntf-item-body {
+  min-width: 0;
+}
+
+.ntf-item-message {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--altrium-ink);
+  line-height: 1.4;
+}
+
+.ntf-item-time {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--altrium-ink-soft);
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hr/HRLayout.css">.hr-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  background: var(--altrium-white);
+}
+
+.hr-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--altrium-line);
+  border-left: 4px solid var(--altrium-gold);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.hr-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  padding: 0 20px 20px;
+}
+
+.hr-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.hr-nav-item {
+  display: block;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.hr-nav-item:hover {
+  background: #faf5ea;
+}
+
+.hr-nav-item.active {
+  background: var(--altrium-black);
+  color: var(--altrium-white);
+  border-left: 3px solid var(--altrium-gold);
+}
+
+.hr-logout {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--sans);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  background: var(--altrium-white);
+  color: var(--altrium-ink-soft);
+  cursor: pointer;
+}
+
+.hr-logout:hover {
+  border-color: var(--altrium-gold);
+  color: var(--altrium-black);
+}
+
+.hr-main {
+  flex: 1;
+  /* Without this, a flex child's intrinsic content minimum (e.g. an
+     unbreakable table cell) can force it -- and the whole .hr-layout row --
+     wider than the viewport, producing a page-level horizontal scrollbar
+     instead of the content wrapping/shrinking inside its own box. */
+  min-width: 0;
+  /* Top padding is taller than the sides/bottom so page headers clear the
+     fixed notification bell (top:16/right:20, 44px diameter). */
+  padding: 64px 40px 32px;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hr/VacanciesPage.css">.vac-page {
+  /* No hard cap -- fills .hr-main's content box so the divider line and
+     header row reach almost to the edge of the screen on wide viewports,
+     per the wireframe (was capped at 900px, leaving a large dead gap on the
+     right of every HR Vacancies screen). */
+  width: 100%;
+  font-family: var(--sans);
+}
+
+/* Frontend-corrections pass: the "Saved..." message used to be static text
+   easy to miss at the top of the modal -- now a bottom toast so it actually
+   gets seen, matching where notifications land elsewhere in the app. */
+.vac-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.vac-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.vac-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 14px;
+}
+
+.vac-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.vac-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.vac-back {
+  display: block;
+  background: none;
+  border: none;
+  color: var(--altrium-ink-soft);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0 12px;
+  font-family: var(--sans);
+}
+.vac-back:hover { color: var(--altrium-black); }
+
+.vac-create-btn {
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  height: fit-content;
+  transition: background 0.15s ease;
+}
+.vac-create-btn:hover { background: var(--altrium-gold-dark); }
+
+.vac-dept-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px 32px;
+}
+
+.vac-dept-card {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 26px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vac-dept-card:hover {
+  border-color: var(--altrium-gold);
+  box-shadow: 0 2px 10px rgba(245, 166, 35, 0.15);
+}
+
+.vac-filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.vac-filter-chip {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-family: var(--sans);
+  color: var(--altrium-ink-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.vac-filter-chip:hover { border-color: var(--altrium-gold); color: var(--altrium-ink); }
+.vac-filter-chip-active {
+  background: var(--altrium-black);
+  border-color: var(--altrium-black);
+  color: white;
+}
+.vac-filter-chip-active:hover { border-color: var(--altrium-black); color: white; }
+
+.vac-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vac-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  transition: opacity 0.15s ease;
+}
+
+.vac-row:hover {
+  border-color: var(--altrium-gold);
+}
+
+.vac-row-closed {
+  opacity: 0.55;
+  background: #f6f6f4;
+}
+.vac-row-closed:hover {
+  border-color: var(--altrium-line);
+}
+
+.vac-row-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vac-badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.vac-badge-open {
+  background: #e6f4ea;
+  color: #1e7a34;
+}
+.vac-badge-hold {
+  background: #fdf1dc;
+  color: #a9660b;
+}
+.vac-badge-closed {
+  background: #ece9e4;
+  color: #6b6a66;
+}
+
+.vac-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--altrium-ink-soft);
+}
+.vac-edit-btn:hover { color: var(--altrium-gold-dark); }
+
+.vac-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vac-modal {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  font-family: var(--sans);
+}
+
+.vac-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f2f4;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.vac-modal-close:hover {
+  background: #e4e6e9;
+  color: var(--altrium-black);
+}
+
+.vac-modal h2 {
+  margin: 0 24px 16px 0;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+.vac-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 12px 0 4px;
+}
+
+.vac-modal input,
+.vac-modal select,
+.vac-modal textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+.vac-modal input:focus,
+.vac-modal select:focus,
+.vac-modal textarea:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+.vac-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.vac-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.vac-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.vac-save-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.vac-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.vac-stages-section {
+  margin-top: 8px;
+}
+
+.vac-stages-hint {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  background: #faf5ea;
+  border: 1px solid var(--altrium-line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 4px 0 8px;
+}
+
+.vac-stages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.vac-stage-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: var(--altrium-white);
+}
+
+.vac-stage-row-dragging {
+  opacity: 0.4;
+}
+
+.vac-stage-row-dragover {
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.18);
+}
+
+.vac-stage-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.vac-stage-drag-handle {
+  cursor: grab;
+  color: var(--altrium-ink-soft);
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  user-select: none;
+  touch-action: none;
+}
+.vac-stage-drag-handle:active { cursor: grabbing; }
+.vac-stage-drag-handle[aria-disabled="true"] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.vac-stage-name {
+  color: var(--altrium-ink);
+}
+
+.vac-stage-rename-input {
+  flex: 1;
+  border: 1px solid var(--altrium-gold);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: var(--sans);
+  margin-right: 8px;
+}
+
+.vac-stage-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.vac-stage-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--altrium-ink-soft);
+  padding: 2px 4px;
+}
+.vac-stage-icon-btn:hover:not(:disabled) { color: var(--altrium-gold-dark); }
+.vac-stage-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.vac-stage-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  color: var(--altrium-ink);
+}
+.vac-stage-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.vac-stage-add-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.vac-stage-add-row input {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: var(--sans);
+}
+
+.vac-stage-add-btn {
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vac-stage-add-btn:hover:not(:disabled) { background: var(--altrium-gold-dark); }
+.vac-stage-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hr/CandidatesPage.css">.cnd-page {
+  /* No hard cap -- fills .hr-main's content box, matching the Vacancies
+     page fix (was capped at 1100px, leaving dead space on wide screens). */
+  width: 100%;
+  font-family: var(--sans);
+}
+
+.cnd-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.cnd-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.cnd-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cnd-upload-btn {
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.cnd-upload-btn:hover { background: var(--altrium-gold-dark); }
+
+.cnd-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 14px;
+}
+
+.cnd-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.cnd-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.cnd-search-input {
+  flex: 1 1 160px;
+  min-width: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: var(--sans);
+  box-sizing: border-box;
+}
+
+/* Interview-stage options can be long ("Vacancy Title - Round Name") --
+   without a cap the native <select> sizes itself to the widest option and
+   pushes the whole filter bar (and the page) into horizontal scroll. Cap the
+   box and ellipsize the closed-state text instead. */
+.cnd-filter-bar select {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 200px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: var(--sans);
+  background: white;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cnd-score-input {
+  width: 100px;
+  flex: 0 0 auto;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: var(--sans);
+  box-sizing: border-box;
+}
+
+.cnd-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* table-layout: fixed needs explicit column shares, otherwise every column
+   defaults to an equal split and long content (candidate email, vacancy
+   title) wraps awkwardly narrow. Order matches the <th>/<td> order in
+   CandidatesPage.tsx: ID, Candidate, Vacancy, Stage, Status.
+   Correction: the standalone "CV" column (plain View link, no side effect)
+   was removed -- viewing a CV now only ever happens from the candidate's own
+   detail page (the click-through-row-then-View-CV path), so there's exactly
+   one way to view a CV, not two. Its 8% share folded into Vacancy/Stage. */
+.cnd-table th:nth-child(1), .cnd-table td:nth-child(1) { width: 9%; }
+.cnd-table th:nth-child(2), .cnd-table td:nth-child(2) { width: 28%; }
+.cnd-table th:nth-child(3), .cnd-table td:nth-child(3) { width: 28%; }
+.cnd-table th:nth-child(4), .cnd-table td:nth-child(4) { width: 23%; }
+.cnd-table th:nth-child(5), .cnd-table td:nth-child(5) { width: 12%; }
+/* Status column: badge + reviewed-note centered together, not just the note
+   text on its own -- otherwise the note (centered) and the badge (left-
+   aligned by default) would visually disagree with each other. */
+.cnd-table td:nth-child(5) { text-align: center; }
+
+.cnd-table td {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.cnd-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.cnd-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  vertical-align: top;
+  color: var(--altrium-ink);
+}
+
+.cnd-table tr:last-child td { border-bottom: none; }
+
+.cnd-candidate-name { font-weight: 600; }
+.cnd-candidate-email { color: var(--altrium-ink-soft); font-size: 12.5px; }
+.cnd-vacancy-dept { color: var(--altrium-ink-soft); font-size: 12px; }
+
+/* Handoff indicator on In Progress rows -- who last opened this CV and when,
+   so a second HR officer can pick up where a colleague left off.
+   Correction: white-space: nowrap was clipping this against the Status
+   column's fixed 12% width ("Reviewed by Sharon Whi..." cut off mid-word) --
+   the column is deliberately narrow, so the fix is to let it wrap and center
+   it under the badge, not to widen the column. */
+.cnd-reviewed-note { color: var(--altrium-ink-soft); font-size: 11px; margin-top: 4px; text-align: center; }
+
+.cnd-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.cnd-status-yellow { background: #fdf1dc; color: #a9660b; }
+.cnd-status-red { background: #fbe4e4; color: #b91c1c; }
+.cnd-status-green { background: #e6f4ea; color: #1e7a34; }
+.cnd-status-blue { background: #e6eefc; color: #1d4ed8; }
+.cnd-status-plain {
+  background: none;
+  color: var(--altrium-ink-soft);
+  text-transform: none;
+  font-weight: 500;
+  padding: 3px 0;
+}
+
+.cnd-id-cell {
+  color: var(--altrium-ink-soft);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.cnd-candidate-link {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+.cnd-candidate-link:hover .cnd-candidate-name { text-decoration: underline; color: var(--altrium-gold-dark); }
+
+.cnd-stage-rejected { color: #b91c1c; }
+
+/* Back in the normal page flow, after Schedule Interview (the last section)
+   -- a fixed/floating version was tried and reverted per user feedback ("not
+   floating, just put it at the end of the screen once they scroll down").
+   Right-aligned within the page, with a top border to separate it from the
+   Schedule Interview section above. */
+.cnd-detail-decision-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--altrium-line);
+}
+
+/* Reconsider row -- explanatory text on the left, action on the right,
+   unlike the plain Reject/Shortlist pair which is just two right-aligned
+   buttons. */
+.cnd-detail-decision-row-space {
+  justify-content: space-between;
+}
+.cnd-detail-decision-row-space p {
+  margin: 0;
+  max-width: 70%;
+}
+
+/* Candidate detail page (was a modal, now a routed page). Previously capped
+   at 720px, leaving most of the screen empty -- per user feedback (arrows
+   drawn pointing at the unused right-hand space), it now fills the same
+   width as the rest of the list pages instead of being artificially
+   narrow. */
+.cnd-detail-page {
+  width: 100%;
+  max-width: 90vw;
+}
+
+.cnd-back-link {
+  display: inline-block;
+  margin-bottom: 14px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--altrium-ink-soft);
+  text-decoration: none;
+  padding: 4px 0;
+}
+.cnd-back-link:hover {
+  color: var(--altrium-black);
+}
+
+.cnd-link-btn {
+  background: none;
+  border: none;
+  color: var(--altrium-gold-dark);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--sans);
+}
+.cnd-link-btn:hover { text-decoration: underline; }
+
+.cnd-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Solid pill style, matching the Hiring Manager's Reject/Hire buttons on
+   Pending Decisions (pd-action-btn/-positive/-negative) -- was previously a
+   thin outlined pill, restyled per user feedback so the decision buttons
+   read as prominent, filled actions instead of secondary/outline ones. */
+.cnd-action-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--sans);
+  cursor: pointer;
+  color: white;
+}
+.cnd-action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.cnd-action-shortlist { background: #1e7a34; }
+.cnd-action-shortlist:hover:not(:disabled) { background: #17612a; }
+
+.cnd-action-reject { background: #b91c1c; }
+.cnd-action-reject:hover:not(:disabled) { background: #991717; }
+
+/* Modal (mirrors VacanciesPage's modal look, kept local so this page has no
+   cross-file CSS dependency) */
+
+.cnd-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.cnd-modal {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  font-family: var(--sans);
+}
+
+/* Matches VacanciesPage.css's .vac-modal-close -- same circular X pattern
+   used across the app's other modals (Create Vacancy, Schedule Interview). */
+.cnd-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f2f4;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cnd-modal-close:hover {
+  background: #e4e6e9;
+  color: var(--altrium-black);
+}
+
+.cnd-modal h2 {
+  margin: 0 24px 16px 0;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+/* Frontend-corrections pass: "make this bigger and make it draggable" --
+   real dropzone instead of the bare native file input. */
+.cnd-upload-modal {
+  width: 640px;
+}
+
+.cnd-dropzone {
+  /* This is now a <label> (see CandidatesPage.tsx), which defaults to
+     display: inline -- forcing block here keeps the same box layout
+     (full width, padding, centered text) it had as a <div>. */
+  display: block;
+  margin-top: 8px;
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  background: #faf9f6;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.cnd-dropzone:hover {
+  border-color: var(--altrium-gold);
+}
+.cnd-dropzone-active {
+  border-color: var(--altrium-gold);
+  background: #faf5ea;
+}
+
+.cnd-dropzone-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+}
+
+.cnd-dropzone-subtext {
+  margin: 4px 0 16px;
+  font-size: 12.5px;
+  color: var(--altrium-ink-soft);
+}
+
+.cnd-browse-btn {
+  display: inline-block;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--altrium-ink);
+  cursor: pointer;
+}
+.cnd-browse-btn:hover {
+  border-color: var(--altrium-gold);
+  color: var(--altrium-gold-dark);
+}
+
+.cnd-file-input-hidden {
+  display: none;
+}
+
+.cnd-upload-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #f5c2c2;
+  background: #fef2f2;
+  border-radius: 8px;
+}
+
+.cnd-upload-notice-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #b91c1c;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cnd-upload-notice-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #7f1d1d;
+}
+
+.cnd-upload-notice-body {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: #991b1b;
+}
+
+.cnd-upload-notice-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #991b1b;
+  font-size: 12px;
+  padding: 2px;
+}
+
+.cnd-failed-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 13px;
+}
+.cnd-failed-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--altrium-line);
+}
+.cnd-failed-table td {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+
+.cnd-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 12px 0 4px;
+}
+
+.cnd-modal input,
+.cnd-modal select,
+.cnd-modal textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+.cnd-modal input:focus,
+.cnd-modal select:focus,
+.cnd-modal textarea:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+.cnd-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cnd-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 11px 22px;
+  cursor: pointer;
+  font-size: 15px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.cnd-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.cnd-save-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.cnd-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.cnd-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.cnd-review-row {
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 12px;
+  position: relative;
+}
+
+.cnd-review-filename {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.cnd-review-row label {
+  margin: 8px 0 2px;
+}
+
+.cnd-review-remove {
+  margin-top: 10px;
+  background: none;
+  border: none;
+  color: #b91c1c;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--sans);
+}
+.cnd-review-remove:hover { text-decoration: underline; }
+
+.cnd-detail-modal {
+  width: 640px;
+}
+
+.cnd-review-note-input {
+  resize: vertical;
+  font-family: var(--sans);
+}
+
+/* Redesigned detail sections -- boxed cards instead of the old flat,
+   divider-only list, matching the card look used on Users/Create User/
+   System (white background, bordered, rounded, generously padded) so this
+   page no longer looks like an unstyled form. */
+.cnd-detail-section {
+  background: var(--altrium-white);
+  /* Darker than the page's usual hairline border (--altrium-line, #e5e7eb)
+     -- per user feedback, the card outlines were too faint to tell apart
+     from the page background. Only these outer card borders, not the
+     input/select/textarea borders inside them. */
+  border: 1px solid #555555;
+  border-radius: 10px;
+  padding: 22px 26px;
+  margin-top: 18px;
+}
+.cnd-detail-section:first-of-type {
+  margin-top: 22px;
+}
+
+/* The first label in each card acts as the card's title. */
+.cnd-detail-section > label:first-child {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--altrium-ink-soft);
+  margin: 0 0 14px;
+}
+
+/* Nested field labels within a card (Stage / Date & Time / Panel in
+   Schedule Interview) -- deliberately a direct-child selector so it doesn't
+   also catch .cnd-panel-checkbox's own <label>, which is nested one level
+   deeper and needs to keep its inline flex layout. */
+.cnd-detail-section > label:not(:first-child) {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 16px 0 6px;
+}
+
+.cnd-detail-page select,
+.cnd-detail-page input[type="text"],
+.cnd-detail-page input[type="datetime-local"],
+.cnd-detail-page textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: var(--sans);
+  background: white;
+  box-sizing: border-box;
+}
+
+/* Notes box: bigger, per user feedback -- was a small default-sized
+   textarea that looked cramped inside the now much wider card. */
+.cnd-review-note-input {
+  min-height: 120px;
+}
+
+/* Read-only state once a CV-stage decision has locked the note (see
+   CandidateDetailPage.tsx's isCvReviewLocked). Correction: this used to
+   share the editable textarea's fixed 120px min-height so the card
+   "wouldn't jump" -- but a locked note is almost always one short sentence,
+   so that made every locked card show a mostly-empty oversized box. Sizes
+   to its actual content now (no min-height), same border/background
+   treatment otherwise so it still reads as a distinct, non-interactive box. */
+.cnd-review-note-locked {
+  margin: 0;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--altrium-ink);
+  background: #faf9f7;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+}
+.cnd-locked-hint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-style: italic;
+}
+.cnd-detail-page select:focus,
+.cnd-detail-page input:focus,
+.cnd-detail-page textarea:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
+.cnd-inline-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.cnd-inline-row select { flex: 1; }
+.cnd-inline-row .cnd-save-btn { padding: 8px 16px; white-space: nowrap; }
+
+.cnd-panel-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 12px;
+}
+
+.cnd-panel-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--altrium-ink);
+  margin: 0;
+}
+.cnd-panel-checkbox input { width: auto; }
+
+.cnd-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+}
+
+.cnd-summary-name { font-weight: 500; }
+.cnd-summary-ok { color: #1e7a34; font-size: 12.5px; }
+.cnd-summary-error { color: #b91c1c; font-size: 12.5px; }
+
+/* Email History rows -- clicking a row expands it in place to show the
+   actual subject/body that was sent (see candidate.controller.ts's
+   emailHistory, now carrying subject/body alongside the existing
+   label/sentAt). The row itself is a <button> (not a <div> with an onClick)
+   for real keyboard/screen-reader support. */
+.cnd-email-history-toggle {
+  width: 100%;
+  margin: 0;
+  background: none;
+  font-family: var(--sans);
+  cursor: pointer;
+  text-align: left;
+}
+.cnd-email-history-toggle:hover { border-color: var(--altrium-gold); }
+.cnd-email-history-body {
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  margin-top: 6px;
+  padding: 12px 14px 14px;
+  background: #faf9f7;
+}
+.cnd-email-history-subject {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+.cnd-email-history-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--altrium-ink-soft);
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* "This candidate was rejected before being shortlisted" notice on the
+   candidate profile page (CandidateDetailPage.tsx) -- laid out as a row
+   (text + button) since there's only one action. */
+.cnd-reconsider-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  background: #fdf2d9;
+  border: 1px solid #f0d999;
+  border-radius: 10px;
+}
+.cnd-reconsider-banner p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--altrium-ink);
+  max-width: 70%;
+}
+
+/* SCRUM2-30 (duplicate candidate detection): plain informational notice
+   shown after a CV upload matches an existing candidate's email -- a
+   centered modal (reusing .cnd-modal-backdrop/.cnd-modal) rather than a
+   decision to make, since there's nothing to resolve. */
+.cnd-duplicate-modal-icon {
+  display: block;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #fdf2d9;
+  color: var(--altrium-gold-dark);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 36px;
+  text-align: center;
+}
+
+.cnd-duplicate-modal h2 {
+  text-align: center;
+  margin: 0 0 16px;
+}
+
+.cnd-duplicate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cnd-duplicate-row {
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.cnd-duplicate-row p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--altrium-ink);
+}
+
+.cnd-duplicate-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-gold-dark);
+  text-decoration: none;
+}
+.cnd-duplicate-link:hover { text-decoration: underline; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hr/InterviewsPage.css">.ivw-page {
+  /* No hard cap -- fills .hr-main's content box so the header row and
+     divider reach almost to the edge of the screen, matching Vacancies. */
+  width: 100%;
+  font-family: var(--sans);
+}
+
+.ivw-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ivw-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.ivw-plus-btn {
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ivw-plus-btn:hover {
+  background: var(--altrium-gold-dark);
+}
+
+.ivw-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.ivw-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.ivw-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.ivw-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.ivw-calendar-wrap {
+  /* flex: 1 (not width: 100%) -- reliably fills the rest of the flex row
+     regardless of percentage-width quirks, so its right edge lines up with
+     the "+" button and divider above it. Fixed-height cells (not
+     aspect-ratio) below are what let this grow taller and use the empty
+     space beneath it without ever needing a page scrollbar. */
+  background: var(--altrium-white);
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 24px 24px;
+  flex: 1 1 auto;
+  min-width: 0;
+  transition: flex-basis 0.2s ease;
+}
+.ivw-calendar-shrunk {
+  flex: 0 0 420px;
+}
+
+.ivw-calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin-bottom: 12px;
+}
+.ivw-calendar-nav button {
+  background: none;
+  border: none;
+  font-size: 19px;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  padding: 2px 10px;
+}
+.ivw-calendar-nav button:hover {
+  color: var(--altrium-black);
+}
+
+.ivw-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.ivw-calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--altrium-ink-soft);
+  text-transform: uppercase;
+  padding-bottom: 8px;
+}
+
+.ivw-calendar-cell {
+  /* Fixed height, not aspect-ratio -- a full-width calendar with
+     square-per-column cells would be far too tall and force a page
+     scrollbar. 72px (up from an earlier 44px) uses more of the leftover
+     vertical space below the grid while still leaving the sidebar's
+     Log out button on screen without a page scrollbar -- .hr-layout's
+     height tracks whatever is tallest in the row, sidebar included. */
+  height: 62px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 17px;
+  color: var(--altrium-ink-soft);
+  cursor: default;
+}
+.ivw-calendar-shrunk .ivw-calendar-cell {
+  font-size: 15px;
+  height: 50px;
+}
+
+.ivw-calendar-cell-empty {
+  visibility: hidden;
+}
+
+.ivw-calendar-cell-active {
+  background: #fdeceb;
+  color: #c0362c;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ivw-calendar-cell-active:hover {
+  background: #f9d8d6;
+}
+
+.ivw-calendar-cell-selected {
+  background: #c0362c;
+  color: white;
+}
+
+.ivw-side-panel {
+  flex: 1;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  min-width: 0;
+}
+
+.ivw-side-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.ivw-side-panel-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.ivw-side-panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+}
+.ivw-side-panel-close:hover {
+  color: var(--altrium-black);
+}
+
+.ivw-section-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 18px 0 6px;
+}
+
+.ivw-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ivw-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ivw-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.ivw-slot-row:hover {
+  border-color: var(--altrium-gold);
+}
+
+.ivw-slot-time {
+  font-weight: 600;
+  color: var(--altrium-black);
+  flex-shrink: 0;
+}
+
+.ivw-slot-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ivw-slot-count {
+  color: var(--altrium-ink-soft);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Shared modal chrome, matching VacanciesPage/CandidatesPage conventions */
+
+.ivw-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.ivw-modal {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  font-family: var(--sans);
+}
+.ivw-modal-wide {
+  width: 560px;
+}
+
+.ivw-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #f1f2f4;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  /* Corrections doc: the hover highlight (this button's own circular
+     background) was correctly positioned, but the X glyph inside it wasn't
+     centered -- a <button> doesn't center its content by default, and the
+     browser's own UA padding was pushing "X" off to one side within the
+     28x28 box. Flex-centering plus padding:0 above fixes that everywhere
+     this class is used, not just the one menu it was reported on. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ivw-modal-close:hover {
+  background: #e4e6e9;
+  color: var(--altrium-black);
+}
+
+.ivw-modal h2 {
+  margin: 0 24px 16px 0;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+.ivw-time-row {
+  display: flex;
+  gap: 8px;
+}
+.ivw-time-row select {
+  flex: 1;
+}
+
+.ivw-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 12px 0 4px;
+}
+
+.ivw-modal input,
+.ivw-modal select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+.ivw-modal input:focus,
+.ivw-modal select:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
+.ivw-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.ivw-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.ivw-cancel-btn:hover {
+  border-color: var(--altrium-black);
+}
+.ivw-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ivw-save-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.ivw-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ivw-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ivw-check-row {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px !important;
+  font-weight: 400 !important;
+  margin: 0 !important;
+  color: var(--altrium-ink);
+}
+.ivw-check-row input {
+  width: auto !important;
+}
+
+/* Schedule Interview's Panels field -- one row per named panel for the
+   selected vacancy, each with a checkbox (pick one or more) and a
+   click-to-expand member list. Also reused, read-only, wherever a single
+   panel's member list needs the same expand/collapse treatment. */
+.ivw-panel-summary {
+  margin-top: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ivw-panel-summary + .ivw-panel-summary {
+  margin-top: 6px;
+}
+
+.ivw-panel-summary-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #faf9f6;
+  border: none;
+  padding: 10px 12px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+}
+.ivw-panel-summary-row:hover {
+  background: #f3f1ec;
+}
+
+.ivw-panel-summary-arrow {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  color: var(--altrium-ink-soft);
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ivw-panel-summary-list {
+  padding: 10px 14px;
+  border-top: 1px solid var(--altrium-line);
+}
+
+/* "+" menu popup */
+
+.ivw-plus-menu {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 10px;
+  padding-top: 34px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--sans);
+}
+/* The shared .ivw-modal-close is positioned relative to .ivw-modal
+   elsewhere; this menu isn't a .ivw-modal, so pull the X in a bit tighter
+   to match this card's smaller padding. */
+.ivw-plus-menu-close {
+  top: 8px;
+  right: 8px;
+}
+.ivw-plus-menu button {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  cursor: pointer;
+}
+.ivw-plus-menu button:hover {
+  background: #faf5ea;
+  color: var(--altrium-gold-dark);
+}
+
+/* Add-candidate step 1: filter row + candidate checklist */
+
+.ivw-filter-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.ivw-filter-row input,
+.ivw-filter-row select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+}
+.ivw-filter-row input {
+  flex: 1;
+}
+.ivw-filter-row select {
+  max-width: 180px;
+}
+
+.ivw-candidate-list {
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ivw-candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.ivw-candidate-row-selected {
+  background: #faf5ea;
+  border-color: var(--altrium-gold);
+}
+.ivw-candidate-row input {
+  width: auto;
+}
+
+.ivw-candidate-vacancy {
+  margin-left: auto;
+  color: var(--altrium-ink-soft);
+  font-size: 12px;
+}
+
+/* Bottom toast, matching VacanciesPage's save notification */
+
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hr/FollowUpsPage.css">.fu-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.fu-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.fu-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.fu-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.fu-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.fu-section {
+  margin-bottom: 32px;
+}
+
+.fu-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 0 0 6px;
+}
+
+.fu-primary {
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+
+.fu-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+/* Explicit column widths so content spreads across the full table width
+   instead of clustering to the left with dead space before the last
+   column (browser's default auto layout sizes columns to content). Two
+   separate sets, one per table shape -- each set's widths must sum to
+   100% on its own, so the 3-column and 5-column tables can't share
+   classes (an earlier pass mistakenly reused one set across both shapes,
+   which left them summing to 76% and 114% respectively -- neither fills
+   the row correctly). */
+.fu-col3-candidate { width: 30%; }
+.fu-col3-vacancy { width: 45%; }
+.fu-col3-applied { width: 25%; }
+
+.fu-col-candidate { width: 20%; }
+.fu-col-vacancy { width: 26%; }
+.fu-col-stage { width: 22%; }
+.fu-col-scheduled { width: 20%; }
+.fu-col-action { width: 12%; }
+
+/* The last column in every fu-table (Applied, or the action button) was
+   still left-aligned within its own wide cell, so even though the column
+   itself now spans to the table's right edge, the visible text/button sat
+   in the middle of that empty space rather than actually at the corner.
+   Right-align it, with a bit of extra right padding so it sits near the
+   corner without touching the table's edge. Second column centered so the
+   three (or five) columns read as evenly spaced left/center/right. */
+.fu-table th:last-child,
+.fu-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.fu-table th:nth-child(2),
+.fu-table td:nth-child(2) {
+  text-align: center;
+}
+
+/* Pending CV Review's Vacancy column reads better left-aligned under its
+   left-aligned header, rather than centered like the wider action tables
+   below it -- overrides the nth-child(2) center rule above for this column
+   specifically (same specificity, later in the file wins). */
+.fu-table th.fu-col3-vacancy,
+.fu-table td.fu-col3-vacancy {
+  text-align: left;
+}
+
+.fu-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.fu-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  vertical-align: top;
+  color: var(--altrium-ink);
+}
+.fu-table tr:last-child td { border-bottom: none; }
+
+.fu-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.fu-action-btn {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 4px 12px;
+  min-width: 92px;
+  text-align: center;
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+  background: white;
+}
+.fu-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.fu-action-shortlist { border-color: #1e7a34; color: #1e7a34; }
+.fu-action-shortlist:hover:not(:disabled) { background: #e6f4ea; }
+
+.fu-action-reject { border-color: #b91c1c; color: #b91c1c; }
+.fu-action-reject:hover:not(:disabled) { background: #fbe4e4; }
+
+.fu-feedback-card {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-top: 10px;
+}
+
+.fu-feedback-header {
+  margin-bottom: 10px;
+}
+
+.fu-pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fu-pending-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--altrium-line);
+  padding-top: 6px;
+  font-size: 13.5px;
+}
+.fu-pending-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.fu-call-cell {
+  text-align: right;
+}
+
+.fu-call-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 28px 32px;
+  min-width: 320px;
+  text-align: center;
+  font-family: var(--sans);
+}
+
+.fu-call-modal-number {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 6px 0 0;
+}
+
+.fu-call-modal-none {
+  color: var(--altrium-ink-soft);
+  font-size: 14px;
+  margin: 6px 0 0;
+}
+
+/* Bottom toast, matches CandidatesPage/VacanciesPage/InterviewsPage */
+
+/* Modal (same look as the other HR modals, kept local) */
+
+.fu-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.fu-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  font-family: var(--sans);
+}
+
+.fu-modal h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+.fu-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 12px 0 4px;
+}
+
+.fu-modal input,
+.fu-modal textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+.fu-modal textarea { font-family: var(--sans); }
+
+.fu-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.fu-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.fu-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.fu-save-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.fu-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hiringManager/HMLayout.css">.hm-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  background: var(--altrium-white);
+}
+
+.hm-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--altrium-line);
+  border-left: 4px solid var(--altrium-gold);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.hm-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  padding: 0 20px 20px;
+}
+
+.hm-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.hm-nav-item {
+  display: block;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.hm-nav-item:hover {
+  background: #faf5ea;
+}
+
+.hm-nav-item.active {
+  background: var(--altrium-black);
+  color: var(--altrium-white);
+  border-left: 3px solid var(--altrium-gold);
+}
+
+.hm-logout {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--sans);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  background: var(--altrium-white);
+  color: var(--altrium-ink-soft);
+  cursor: pointer;
+}
+
+.hm-logout:hover {
+  border-color: var(--altrium-gold);
+  color: var(--altrium-black);
+}
+
+.hm-main {
+  flex: 1;
+  /* Top padding is taller than the sides/bottom so page headers clear the
+     fixed notification bell (top:16/right:20, 44px diameter). */
+  padding: 64px 40px 32px;
+  height: 100%;
+  overflow-y: auto;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hiringManager/DashboardPage.css">.hmd-page {
+  max-width: 1180px;
+  font-family: var(--sans);
+}
+
+/* Matches VacanciesPage's .vac-title / .vac-divider exactly, per direct
+   user request -- same size, weight, and color heading with the same plain
+   divider underneath, rather than each page inventing its own header style. */
+.hmd-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.hmd-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.hmd-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.hmd-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* Filter bar styling matches hiringManager/VacanciesPage.css's
+   .hmv-filter-bar exactly, per direct user request for one consistent
+   filter look sitewide: label stacked above its select, same label size and
+   color, same select border/radius/padding, across every filter bar. */
+.hmd-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.hmd-filter-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.hmd-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hmd-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.hmd-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: var(--altrium-white);
+  color: var(--altrium-ink);
+  min-width: 150px;
+}
+
+.hmd-filter-field select:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
+.hmd-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.hmd-apply-btn:hover { background: #2a2a2a; }
+
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile rather than one fixed system-wide width
+   (which wouldn't fit vacancies-with-3-KPIs pages as well as 4-KPI ones). */
+.hmd-kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+/* Card look: white surface, soft shadow, and a 4px accent bar along the top
+   (color set per-tile below) rather than the old flat beige box -- reads as
+   a proper dashboard KPI card, and the accent color gives each number a
+   distinct identity at a glance instead of four identical tiles. */
+.hmd-kpi-tile {
+  position: relative;
+  box-sizing: border-box;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.hmd-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system should use
+   the same brand gold as this page's own "Awaiting My Decision" tile,
+   instead of a different color per tile. Modifier classes are kept in the
+   JSX (harmless) rather than stripped, but all four now resolve to the same
+   accent color. */
+.hmd-kpi-tile--blue,
+.hmd-kpi-tile--gold,
+.hmd-kpi-tile--green,
+.hmd-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
+.hmd-kpi-value {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.hmd-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
+}
+
+/* Recruitment Progress now lives inside one card (like everything else on
+   this page) instead of floating tiles directly on the page background. */
+.hmd-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.hmd-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  margin: 0 0 4px;
+}
+
+.hmd-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+/* Comparative bar list, per direct user feedback ("eye-catching and easy to
+   identify data") -- bar length is relative to whichever stage/round has
+   the most candidates, so the actual shape of the pipeline is visible at a
+   glance instead of reading a grid of same-size boxes number by number. */
+.hmd-progress-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 44px;
+  align-items: center;
+  gap: 16px;
+}
+
+.hmd-progress-row-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hmd-progress-row-track {
+  background: #f1f1ef;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.hmd-progress-row-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+/* Follow-up correction: the previous pale/dark/deep ramp used real ambers
+   that looked like different colors once rendered, not "lighter gold".
+   Switched to a pure white-mixed tint ramp of the exact brand hex
+   (#f5a623) instead -- lightest tint for Rounds, progressively closer to
+   the true gold for Shortlisted/Hired, and Rejected at the full,
+   unmixed brand color. Class names/accent keys are unchanged. */
+.hmd-progress-row-fill--blue { background: var(--altrium-gold-100); }
+.hmd-progress-row-fill--green { background: var(--altrium-gold-200); }
+.hmd-progress-row-fill--gold { background: var(--altrium-gold-300); }
+.hmd-progress-row-fill--red { background: var(--altrium-gold); }
+
+.hmd-progress-row-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .hmd-progress-row { grid-template-columns: 140px 1fr 36px; gap: 10px; }
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hiringManager/VacanciesPage.css">.hmv-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.hmv-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.hmv-filter-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+}
+
+.hmv-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hmv-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.hmv-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  min-width: 160px;
+}
+
+.hmv-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.hmv-row { cursor: pointer; }
+.hmv-row:hover { background: #faf5ea; }
+
+.hmv-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.hmv-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.hmv-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.hmv-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.hmv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.hmv-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.hmv-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.hmv-table tr:last-child td { border-bottom: none; }
+
+.hmv-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.hmv-status-ontrack { background: #e6f4ea; color: #1e7a34; }
+.hmv-status-delayed { background: #fdf1dc; color: #a9660b; }
+.hmv-status-overdue { background: #fbe4e4; color: #b91c1c; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hiringManager/PendingDecisionsPage.css">.pd-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.pd-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.pd-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 28px;
+}
+
+.pd-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.pd-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.pd-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pd-table th:nth-child(1) { width: 22%; }
+.pd-table th:nth-child(2) { width: 26%; }
+.pd-table th:nth-child(3) { width: 14%; }
+.pd-table th:nth-child(4) { width: 14%; }
+.pd-table th:nth-child(5) { width: 14%; }
+.pd-table th:nth-child(6) { width: 10%; }
+
+.pd-table th:last-child,
+.pd-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.pd-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.pd-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.pd-table tr:last-child td { border-bottom: none; }
+
+.pd-review-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 12.5px;
+  font-family: var(--sans);
+  cursor: pointer;
+  color: var(--altrium-ink);
+}
+.pd-review-btn:hover { border-color: var(--altrium-gold); color: var(--altrium-black); }
+
+.pd-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.pd-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  font-family: var(--sans);
+}
+
+.pd-modal h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+.pd-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 14px 0 4px;
+}
+
+.pd-score-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+}
+
+.pd-score-label {
+  font-size: 13px;
+  color: var(--altrium-ink-soft);
+}
+
+.pd-score-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--altrium-black);
+}
+
+.pd-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pd-comment {
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  margin: 4px 0 0;
+}
+
+/* Feedback edit history -- FeedbackAuditLog was already captured on every
+   edit, just never surfaced anywhere until now. */
+.pd-edited-toggle {
+  background: none;
+  border: none;
+  padding: 6px 0 0;
+  margin: 0;
+  color: var(--altrium-gold, #b8860b);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.pd-edited-toggle:hover {
+  color: var(--altrium-black);
+}
+
+.pd-audit-log {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--altrium-line);
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pd-audit-entry p {
+  margin: 2px 0;
+  font-size: 12.5px;
+  color: var(--altrium-ink);
+}
+
+.pd-audit-meta {
+  color: var(--altrium-ink-soft);
+  font-style: italic;
+}
+
+/* US-25: shared feedback visibility -- per-round, per-interviewer breakdown
+   inside the Review modal, instead of an anonymized flat comment list. */
+.pd-feedback-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pd-feedback-round-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  margin: 0 0 6px;
+}
+
+.pd-feedback-entry {
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.pd-feedback-entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.pd-feedback-interviewer {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+}
+
+.pd-feedback-score {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-gold-dark);
+}
+
+.pd-comments-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: var(--sans);
+  box-sizing: border-box;
+  resize: vertical;
+}
+.pd-comments-input:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+.pd-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.pd-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.pd-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.pd-action-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+  color: white;
+}
+.pd-action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.pd-action-positive { background: #1e7a34; }
+.pd-action-negative { background: #b91c1c; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hiringManager/DecisionHistoryPage.css">.dh-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.dh-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.dh-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 28px;
+}
+
+.dh-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.dh-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.dh-group {
+  margin-bottom: 28px;
+}
+
+.dh-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 0 0 10px;
+}
+
+.dh-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dh-table th:nth-child(1) { width: 22%; }
+.dh-table th:nth-child(2) { width: 26%; }
+.dh-table th:nth-child(3) { width: 16%; }
+.dh-table th:nth-child(4) { width: 24%; }
+.dh-table th:nth-child(5) { width: 12%; }
+
+.dh-table th:last-child,
+.dh-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.dh-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.dh-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.dh-table tr:last-child td { border-bottom: none; }
+
+/* Rows navigate through to the candidate's read-only profile/feedback view. */
+.dh-row { cursor: pointer; }
+.dh-row:hover td { background: #faf5ea; }
+
+.dh-outcome {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.dh-outcome-gold { background: #faf0d8; color: #8a6a1f; }
+.dh-outcome-green { background: #e6f4ea; color: #1e7a34; }
+.dh-outcome-amber { background: #fdf1dc; color: #a9660b; }
+.dh-outcome-red { background: #fbe4e4; color: #b91c1c; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hiringManager/CandidateComparisonPage.css">.cc-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.cc-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.cc-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.cc-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.cc-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* Label/select styling matches hiringManager/VacanciesPage.css's
+   .hmv-filter-field exactly, per direct user request for one consistent
+   filter look sitewide -- same label size and color, same select
+   border/radius/padding, as every other filter bar in the app. */
+.cc-page label {
+  display: block;
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  margin-bottom: 4px;
+}
+
+.cc-page select {
+  width: 320px;
+  max-width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  margin-bottom: 24px;
+}
+
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile. 290px here vs. 220px on the 4-tile
+   dashboards since 3 tiles need a bit more width each to stay balanced
+   rather than one fixed system-wide value. */
+.cc-kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+/* KPI tile styling matches hiringManager/DashboardPage.css's .hmd-kpi-tile
+   exactly, per direct user request to bring every dashboard/leaderboard/KPI
+   display in the system to the same look: white card, soft shadow, and a
+   4px accent-color bar along the top instead of a flat tinted background. */
+.cc-kpi-tile {
+  position: relative;
+  box-sizing: border-box;
+  width: 290px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.cc-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.cc-kpi-tile--blue,
+.cc-kpi-tile--gold,
+.cc-kpi-tile--green,
+.cc-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
+.cc-kpi-value {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.cc-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
+}
+
+.cc-panels {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+  align-items: start;
+}
+
+.cc-panels-left {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Panel styling matches hiringManager/DashboardPage.css's .hmd-panel /
+   .hmd-section-title exactly, per direct user request -- same white card
+   with the same soft shadow as every other dashboard panel in the system. */
+.cc-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.cc-panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  margin: 0 0 12px;
+}
+
+.cc-ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cc-ranking-row {
+  display: grid;
+  grid-template-columns: 34px 1.3fr 2fr 36px;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  padding: 4px 0;
+}
+
+/* Score Distribution reuses .cc-ranking-row, but its first column holds a
+   bucket label ("Below 7") instead of a 1-2 digit rank -- the 34px column
+   above is too narrow for that and the label bled into the bar next to it.
+   Widen just this panel's first column instead of touching the shared rank
+   layout. */
+.cc-distribution-list .cc-ranking-row {
+  grid-template-columns: 62px 1.3fr 2fr 36px;
+}
+
+.cc-rank {
+  color: var(--altrium-ink-soft);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.cc-candidate-name {
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+
+/* Corrections doc: only the #1 candidate reads green/bigger now -- it used
+   to apply to every row in the ranking list, which defeated the point of
+   using color to call out the top candidate specifically. Scoped separately
+   from .cc-candidate-name so the Comments panel's names (which reuse that
+   same base class) are unaffected. */
+.cc-candidate-name-rank {
+  font-size: 19px;
+  font-weight: 700;
+  color: #1e7a34;
+}
+
+.cc-bucket-label {
+  color: var(--altrium-ink);
+  /* Follow-up correction: "9-10" etc. were wrapping onto two lines inside
+     the narrow first grid column -- keep each bucket label on one line. */
+  white-space: nowrap;
+}
+
+.cc-bar-track {
+  background: #f0efeb;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.cc-bar-fill {
+  background: var(--altrium-gold);
+  height: 100%;
+  border-radius: 999px;
+}
+
+.cc-score {
+  text-align: right;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--altrium-black);
+}
+
+/* Follow-up correction: this used to force height: 100% to match the left
+   column's stacked panels, so with only one or two comments it stretched
+   into a tall, mostly-empty box. The grid it sits in (.cc-panels) already
+   has align-items: start, so dropping the forced height lets the panel
+   size to its actual content -- short with one comment, taller once more
+   candidates have feedback. */
+.cc-comments-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+  box-sizing: border-box;
+}
+
+.cc-comment-block {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--altrium-line);
+}
+.cc-comment-block:last-child { border-bottom: none; }
+
+.cc-comment-text {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink-soft);
+  line-height: 1.4;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hiringManager/VacancyCandidatesPage.css">.vc-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.vc-back-link {
+  display: inline-block;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--altrium-ink-soft);
+  text-decoration: none;
+  margin-bottom: 12px;
+  padding: 4px 0;
+}
+.vc-back-link:hover { color: var(--altrium-black); }
+
+.vc-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.vc-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.vc-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.vc-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.vc-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vc-table th:nth-child(1) { width: 38%; }
+.vc-table th:nth-child(2) { width: 22%; }
+.vc-table th:nth-child(3) { width: 18%; }
+.vc-table th:nth-child(4) { width: 22%; }
+
+.vc-table th:last-child,
+.vc-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.vc-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.vc-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  vertical-align: top;
+  color: var(--altrium-ink);
+}
+.vc-table tr:last-child td { border-bottom: none; }
+
+.vc-row { cursor: pointer; }
+.vc-row:hover { background: #faf5ea; }
+
+.vc-candidate-name { font-weight: 600; }
+.vc-candidate-email { color: var(--altrium-ink-soft); font-size: 12.5px; }
+
+.vc-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.vc-status-red { background: #fbe4e4; color: #b91c1c; }
+.vc-status-green { background: #e6f4ea; color: #1e7a34; }
+.vc-status-gold { background: #faf0d8; color: #8a6a1f; }
+
+.vc-awaiting {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--altrium-gold-dark);
+}
+
+/* Corrections doc: "Done" and "Waiting on panel feedback" were plain
+   .vc-muted (a smaller, unstyled gray) -- now the same size/weight as
+   .vc-awaiting, just a different color per state: green once resolved,
+   gray while genuinely waiting on someone else. */
+.vc-action-done {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e7a34;
+}
+.vc-action-waiting {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--altrium-ink-soft);
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/hiringManager/CandidateDecisionPage.css">/* Corrections doc: this page was capped at a fixed 720px, leaving a large
+   empty gap on the right on normal-width screens -- widened to match the
+   90vw pattern used by every other HM content page (PendingDecisionsPage,
+   VacancyCandidatesPage). The feedback cards/comment box below don't stretch
+   to fill it (they're intentionally text-width-ish for readability), so
+   this alone doesn't make the page feel sparse -- it just stops artificially
+   capping the page narrower than the sidebar layout actually allows. */
+.cd-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.cd-breadcrumb {
+  font-size: 13px;
+  color: var(--altrium-ink-soft);
+  margin: 0;
+}
+.cd-breadcrumb a {
+  color: var(--altrium-ink-soft);
+  text-decoration: none;
+}
+.cd-breadcrumb a:hover {
+  color: var(--altrium-black);
+  text-decoration: underline;
+}
+
+.cd-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 6px 0 0;
+  color: var(--altrium-black);
+}
+
+.cd-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.cd-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.cd-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.cd-warning {
+  background: #fdf1dc;
+  color: #a9660b;
+  border: 1px solid #f3d9ad;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  margin: 0 0 18px;
+}
+
+.cd-outcome {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  margin: 0 0 18px;
+  font-weight: 600;
+}
+.cd-outcome-hired { background: #e6f4ea; color: #1e7a34; }
+.cd-outcome-rejected { background: #fbe4e4; color: #b91c1c; }
+
+.cd-stage-block {
+  margin-bottom: 20px;
+}
+
+.cd-stage-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--altrium-ink-soft);
+  margin: 0 0 10px;
+}
+
+.cd-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cd-entry-card {
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.cd-entry-card p {
+  margin: 2px 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+}
+
+/* Feedback edit history -- FeedbackAuditLog was already captured on every
+   edit, just never surfaced anywhere until now. */
+.cd-edited-toggle {
+  background: none;
+  border: none;
+  padding: 6px 0 0;
+  margin: 0;
+  color: var(--altrium-gold, #b8860b);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.cd-edited-toggle:hover {
+  color: var(--altrium-black);
+}
+
+.cd-audit-log {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--altrium-line);
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cd-audit-entry p {
+  margin: 2px 0;
+  font-size: 12.5px;
+  color: var(--altrium-ink);
+}
+
+.cd-audit-meta {
+  color: var(--altrium-ink-soft);
+  font-style: italic;
+}
+
+.cd-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 20px 0 6px;
+}
+
+.cd-comments-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: var(--sans);
+  box-sizing: border-box;
+  resize: vertical;
+}
+.cd-comments-input:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+.cd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.cd-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 11px 22px;
+  cursor: pointer;
+  font-size: 15px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.cd-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.cd-action-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+  color: white;
+}
+.cd-action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.cd-action-positive { background: #1e7a34; }
+.cd-action-negative { background: #b91c1c; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/management/MgmtLayout.css">.mg-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  background: var(--altrium-white);
+}
+
+.mg-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--altrium-line);
+  border-left: 4px solid var(--altrium-gold);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.mg-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  padding: 0 20px 20px;
+}
+
+.mg-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.mg-nav-item {
+  display: block;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.mg-nav-item:hover {
+  background: #faf5ea;
+}
+
+.mg-nav-item.active {
+  background: var(--altrium-black);
+  color: var(--altrium-white);
+  border-left: 3px solid var(--altrium-gold);
+}
+
+.mg-logout {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--sans);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  background: var(--altrium-white);
+  color: var(--altrium-ink-soft);
+  cursor: pointer;
+}
+
+.mg-logout:hover {
+  border-color: var(--altrium-gold);
+  color: var(--altrium-black);
+}
+
+.mg-main {
+  flex: 1;
+  /* Top padding is taller than the sides/bottom so page headers clear the
+     fixed notification bell (top:16/right:20, 44px diameter). */
+  padding: 64px 40px 32px;
+  height: 100%;
+  overflow-y: auto;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/management/DashboardPage.css">.mgd-page {
+  max-width: 1180px;
+  font-family: var(--sans);
+}
+
+/* Matches VacanciesPage's .vac-title / .vac-divider exactly, per direct
+   user request -- same size, weight, and color heading with the same plain
+   divider underneath, rather than each page inventing its own header style. */
+.mgd-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.mgd-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.mgd-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.mgd-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* Filter bar styling matches hiringManager/VacanciesPage.css's
+   .hmv-filter-bar exactly, per direct user request for one consistent
+   filter look sitewide: label stacked above its select, same label size and
+   color, same select border/radius/padding, across every filter bar. */
+.mgd-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.mgd-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mgd-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.mgd-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: var(--altrium-white);
+  color: var(--altrium-ink);
+  min-width: 150px;
+}
+
+.mgd-filter-field select:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
+.mgd-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+  transition: background 0.15s ease;
+  margin-left: auto;
+}
+.mgd-apply-btn:hover { background: #2a2a2a; }
+
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile rather than one fixed system-wide width. */
+.mgd-kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+/* Card look: white surface, soft shadow, and a 4px accent bar along the top
+   (color set per-tile below) rather than the old flat beige box. */
+.mgd-kpi-tile {
+  position: relative;
+  box-sizing: border-box;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.mgd-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.mgd-kpi-tile--blue,
+.mgd-kpi-tile--gold,
+.mgd-kpi-tile--green,
+.mgd-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
+.mgd-kpi-value {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.mgd-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
+}
+
+/* Recruitment Progress now lives inside one card, matching the KPI tiles
+   above, instead of floating tiles directly on the page background. */
+.mgd-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.mgd-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  margin: 0 0 4px;
+}
+
+.mgd-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+/* Comparative bar list -- bar length is relative to whichever stage/round
+   has the most candidates, so the shape of the pipeline is visible at a
+   glance instead of reading a grid of same-size boxes number by number. */
+.mgd-progress-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 44px;
+  align-items: center;
+  gap: 16px;
+}
+
+.mgd-progress-row-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mgd-progress-row-track {
+  background: #f1f1ef;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.mgd-progress-row-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+/* Follow-up correction: the previous pale/dark/deep ramp used real ambers
+   that looked like different colors once rendered, not "lighter gold".
+   Switched to a pure white-mixed tint ramp of the exact brand hex
+   (#f5a623) instead -- lightest tint for Rounds, progressively closer to
+   the true gold for Shortlisted/Hired, and Rejected at the full,
+   unmixed brand color. Class names/accent keys are unchanged. */
+.mgd-progress-row-fill--blue { background: var(--altrium-gold-100); }
+.mgd-progress-row-fill--green { background: var(--altrium-gold-200); }
+.mgd-progress-row-fill--gold { background: var(--altrium-gold-300); }
+.mgd-progress-row-fill--red { background: var(--altrium-gold); }
+
+.mgd-progress-row-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .mgd-progress-row { grid-template-columns: 140px 1fr 36px; gap: 10px; }
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/management/DepartmentVacanciesPage.css">.dv-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.dv-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.dv-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.dv-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.dv-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.dv-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.dv-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dv-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.dv-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  min-width: 160px;
+}
+
+.dv-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.dv-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dv-table th:nth-child(1) { width: 28%; }
+.dv-table th:nth-child(2) { width: 16%; }
+.dv-table th:nth-child(3) { width: 20%; }
+.dv-table th:nth-child(4) { width: 12%; }
+.dv-table th:nth-child(5) { width: 12%; }
+.dv-table th:nth-child(6) { width: 12%; }
+
+.dv-table th:last-child,
+.dv-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.dv-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.dv-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.dv-table tr:last-child td { border-bottom: none; }
+
+.dv-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.dv-status-ontrack { background: #e6f4ea; color: #1e7a34; }
+.dv-status-delayed { background: #fdf1dc; color: #a9660b; }
+.dv-status-overdue { background: #fbe4e4; color: #b91c1c; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/management/CandidateProgressPage.css">.cp-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.cp-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.cp-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.cp-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.cp-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.cp-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 0 0 12px;
+}
+
+.cp-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Waiting On (5th column) widened -- its status text ("Awaiting Hiring
+   Manager's final decision") runs noticeably longer than the old Next
+   Action labels ("Collect Feedback") this column replaced. */
+.cp-table th:nth-child(1) { width: 18%; }
+.cp-table th:nth-child(2) { width: 20%; }
+.cp-table th:nth-child(3) { width: 18%; }
+.cp-table th:nth-child(4) { width: 12%; }
+.cp-table th:nth-child(5) { width: 22%; }
+.cp-table th:nth-child(6) { width: 10%; }
+
+.cp-table th:last-child,
+.cp-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.cp-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.cp-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.cp-table tr:last-child td { border-bottom: none; }
+
+.cp-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.cp-status-ready { background: #e6f4ea; color: #1e7a34; }
+.cp-status-delayed { background: #fbe4e4; color: #b91c1c; }
+.cp-status-progress { background: #fdf1dc; color: #a9660b; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/management/MyCandidatesPage.css">.mgc-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.mgc-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.mgc-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.mgc-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.mgc-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.mgc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.mgc-filter-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.mgc-filter-btn {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-family: var(--sans);
+  cursor: pointer;
+  background: white;
+  color: var(--altrium-ink);
+}
+.mgc-filter-btn:hover { border-color: var(--altrium-black); }
+.mgc-filter-btn.active {
+  background: var(--altrium-black);
+  color: white;
+  border-color: var(--altrium-black);
+}
+
+.mgc-vacancy-select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: var(--sans);
+  background: white;
+  color: var(--altrium-ink);
+}
+
+.mgc-interviews-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mgc-col-date { width: 12%; }
+.mgc-col-time { width: 10%; }
+.mgc-col-stage { width: 20%; }
+.mgc-col-position { width: 22%; }
+.mgc-col-candidate { width: 22%; }
+.mgc-col-feedback { width: 14%; }
+
+.mgc-interviews-table th:last-child,
+.mgc-interviews-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.mgc-interviews-table th:nth-child(2),
+.mgc-interviews-table td:nth-child(2) {
+  text-align: center;
+}
+
+.mgc-interviews-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.mgc-interviews-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.mgc-interviews-table tr:last-child td { border-bottom: none; }
+
+.mgc-interviews-row {
+  cursor: pointer;
+}
+.mgc-interviews-row:hover td {
+  background: #faf5ea;
+}
+
+.mgc-badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.mgc-badge-pending { background: #fdf1dc; color: #a9660b; }
+.mgc-badge-done { background: #e6f4ea; color: #1e7a34; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/management/MyInterviewsPage.css">.mi-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.mi-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.mi-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.mi-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.mi-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+/* Calendar -- mirrors HR's/Interviewer's month-grid pattern, per the
+   corrections doc ("add a calendar for the upcoming interview part").
+   Follow-up correction: renamed from Upcoming Interviews -> My Interviews
+   and dropped the vacancy filter -- Management only ever oversees one
+   department, so filtering the calendar by vacancy was an extra step that
+   never actually narrowed things down meaningfully. */
+.mi-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.mi-calendar-wrap {
+  background: var(--altrium-white);
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 24px 24px;
+  flex: 1 1 auto;
+  min-width: 0;
+  transition: flex-basis 0.2s ease;
+}
+.mi-calendar-shrunk {
+  flex: 0 0 420px;
+}
+
+.mi-calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin-bottom: 12px;
+}
+.mi-calendar-nav button {
+  background: none;
+  border: none;
+  font-size: 19px;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  padding: 2px 10px;
+}
+.mi-calendar-nav button:hover {
+  color: var(--altrium-black);
+}
+
+.mi-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.mi-calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--altrium-ink-soft);
+  text-transform: uppercase;
+  padding-bottom: 8px;
+}
+
+.mi-calendar-cell {
+  height: 62px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 17px;
+  color: var(--altrium-ink-soft);
+  cursor: default;
+}
+.mi-calendar-shrunk .mi-calendar-cell {
+  font-size: 15px;
+  height: 50px;
+}
+
+.mi-calendar-cell-empty {
+  visibility: hidden;
+}
+
+.mi-calendar-cell-active {
+  background: #fdeceb;
+  color: #c0362c;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mi-calendar-cell-active:hover {
+  background: #f9d8d6;
+}
+
+.mi-calendar-cell-selected {
+  background: #c0362c;
+  color: white;
+}
+
+.mi-side-panel {
+  flex: 1;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  min-width: 0;
+}
+
+.mi-side-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.mi-side-panel-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.mi-side-panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+}
+.mi-side-panel-close:hover {
+  color: var(--altrium-black);
+}
+
+.mi-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Clickable -- opens the read-only slot detail panel below (Panel +
+   Candidates), same two-level drill-down as the Interviewer role's My
+   Interviews calendar (frontend/src/pages/interviewer/MyInterviewsPage.tsx),
+   per the request to match that page's detail view here too. */
+.mi-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--altrium-ink);
+  cursor: pointer;
+  text-align: left;
+}
+.mi-slot-row:hover {
+  border-color: var(--altrium-gold);
+  background: #faf5ea;
+}
+
+.mi-slot-time {
+  flex-shrink: 0;
+  font-weight: 600;
+  width: 80px;
+}
+.mi-slot-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mi-slot-candidate {
+  flex-shrink: 0;
+  color: var(--altrium-ink-soft);
+}
+
+.mi-section-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 18px 0 6px;
+}
+
+.mi-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/management/ReportsPage.css">.mr-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.mr-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.mr-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.mr-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.mr-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.mr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.mr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 20px 28px;
+}
+
+.mr-row-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+}
+
+.mr-row-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.mr-btn {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 8px 18px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.mr-btn:hover { border-color: var(--altrium-black); }
+.mr-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.mr-btn-primary {
+  background: var(--altrium-black);
+  color: white;
+  border-color: var(--altrium-black);
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/leadership/LeadershipLayout.css">.ld-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  background: var(--altrium-white);
+}
+
+.ld-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--altrium-line);
+  border-left: 4px solid var(--altrium-gold);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.ld-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  padding: 0 20px 20px;
+}
+
+.ld-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.ld-nav-item {
+  display: block;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.ld-nav-item:hover {
+  background: #faf5ea;
+}
+
+.ld-nav-item.active {
+  background: var(--altrium-black);
+  color: var(--altrium-white);
+  border-left: 3px solid var(--altrium-gold);
+}
+
+.ld-logout {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--sans);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  background: var(--altrium-white);
+  color: var(--altrium-ink-soft);
+  cursor: pointer;
+}
+
+.ld-logout:hover {
+  border-color: var(--altrium-gold);
+  color: var(--altrium-black);
+}
+
+.ld-main {
+  flex: 1;
+  /* Top padding is taller than the sides/bottom so page headers clear the
+     fixed notification bell (top:16/right:20, 44px diameter). */
+  padding: 64px 40px 32px;
+  height: 100%;
+  overflow-y: auto;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/leadership/RecruitmentOverviewPage.css">.ro-page {
+  max-width: 1180px;
+  font-family: var(--sans);
+}
+
+/* Matches VacanciesPage's .vac-title / .vac-divider exactly, per direct
+   user request -- same size, weight, and color heading with the same plain
+   divider underneath, rather than each page inventing its own header style. */
+.ro-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.ro-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.ro-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.ro-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* Filter bar styling matches hiringManager/VacanciesPage.css's
+   .hmv-filter-bar exactly, per direct user request for one consistent
+   filter look sitewide: label stacked above its select, same label size and
+   color, same select border/radius/padding, across every filter bar. */
+.ro-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.ro-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ro-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.ro-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: var(--altrium-white);
+  color: var(--altrium-ink);
+  min-width: 150px;
+}
+
+.ro-filter-field select:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+}
+
+.ro-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+  margin-left: auto;
+}
+
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile rather than one fixed system-wide width. */
+.ro-kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+/* Card look: white surface, soft shadow, and a 4px accent bar along the top
+   (color set per-tile below) rather than the old flat beige box. */
+.ro-kpi-tile {
+  position: relative;
+  box-sizing: border-box;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.ro-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.ro-kpi-tile--blue,
+.ro-kpi-tile--gold,
+.ro-kpi-tile--green,
+.ro-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
+.ro-kpi-value {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.ro-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
+}
+
+/* Recruitment Progress now lives inside one card, matching the KPI tiles
+   above, instead of floating tiles directly on the page background. */
+.ro-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.ro-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  margin: 0 0 4px;
+}
+
+.ro-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+/* Comparative bar list -- bar length is relative to whichever stage/round
+   has the most candidates, so the shape of the pipeline is visible at a
+   glance instead of reading a grid of same-size boxes number by number. */
+.ro-progress-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 44px;
+  align-items: center;
+  gap: 16px;
+}
+
+.ro-progress-row-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ro-progress-row-track {
+  background: #f1f1ef;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.ro-progress-row-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+/* Follow-up correction: the previous pale/dark/deep ramp used real ambers
+   that looked like different colors once rendered, not "lighter gold".
+   Switched to a pure white-mixed tint ramp of the exact brand hex
+   (#f5a623) instead -- lightest tint for Rounds, progressively closer to
+   the true gold for Shortlisted/Hired, and Rejected at the full,
+   unmixed brand color. Class names/accent keys are unchanged. */
+.ro-progress-row-fill--blue { background: var(--altrium-gold-100); }
+.ro-progress-row-fill--green { background: var(--altrium-gold-200); }
+.ro-progress-row-fill--gold { background: var(--altrium-gold-300); }
+.ro-progress-row-fill--red { background: var(--altrium-gold); }
+
+.ro-progress-row-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .ro-progress-row { grid-template-columns: 140px 1fr 36px; gap: 10px; }
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/leadership/DepartmentPerformancePage.css">.dp-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.dp-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.dp-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.dp-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.dp-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.dp-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.dp-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dp-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.dp-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  min-width: 160px;
+}
+
+.dp-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile rather than one fixed system-wide width. */
+.dp-kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+/* KPI tile + panel styling matches hiringManager/DashboardPage.css's
+   .hmd-kpi-tile / .hmd-panel exactly, per direct user request to bring
+   every dashboard/leaderboard/KPI display in the system to the same look:
+   white card, soft shadow, and a 4px accent-color bar along the top instead
+   of a flat tinted background. */
+.dp-kpi-tile {
+  position: relative;
+  box-sizing: border-box;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.dp-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.dp-kpi-tile--blue,
+.dp-kpi-tile--gold,
+.dp-kpi-tile--green,
+.dp-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
+.dp-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
+}
+
+.dp-kpi-value {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.dp-kpi-sub {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  min-height: 14px;
+}
+
+.dp-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 36px;
+}
+
+.dp-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.dp-panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  margin: 0 0 16px;
+}
+
+.dp-table-title {
+  margin-top: 4px;
+}
+
+.dp-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dp-bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 32px;
+  align-items: center;
+  gap: 10px;
+}
+
+.dp-bar-label {
+  font-size: 13px;
+  color: var(--altrium-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dp-bar-track {
+  height: 10px;
+  background: #f0efe9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dp-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.dp-bar-fill-hired {
+  background: var(--altrium-gold, #c9a24b);
+}
+
+/* Per direct scrum-master feedback: Rejected no longer reads as a muted red
+   warning -- deepest step of the same gold ramp used everywhere else on
+   this page, at full strength since it's no longer meant to read as an
+   alert color. */
+.dp-bar-fill-rejected {
+  background: var(--altrium-gold-deep);
+}
+
+.dp-bar-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  text-align: right;
+}
+
+.dp-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dp-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.dp-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.dp-table tr:last-child td { border-bottom: none; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/leadership/HiringTrendsPage.css">.ht-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.ht-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.ht-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.ht-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.ht-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.ht-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.ht-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ht-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.ht-filter-field select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: white;
+  min-width: 160px;
+}
+
+.ht-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile rather than one fixed system-wide width. */
+.ht-kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+/* KPI tile + panel styling matches hiringManager/DashboardPage.css's
+   .hmd-kpi-tile / .hmd-panel exactly, per direct user request to bring
+   every dashboard/leaderboard/KPI display in the system to the same look:
+   white card, soft shadow, and a 4px accent-color bar along the top instead
+   of a flat tinted background. */
+.ht-kpi-tile {
+  position: relative;
+  box-sizing: border-box;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.ht-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.ht-kpi-tile--blue,
+.ht-kpi-tile--gold,
+.ht-kpi-tile--green,
+.ht-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
+.ht-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
+}
+
+.ht-kpi-value {
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.ht-panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  margin: 0 0 16px;
+}
+
+/* User drew brackets on a screenshot pulling both sides in -- the box was
+   stretching to the page's full content width, which looked too wide
+   relative to a fairly narrow chart. Capped and centered instead of
+   full-bleed. The ResizeObserver on `.ht-chart-wrap` already recomputes the
+   chart's own width whenever its container resizes, so this narrower panel
+   just gives it a smaller container to measure -- no JS changes needed. */
+/* Follow-up correction: user drew arrows pointing outward from the 700px
+   box, asking for the whole graph (not just the white card) to widen back
+   out. Since the chart's own width is measured live off `.ht-chart-wrap`
+   via ResizeObserver, widening this panel widens the actual plotted line
+   too, not just the empty space around it -- no separate inner width to
+   fix. Dropped the cap entirely rather than picking another fixed number. */
+.ht-chart-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 18px 14px 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.ht-chart-wrap {
+  width: 100%;
+}
+
+.ht-chart-svg {
+  width: 100%;
+  height: 210px;
+  display: block;
+  overflow: visible;
+}
+
+.ht-chart-grid-line {
+  stroke: var(--altrium-line);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.ht-chart-axis {
+  stroke: var(--altrium-line);
+  stroke-width: 1;
+}
+
+/* Smoothed line + soft gradient fill beneath it instead of a bare polyline
+   -- reads as a proper area chart rather than dots joined by straight
+   segments. Dots are a small white-filled ring with a solid center point
+   (matching the clean-dot pattern used in most modern dashboard charts)
+   instead of one flat gold disc. */
+.ht-chart-line {
+  stroke: var(--altrium-gold-dark, #a9660b);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ht-chart-area-stop-start {
+  stop-color: var(--altrium-gold-dark, #a9660b);
+  stop-opacity: 0.22;
+}
+
+.ht-chart-area-stop-end {
+  stop-color: var(--altrium-gold-dark, #a9660b);
+  stop-opacity: 0;
+}
+
+.ht-chart-dot-outer {
+  fill: var(--altrium-white);
+  stroke: var(--altrium-gold-dark, #a9660b);
+  stroke-width: 2;
+}
+
+.ht-chart-dot-inner {
+  fill: var(--altrium-gold-dark, #a9660b);
+}
+
+.ht-chart-value {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--altrium-black);
+}
+
+.ht-chart-axis-label {
+  font-size: 10.5px;
+  fill: var(--altrium-ink-soft);
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/leadership/ExportReportsPage.css">.er-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.er-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.er-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.er-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.er-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.er-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.er-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 20px 28px;
+}
+
+.er-row-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+}
+
+.er-row-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.er-btn {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 8px 18px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.er-btn:hover { border-color: var(--altrium-black); }
+.er-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.er-btn-primary {
+  background: var(--altrium-black);
+  color: white;
+  border-color: var(--altrium-black);
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/interviewer/InterviewerLayout.css">.ivr-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  background: var(--altrium-white);
+}
+
+.ivr-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--altrium-line);
+  border-left: 4px solid var(--altrium-gold);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.ivr-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  padding: 0 20px 20px;
+}
+
+.ivr-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.ivr-nav-item {
+  display: block;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.ivr-nav-item:hover {
+  background: #faf5ea;
+}
+
+.ivr-nav-item.active {
+  background: var(--altrium-black);
+  color: var(--altrium-white);
+  border-left: 3px solid var(--altrium-gold);
+}
+
+.ivr-logout {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--sans);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  background: var(--altrium-white);
+  color: var(--altrium-ink-soft);
+  cursor: pointer;
+}
+
+.ivr-logout:hover {
+  border-color: var(--altrium-gold);
+  color: var(--altrium-black);
+}
+
+.ivr-main {
+  flex: 1;
+  /* Top padding is taller than the sides/bottom so page headers clear the
+     fixed notification bell (top:16/right:20, 44px diameter). */
+  padding: 64px 40px 32px;
+  height: 100%;
+  overflow-y: auto;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/interviewer/MyInterviewsPage.css">.miv-page {
+  width: 100%;
+  font-family: var(--sans);
+}
+
+.miv-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.miv-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.miv-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.miv-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+/* Calendar -- mirrors HR's InterviewsPage.css month-grid pattern, per the
+   corrections doc ("make it the calendar in HR"). */
+.miv-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.miv-calendar-wrap {
+  background: var(--altrium-white);
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 24px 24px;
+  flex: 1 1 auto;
+  min-width: 0;
+  transition: flex-basis 0.2s ease;
+}
+.miv-calendar-shrunk {
+  flex: 0 0 420px;
+}
+
+.miv-calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin-bottom: 12px;
+}
+.miv-calendar-nav button {
+  background: none;
+  border: none;
+  font-size: 19px;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  padding: 2px 10px;
+}
+.miv-calendar-nav button:hover {
+  color: var(--altrium-black);
+}
+
+.miv-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.miv-calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--altrium-ink-soft);
+  text-transform: uppercase;
+  padding-bottom: 8px;
+}
+
+.miv-calendar-cell {
+  height: 62px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 17px;
+  color: var(--altrium-ink-soft);
+  cursor: default;
+}
+.miv-calendar-shrunk .miv-calendar-cell {
+  font-size: 15px;
+  height: 50px;
+}
+
+.miv-calendar-cell-empty {
+  visibility: hidden;
+}
+
+.miv-calendar-cell-active {
+  background: #fdeceb;
+  color: #c0362c;
+  font-weight: 600;
+  cursor: pointer;
+}
+.miv-calendar-cell-active:hover {
+  background: #f9d8d6;
+}
+
+.miv-calendar-cell-selected {
+  background: #c0362c;
+  color: white;
+}
+
+.miv-side-panel {
+  flex: 1;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  min-width: 0;
+}
+
+.miv-side-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.miv-side-panel-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.miv-side-panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+}
+.miv-side-panel-close:hover {
+  color: var(--altrium-black);
+}
+
+.miv-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Clickable again -- opens the read-only slot detail panel below (Panel +
+   Candidates), same two-level drill-down as HR's InterviewsPage.tsx. It
+   never jumps straight to the Feedback form -- that only opens from My
+   Candidates now. */
+.miv-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--altrium-ink);
+  cursor: pointer;
+  text-align: left;
+}
+.miv-slot-row:hover {
+  border-color: var(--altrium-gold);
+  background: #faf5ea;
+}
+
+.miv-slot-time {
+  flex-shrink: 0;
+  font-weight: 600;
+  width: 70px;
+}
+.miv-slot-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.miv-slot-count {
+  flex-shrink: 0;
+  color: var(--altrium-ink-soft);
+  font-size: 12px;
+}
+
+.miv-section-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  margin: 18px 0 6px;
+}
+
+.miv-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13.5px;
+  color: var(--altrium-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/interviewer/FeedbackPage.css">.fb-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.fb-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 64px;
+  align-items: start;
+}
+
+.fb-form-col {
+  max-width: 640px;
+}
+
+.fb-info-card {
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 26px 30px;
+}
+
+.fb-info-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  margin-bottom: 20px;
+}
+
+.fb-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 0;
+  border-top: 1px solid var(--altrium-line);
+}
+.fb-info-row:first-of-type { border-top: none; padding-top: 0; }
+
+.fb-info-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--altrium-ink-soft);
+}
+
+.fb-info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+}
+
+.fb-panel-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+  color: var(--altrium-ink);
+}
+.fb-panel-list li { margin-bottom: 2px; }
+
+.fb-breadcrumb {
+  font-size: 13px;
+  color: var(--altrium-ink-soft);
+  margin: 0;
+}
+.fb-breadcrumb a {
+  color: var(--altrium-ink-soft);
+  text-decoration: none;
+}
+.fb-breadcrumb a:hover {
+  color: var(--altrium-black);
+  text-decoration: underline;
+}
+
+.fb-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.fb-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.fb-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.fb-success {
+  color: #1e7a34;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.fb-warning {
+  background: #fdf1dc;
+  color: #a9660b;
+  border: 1px solid #f3d9ad;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  margin: 0 0 18px;
+}
+
+.fb-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 16px 0 6px;
+}
+
+.fb-score-input,
+.fb-comments-input,
+.fb-reason-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: var(--sans);
+  box-sizing: border-box;
+}
+.fb-score-input { max-width: 120px; }
+
+.fb-score-input:focus,
+.fb-comments-input:focus,
+.fb-reason-input:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+/* Own edit history -- FeedbackAuditLog was already captured on every edit,
+   just never shown back to the person who made it. */
+.fb-edited-toggle {
+  background: none;
+  border: none;
+  padding: 8px 0 0;
+  margin: 0;
+  color: var(--altrium-gold);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.fb-edited-toggle:hover {
+  color: var(--altrium-black);
+}
+
+.fb-audit-log {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--altrium-line);
+  background: #faf9f6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fb-audit-entry p {
+  margin: 2px 0;
+  font-size: 12.5px;
+  color: var(--altrium-ink);
+}
+
+.fb-audit-meta {
+  color: var(--altrium-ink-soft);
+  font-style: italic;
+}
+
+.fb-comments-input {
+  resize: vertical;
+}
+
+.fb-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.fb-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.fb-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.fb-submit-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.fb-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.fb-view-cv-btn {
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 600;
+}
+.fb-view-cv-btn:hover { background: var(--altrium-gold-dark); }
+
+.fb-view-cv-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: var(--sans);
+  color: var(--altrium-gold-dark, #b8860b);
+  text-align: left;
+}
+.fb-view-cv-link:hover { text-decoration: underline; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/interviewer/MyCandidatesPage.css">.myc-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.myc-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.myc-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 20px;
+}
+
+.myc-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.myc-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+/* Toolbar: feedback-status filter chips + the new vacancy filter dropdown
+   the corrections doc asked for (moved here from what used to be on My
+   Interviews, along with the table itself). */
+.myc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.myc-filter-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.myc-filter-btn {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-family: var(--sans);
+  cursor: pointer;
+  background: white;
+  color: var(--altrium-ink);
+}
+.myc-filter-btn:hover { border-color: var(--altrium-black); }
+.myc-filter-btn.active {
+  background: var(--altrium-black);
+  color: white;
+  border-color: var(--altrium-black);
+}
+
+.myc-vacancy-select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: var(--sans);
+  background: white;
+  color: var(--altrium-ink);
+}
+
+.myc-interviews-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.myc-col-date { width: 12%; }
+.myc-col-time { width: 10%; }
+.myc-col-stage { width: 20%; }
+.myc-col-position { width: 22%; }
+.myc-col-candidate { width: 22%; }
+.myc-col-feedback { width: 14%; }
+
+.myc-interviews-table th:last-child,
+.myc-interviews-table td:last-child {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.myc-interviews-table th:nth-child(2),
+.myc-interviews-table td:nth-child(2) {
+  text-align: center;
+}
+
+.myc-interviews-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.myc-interviews-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.myc-interviews-table tr:last-child td { border-bottom: none; }
+
+.myc-interviews-row {
+  cursor: pointer;
+}
+.myc-interviews-row:hover td {
+  background: #faf5ea;
+}
+
+.myc-badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.myc-badge-pending { background: #fdf1dc; color: #a9660b; }
+.myc-badge-done { background: #e6f4ea; color: #1e7a34; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/admin/ITAdminLayout.css">.admin-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  background: var(--altrium-white);
+}
+
+.admin-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--altrium-line);
+  border-left: 4px solid var(--altrium-gold);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.admin-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  padding: 0 20px 20px;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.admin-nav-item {
+  display: block;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.admin-nav-item:hover {
+  background: #faf5ea;
+}
+
+.admin-nav-item.active {
+  background: var(--altrium-black);
+  color: var(--altrium-white);
+  border-left: 3px solid var(--altrium-gold);
+}
+
+.admin-logout {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--sans);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  background: var(--altrium-white);
+  color: var(--altrium-ink-soft);
+  cursor: pointer;
+}
+
+.admin-logout:hover {
+  border-color: var(--altrium-gold);
+  color: var(--altrium-black);
+}
+
+.admin-main {
+  flex: 1;
+  padding: 32px 40px;
+  height: 100%;
+  overflow-y: auto;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/components/PasswordConfirmModal.css">.pwc-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.pwc-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 380px;
+  font-family: var(--sans);
+}
+
+.pwc-modal h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+.pwc-message {
+  font-size: 13.5px;
+  color: var(--altrium-ink-soft);
+  margin: 0 0 16px;
+}
+
+.pwc-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 0 0 4px;
+}
+
+.pwc-modal input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+.pwc-modal input:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+.pwc-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+
+.pwc-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.pwc-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.pwc-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.pwc-confirm-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.pwc-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.pwc-confirm-btn.danger { background: #991b1b; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/admin/UsersPage.css">.usr-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.usr-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.usr-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.usr-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 14px;
+}
+
+.usr-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.usr-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.usr-create-btn {
+  /* Shifted left off the page's own right edge so it clears the fixed
+     notification bell (top:28/right:40, 44px diameter) with a visible gap,
+     instead of the two sitting flush against each other. */
+  margin-right: 60px;
+  background: var(--altrium-gold);
+  color: #1a1200;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  height: fit-content;
+  transition: background 0.15s ease;
+}
+.usr-create-btn:hover { background: var(--altrium-gold-dark); }
+
+.usr-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.usr-filters select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--sans);
+  background: var(--altrium-white);
+}
+
+.usr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.usr-table th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink-soft);
+  font-weight: 600;
+  font-size: 12.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.usr-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--altrium-line);
+  vertical-align: middle;
+}
+
+.usr-role-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-family: var(--sans);
+  cursor: pointer;
+  color: var(--altrium-ink);
+}
+.usr-role-btn:hover:not(:disabled) { border-color: var(--altrium-gold); }
+.usr-role-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.usr-status-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.usr-status-pill.active { background: #dcfce7; color: #166534; }
+.usr-status-pill.inactive { background: #fee2e2; color: #991b1b; }
+
+.usr-row-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.usr-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--altrium-ink-soft);
+}
+.usr-edit-btn:hover { color: var(--altrium-gold-dark); }
+
+.usr-toggle-btn {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-family: var(--sans);
+  cursor: pointer;
+  background: var(--altrium-white);
+}
+.usr-toggle-btn.deactivate { color: #991b1b; }
+.usr-toggle-btn.activate { color: #166534; }
+.usr-toggle-btn:hover:not(:disabled) { border-color: var(--altrium-black); }
+.usr-toggle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.usr-hint {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  margin: 4px 0 0;
+}
+
+.usr-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.usr-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+  font-family: var(--sans);
+}
+
+.usr-modal h2 {
+  margin: 0;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+.usr-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.usr-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--altrium-ink-soft);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.usr-modal-close:hover { color: var(--altrium-black); }
+
+.usr-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+}
+
+.usr-modal label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 12px 0 4px;
+}
+
+/* Overrides the top margin above -- fields sit in a grid here, not stacked,
+   so each label only needs space below it, not above. */
+.usr-edit-field label {
+  margin: 0 0 4px;
+}
+
+.usr-modal input,
+.usr-modal select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--sans);
+}
+.usr-modal input:focus,
+.usr-modal select:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+.usr-modal input:disabled,
+.usr-modal select:disabled {
+  background: #f3f4f6;
+  color: var(--altrium-ink-soft);
+  cursor: not-allowed;
+}
+
+.usr-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.usr-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.usr-modal-footer .usr-modal-actions {
+  margin-top: 0;
+}
+
+.usr-edit-created {
+  font-size: 12.5px;
+  color: var(--altrium-ink-soft);
+  margin-top: 14px;
+}
+
+.usr-cancel-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.usr-cancel-btn:hover { border-color: var(--altrium-black); }
+
+.usr-save-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+.usr-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/admin/CreateUserPage.css">.cru-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.cru-breadcrumb {
+  font-size: 12.5px;
+  color: var(--altrium-ink-soft);
+  margin-bottom: 8px;
+}
+.cru-breadcrumb a {
+  color: var(--altrium-ink-soft);
+  text-decoration: underline;
+}
+
+.cru-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.cru-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.cru-form-box {
+  background: #faf9f6;
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 44px 56px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cru-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px 48px;
+}
+
+.cru-form-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--altrium-ink);
+  margin: 0 0 4px;
+}
+
+.cru-form-box input,
+.cru-form-box select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 13px 14px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--sans);
+  background: white;
+}
+.cru-form-box input:focus,
+.cru-form-box select:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.18);
+}
+
+.cru-hint {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  margin: 10px 0 0;
+}
+
+.cru-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+
+.cru-field-error {
+  color: #b91c1c;
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+
+.cru-form-box input.cru-input-error {
+  border-color: #b91c1c;
+  background: #fef2f2;
+}
+.cru-form-box input.cru-input-error:focus {
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 3px rgba(185,28,28,0.15);
+}
+
+.cru-form-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 32px;
+}
+
+.cru-primary-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 26px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.cru-secondary-btn {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 12px 26px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+}
+.cru-secondary-btn:hover { border-color: var(--altrium-black); }
+
+
+.cru-success-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 78vh;
+}
+
+.cru-success-box {
+  background: white;
+  border: 1px solid #bfe3cb;
+  border-top: 4px solid #1e7a34;
+  border-radius: 12px;
+  padding: 48px 56px;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: 0 8px 24px rgba(30,122,52,0.08);
+  text-align: center;
+}
+
+.cru-success-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: #e6f4ea;
+  color: #1e7a34;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cru-success-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  margin: 0 0 10px;
+}
+
+.cru-success-message {
+  font-size: 13.5px;
+  color: var(--altrium-ink-soft);
+  margin: 0 0 26px;
+}
+
+.cru-success-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.cru-success-actions .cru-primary-btn,
+.cru-success-actions .cru-secondary-btn {
+  padding: 11px 24px;
+  font-size: 13.5px;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/admin/AuditLogsPage.css">.aud-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.aud-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.aud-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.aud-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 14px;
+}
+
+.aud-error {
+  color: #b91c1c;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.aud-filter-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.aud-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aud-filter-field label {
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+}
+
+.aud-filter-field select,
+.aud-filter-field input {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  background: var(--altrium-white);
+  min-width: 160px;
+}
+
+.aud-apply-btn {
+  background: var(--altrium-black);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  font-weight: 500;
+}
+
+.aud-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.aud-table th {
+  text-align: left;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink-soft);
+  font-weight: 600;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #faf9f6;
+}
+
+.aud-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--altrium-line);
+  vertical-align: top;
+  color: var(--altrium-ink);
+}
+.aud-table tr:last-child td { border-bottom: none; }
+
+.aud-action-text {
+  color: var(--altrium-ink);
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/admin/SystemPage.css">.sys-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.sys-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.sys-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.sys-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.sys-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* Was `max-width: 900px; margin: 48px auto 0;` -- centering this block
+   under the page's own 90vw width shifted it right relative to the
+   left-aligned title/divider above it, and the 900px cap was too narrow to
+   fit all three 290px KPI tiles plus their gaps (926px) on one row, so
+   "Concurrent Users" silently wrapped onto its own second row. Dropping
+   both fixes each: no cap means the KPI row has room, and no auto-margin
+   means this block stays flush-left like the rest of the page. */
+.sys-content {
+  margin: 48px 0 0;
+}
+
+/* Follow-up correction: after seeing the flat-tile revert on its own, the
+   user asked for these to go back to the same white background + accent-bar
+   colour treatment as every other KPI in the system, but bigger than the
+   sitewide standard -- these are meant to be the eye-catching thing on this
+   page, not just consistent with everyone else's. */
+.sys-kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  gap: 28px;
+  margin-bottom: 44px;
+}
+
+.sys-kpi-tile {
+  position: relative;
+  box-sizing: border-box;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 28px 26px 26px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.sys-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.sys-kpi-tile--blue,
+.sys-kpi-tile--gold,
+.sys-kpi-tile--green { --accent-color: var(--altrium-gold); }
+
+.sys-kpi-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--altrium-ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.sys-kpi-value {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  line-height: 1;
+}
+
+.sys-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--altrium-black);
+  margin: 0 0 14px;
+}
+
+.sys-backup-box {
+  background: #e6f4ea;
+  border: 1px solid #bfe3cb;
+  border-radius: 10px;
+  padding: 20px 24px;
+  font-size: 13.5px;
+  color: #1e7a34;
+  font-weight: 500;
+  margin-bottom: 0;
+}
+
+.sys-btn {
+  background: var(--altrium-gold);
+  color: var(--altrium-black);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sys-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sys-backup-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sys-backup-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #faf9f6;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--altrium-line);
+}
+
+.sys-backup-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--altrium-line);
+  color: var(--altrium-ink);
+}
+.sys-backup-table tr:last-child td { border-bottom: none; }
+
+.sys-backup-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.sys-backup-status.ok { background: #e6f4ea; color: #1e7a34; }
+.sys-backup-status.fail { background: #fbe4e4; color: #b91c1c; }
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/pages/admin/NotificationTemplatesPage.css">.tmpl-page {
+  max-width: 90vw;
+  font-family: var(--sans);
+}
+
+.tmpl-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--altrium-black);
+}
+
+.tmpl-divider {
+  border-top: 1px solid var(--altrium-line);
+  margin: 16px 0 24px;
+}
+
+.tmpl-muted {
+  color: var(--altrium-ink-soft);
+  font-size: 13.5px;
+}
+
+.tmpl-error {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.tmpl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tmpl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+.tmpl-row-main {
+  min-width: 0;
+}
+
+.tmpl-row-label {
+  font-size: 16.5px;
+  font-weight: 600;
+  color: var(--altrium-black);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tmpl-default-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  background: #f2f1ec;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.tmpl-edit-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--altrium-line);
+  background: var(--altrium-white);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tmpl-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 18, 14, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.tmpl-modal {
+  background: var(--altrium-white);
+  border-radius: 14px;
+  padding: 28px 30px;
+  width: 560px;
+  max-width: 92vw;
+  max-height: 86vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tmpl-modal h2 {
+  margin: 0 0 10px;
+  font-size: 17px;
+  color: var(--altrium-black);
+}
+
+.tmpl-modal label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--altrium-ink-soft);
+  margin-top: 10px;
+}
+
+.tmpl-modal input,
+.tmpl-modal textarea {
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  font-family: var(--sans);
+  resize: vertical;
+}
+
+.tmpl-placeholder-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  font-family: monospace;
+}
+
+.tmpl-modal-actions {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tmpl-modal-actions-right {
+  display: flex;
+  gap: 10px;
+}
+
+.tmpl-reset-btn {
+  border: none;
+  background: none;
+  color: var(--altrium-ink-soft);
+  font-size: 12.5px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tmpl-reset-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  text-decoration: none;
+}
+
+.tmpl-cancel-btn {
+  border: 1px solid var(--altrium-line);
+  background: var(--altrium-white);
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tmpl-save-btn {
+  border: none;
+  background: var(--altrium-black);
+  color: var(--altrium-white);
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tmpl-save-btn:disabled,
+.tmpl-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+</style><style type="text/css" data-vite-dev-id="D:/Uni/Second Year/Second Sem/PPPM/Group Assignment/Node/frontend/src/index.css">@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+  --altrium-gold: #f5a623;
+  --altrium-gold-dark: #dc9010;
+  /* Per direct scrum-master feedback: the mixed blue/green/red/gold accent
+     scheme on KPI tiles and progress bars didn't match Altrium's actual
+     brand color (yellow/gold) -- these two extend the existing pair into a
+     4-step warm ramp (pale -> gold -> dark -> deep) so charts that need
+     multiple visually distinct segments can still tell them apart without
+     leaving the gold family. */
+  --altrium-gold-pale: #ffdf9e;
+  --altrium-gold-deep: #b5730a;
+  /* Follow-up correction: the pale/dark/deep ramp above mixed in ambers
+     that read as different colors rather than "lighter gold" once actually
+     rendered on the Recruitment Progress bars. This is a pure tint ramp
+     instead -- each step is #f5a623 mixed with white only, so every step
+     reads as unmistakably the same gold, just lighter. Lightest first. */
+  --altrium-gold-100: #fdedd3;
+  --altrium-gold-200: #fad79c;
+  --altrium-gold-300: #f8bf61;
+  --altrium-black: #111111;
+  --altrium-white: #ffffff;
+  --altrium-ink: #0f172a;
+  --altrium-ink-soft: #64748b;
+  --altrium-line: #e5e7eb;
+  --altrium-bg: #fafafa;
+
+  --sans: 'Poppins', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--altrium-ink);
+  background: var(--altrium-white);
+}
+
+#root {
+  min-height: 100svh;
+}
+</style></head>
+  <body>
+    <div id="root"><div class="hr-layout"><aside class="hr-sidebar"><div class="hr-sidebar-title"><svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="50,3 93,26 93,74 50,97 7,74 7,26" fill="#111111" stroke="#f5a623" stroke-width="3" stroke-linejoin="round"></polygon><path d="M50 28 L72 68 L60 68 L50 48 L40 68 L28 68 Z" fill="#ffffff"></path><circle cx="76" cy="24" r="6" fill="#f5a623"></circle></svg><span>Altrium</span></div><nav class="hr-nav"><a aria-current="page" class="hr-nav-item active" href="/hr/vacancies" data-discover="true">Vacancies</a><a class="hr-nav-item" href="/hr/candidates" data-discover="true">Candidates</a><a class="hr-nav-item" href="/hr/interviews" data-discover="true">Interviews</a><a class="hr-nav-item" href="/hr/follow-ups" data-discover="true">Follow Ups</a></nav><div class="ntf-bell-container"><button type="button" class="ntf-bell-btn" aria-label="Notifications (1 unread)"><svg class="ntf-bell-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a1 1 0 0 1 1 1v1.06A7.002 7.002 0 0 1 19 11v4.586l1.707 1.707A1 1 0 0 1 20 19h-5.09a3 3 0 0 1-5.82 0H4a1 1 0 0 1-.707-1.707L5 15.586V11a7.002 7.002 0 0 1 6-6.94V3a1 1 0 0 1 1-1Zm-1.317 17a1 1 0 0 0 1.732 0h-1.732Z"></path></svg><span class="ntf-bell-badge">1</span></button></div><button class="hr-logout">Log out</button></aside><main class="hr-main"><div class="vac-page"><div class="vac-header-row"><div><button class="vac-back">← Departments</button><h1 class="vac-title">IT</h1></div><button class="vac-create-btn">Create Vacancy</button></div><div class="vac-divider"></div><div class="vac-filter-bar"><button class="vac-filter-chip vac-filter-chip-active">All</button><button class="vac-filter-chip">Open</button><button class="vac-filter-chip">On Hold</button><button class="vac-filter-chip">Closed</button></div><div class="vac-list"><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Backend Engineer</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Dup CrossA 1789491846</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Dup CrossA 1789492003</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Dup CrossB 1789491848</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Dup CrossB 1789492004</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Dup Rejected 1789491861</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Dup Rejected 1789492018</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Dup Rejected 1789492047</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Dup Same 1789491831</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Dup Same 1789491990</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Gate 1789492102</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Gate 1789492484</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Gate 1789493124</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Gate2 1789492116</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Gate2 1789492503</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Gate2 1789493139</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium NoHistory 1789491890</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium NoHistory 1789492075</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Reconsider 1789492140</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Reconsider 1789492175</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Reconsider 1789492528</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Reconsider 1789492569</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Reconsider 1789493153</span><div class="vac-row-right"><span class="vac-badge vac-badge-open">Open</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium OnHold 1789493347</span><div class="vac-row-right"><span class="vac-badge vac-badge-hold">On Hold</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium OnHold 1789493382</span><div class="vac-row-right"><span class="vac-badge vac-badge-hold">On Hold</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Reopen 1789493430</span><div class="vac-row-right"><span class="vac-badge vac-badge-hold">On Hold</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row" data-testid="vac-row"><span class="vac-row-title">Selenium Reopen 1789493456</span><div class="vac-row-right"><span class="vac-badge vac-badge-hold">On Hold</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div><div class="vac-row vac-row-closed" data-testid="vac-row"><span class="vac-row-title">QA Engineer</span><div class="vac-row-right"><span class="vac-badge vac-badge-closed">Closed</span><button class="vac-edit-btn" aria-label="Edit vacancy">✎</button></div></div></div></div></main></div></div>
+    <script type="module" src="/src/main.tsx"></script>
+  
+
+</body></html>

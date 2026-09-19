@@ -20,6 +20,13 @@ from selenium.webdriver.support.ui import Select  # noqa: E402
 
 def _open_audit_logs(driver):
     login_as(driver, ACCOUNTS["IT_ADMIN"], admin=True)
+    # login_as() returns as soon as the button is clicked, not once the
+    # async login (await adminLoginRequest -> setAuth -> navigate) actually
+    # finishes -- a hard driver.get() straight after can race ahead of that
+    # and land before the token is stored, bouncing off ProtectedRoute back
+    # to /admin. Wait for the real post-login landing page (.usr-title on
+    # /admin/users, same as _login_admin() in test_it_admin_users.py) first.
+    wait_visible(driver, By.CSS_SELECTOR, ".usr-title")
     driver.get(f"{BASE_URL}/admin/audit-logs")
     wait_visible(driver, By.CSS_SELECTOR, ".aud-title")
 

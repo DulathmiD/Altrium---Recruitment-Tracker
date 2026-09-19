@@ -26,7 +26,12 @@ def test_dashboard_shows_four_kpi_tiles():
         wait_visible(driver, By.CSS_SELECTOR, ".mgd-kpi-grid")
         tiles = driver.find_elements(By.CSS_SELECTOR, ".mgd-kpi-tile")
         labels = [t.find_element(By.CSS_SELECTOR, ".mgd-kpi-label").text for t in tiles]
-        ok = labels == ["Open Vacancies", "Active Candidates", "Hires This Month", "Rejected"]
+        # .mgd-kpi-label has text-transform: uppercase in CSS -- Selenium's
+        # .text reflects the rendered (post-transform) text, not the raw JSX
+        # string ("Open Vacancies" in DashboardPage.tsx), so compare
+        # case-insensitively rather than against the title-case source text.
+        expected = ["Open Vacancies", "Active Candidates", "Hires This Month", "Rejected"]
+        ok = [l.upper() for l in labels] == [e.upper() for e in expected]
         return report("test_dashboard_shows_four_kpi_tiles", ok, labels)
     finally:
         safe_quit(driver)
@@ -60,26 +65,48 @@ def test_department_vacancies_table_or_empty_state():
 
 
 def test_candidate_progress_shows_stage_summary():
+    """Old "Stage Summary" section doesn't exist -- CandidateProgressPage.tsx
+    merged "My Candidates" (interview feedback owed) and the old Candidate
+    Progression oversight table into two sections on one page: "My
+    Candidates" then "Candidates In Progress" (see the corrections-doc
+    comment at the top of that file). Check for the real oversight section
+    instead of the stale name."""
     driver = new_driver()
     try:
         login_as(driver, ACCOUNTS["MANAGEMENT"], role="MANAGEMENT")
         driver.get(f"{BASE_URL}/management/candidate-progress")
-        heading = wait_visible(driver, By.CSS_SELECTOR, ".cp-section-title")
-        ok = heading.text == "Stage Summary"
-        return report("test_candidate_progress_shows_stage_summary", ok, heading.text)
+        # "My Candidates" renders synchronously (no data gate), but
+        # "Candidates In Progress" is behind its own separate async fetch
+        # ({hasDepartment && !progressLoading && (...)}) that resolves
+        # later -- waiting on the generic .cp-section-title class only
+        # proves the first section exists, not the second. Wait for the
+        # specific heading text instead.
+        wait_visible(driver, By.XPATH, "//h2[contains(@class,'cp-section-title') and contains(text(),'Candidates In Progress')]")
+        headings = [h.text for h in driver.find_elements(By.CSS_SELECTOR, ".cp-section-title")]
+        ok = "Candidates In Progress" in headings
+        return report("test_candidate_progress_shows_stage_summary", ok, headings)
     finally:
         safe_quit(driver)
 
 
-def test_upcoming_interviews_filter_bar_present():
+def test_upcoming_interviews_calendar_present():
+    """Renamed and redesigned: "Upcoming Interviews" -> "My Interviews" at
+    /management/my-interviews (not /management/upcoming-interviews), and the
+    vacancy filter bar was deliberately removed (Management has exactly one
+    department, so it never narrowed anything) in favour of a month calendar
+    grid -- see the comment in MyInterviewsPage.tsx. Check for the calendar
+    instead of a filter bar that no longer exists."""
     driver = new_driver()
     try:
         login_as(driver, ACCOUNTS["MANAGEMENT"], role="MANAGEMENT")
-        driver.get(f"{BASE_URL}/management/upcoming-interviews")
-        wait_visible(driver, By.CSS_SELECTOR, ".ui-title")
-        fields = driver.find_elements(By.CSS_SELECTOR, ".ui-filter-field")
-        ok = len(fields) == 2
-        return report("test_upcoming_interviews_filter_bar_present", ok, f"{len(fields)} fields")
+        driver.get(f"{BASE_URL}/management/my-interviews")
+        title = wait_visible(driver, By.CSS_SELECTOR, ".mi-title")
+        # .mi-title renders synchronously, but the calendar itself is behind
+        # {hasDepartment && !loading && (...)} -- an async fetch that
+        # resolves later. Wait for the grid itself, not just the title.
+        grid = wait_visible(driver, By.CSS_SELECTOR, ".mi-calendar-grid")
+        ok = title.text == "My Interviews" and grid.is_displayed()
+        return report("test_upcoming_interviews_calendar_present", ok, title.text)
     finally:
         safe_quit(driver)
 
@@ -122,7 +149,7 @@ if __name__ == "__main__":
         test_dashboard_filter_bar_apply_reloads_data,
         test_department_vacancies_table_or_empty_state,
         test_candidate_progress_shows_stage_summary,
-        test_upcoming_interviews_filter_bar_present,
+        test_upcoming_interviews_calendar_present,
         test_view_report_opens_pdf_in_new_tab,
         test_reports_page_lists_all_four_department_reports,
     ]

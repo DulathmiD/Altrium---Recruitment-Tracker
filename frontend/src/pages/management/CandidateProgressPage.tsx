@@ -181,7 +181,7 @@ export default function CandidateProgressPage() {
       <div className="cp-divider" />
 
       {!hasDepartment && (
-        <p className="cp-muted">No department is set on your account, so there's nothing to scope this to yet -- ask IT Admin to set your department.</p>
+        <p className="cp-muted">No department is set on your account, so there's nothing to scope this to yet. Ask IT Admin to set your department.</p>
       )}
       {progressLoading && <p className="cp-muted">Loading...</p>}
       {progressError && <p className="cp-error">{progressError}</p>}

@@ -78,17 +78,17 @@ export default function CandidateComparisonPage() {
           ) : (
             <>
               <div className="cc-kpi-grid">
-                <div className="cc-kpi-tile">
-                  <div className="cc-kpi-value">{data.summary.topCandidateCount}</div>
+                <div className="cc-kpi-tile cc-kpi-tile--green">
                   <div className="cc-kpi-label">Top Candidates</div>
+                  <div className="cc-kpi-value">{data.summary.topCandidateCount}</div>
                 </div>
-                <div className="cc-kpi-tile">
-                  <div className="cc-kpi-value">{data.summary.averageScore ?? "--"}</div>
+                <div className="cc-kpi-tile cc-kpi-tile--blue">
                   <div className="cc-kpi-label">Average Numeric Score</div>
+                  <div className="cc-kpi-value">{data.summary.averageScore ?? "--"}</div>
                 </div>
-                <div className="cc-kpi-tile">
-                  <div className="cc-kpi-value">{data.summary.highestScore ?? "--"}</div>
+                <div className="cc-kpi-tile cc-kpi-tile--gold">
                   <div className="cc-kpi-label">Highest Numeric Score</div>
+                  <div className="cc-kpi-value">{data.summary.highestScore ?? "--"}</div>
                 </div>
               </div>
 

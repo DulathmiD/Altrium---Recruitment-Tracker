@@ -65,60 +65,115 @@
   font-weight: 500;
 }
 
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile rather than one fixed system-wide width. */
 .ht-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
   gap: 16px;
   margin-bottom: 40px;
 }
 
+/* KPI tile + panel styling matches hiringManager/DashboardPage.css's
+   .hmd-kpi-tile / .hmd-panel exactly, per direct user request to bring
+   every dashboard/leaderboard/KPI display in the system to the same look:
+   white card, soft shadow, and a 4px accent-color bar along the top instead
+   of a flat tinted background. */
 .ht-kpi-tile {
-  /* Follow-up correction: tinted background + bigger value, to match the
-     "big and pretty" treatment now standardized across every dashboard's
-     KPI tiles. Gap/padding brought to the same values as every other
-     dashboard's tile (was 6px/22px 18px) for a true pixel-for-pixel match,
-     not just a similar-looking one. */
+  position: relative;
+  box-sizing: border-box;
+  width: 220px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: #faf5ea;
-  border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 24px 20px;
+  align-items: center;
   text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
+.ht-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.ht-kpi-tile--blue,
+.ht-kpi-tile--gold,
+.ht-kpi-tile--green,
+.ht-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
 .ht-kpi-label {
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--altrium-ink);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
 }
 
 .ht-kpi-value {
-  font-size: 44px;
+  font-size: 42px;
   font-weight: 700;
   color: var(--altrium-black);
   line-height: 1;
 }
 
 .ht-panel-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--altrium-black);
   margin: 0 0 16px;
 }
 
+/* User drew brackets on a screenshot pulling both sides in -- the box was
+   stretching to the page's full content width, which looked too wide
+   relative to a fairly narrow chart. Capped and centered instead of
+   full-bleed. The ResizeObserver on `.ht-chart-wrap` already recomputes the
+   chart's own width whenever its container resizes, so this narrower panel
+   just gives it a smaller container to measure -- no JS changes needed. */
+/* Follow-up correction: user drew arrows pointing outward from the 700px
+   box, asking for the whole graph (not just the white card) to widen back
+   out. Since the chart's own width is measured live off `.ht-chart-wrap`
+   via ResizeObserver, widening this panel widens the actual plotted line
+   too, not just the empty space around it -- no separate inner width to
+   fix. Dropped the cap entirely rather than picking another fixed number. */
 .ht-chart-panel {
   background: var(--altrium-white);
   border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 24px;
+  border-radius: 14px;
+  padding: 18px 14px 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.ht-chart-wrap {
+  width: 100%;
 }
 
 .ht-chart-svg {
   width: 100%;
-  height: 240px;
+  height: 210px;
   display: block;
+  overflow: visible;
+}
+
+.ht-chart-grid-line {
+  stroke: var(--altrium-line);
+  stroke-width: 1;
+  opacity: 0.6;
 }
 
 .ht-chart-axis {
@@ -126,18 +181,41 @@
   stroke-width: 1;
 }
 
+/* Smoothed line + soft gradient fill beneath it instead of a bare polyline
+   -- reads as a proper area chart rather than dots joined by straight
+   segments. Dots are a small white-filled ring with a solid center point
+   (matching the clean-dot pattern used in most modern dashboard charts)
+   instead of one flat gold disc. */
 .ht-chart-line {
   stroke: var(--altrium-gold-dark, #a9660b);
   stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.ht-chart-dot {
+.ht-chart-area-stop-start {
+  stop-color: var(--altrium-gold-dark, #a9660b);
+  stop-opacity: 0.22;
+}
+
+.ht-chart-area-stop-end {
+  stop-color: var(--altrium-gold-dark, #a9660b);
+  stop-opacity: 0;
+}
+
+.ht-chart-dot-outer {
+  fill: var(--altrium-white);
+  stroke: var(--altrium-gold-dark, #a9660b);
+  stroke-width: 2;
+}
+
+.ht-chart-dot-inner {
   fill: var(--altrium-gold-dark, #a9660b);
 }
 
 .ht-chart-value {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   fill: var(--altrium-black);
 }
 

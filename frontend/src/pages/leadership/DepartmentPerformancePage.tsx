@@ -77,25 +77,25 @@ export default function DepartmentPerformancePage() {
       {!loading && data && (
         <>
           <div className="dp-kpi-grid">
-            <div className="dp-kpi-tile">
+            <div className="dp-kpi-tile dp-kpi-tile--green">
               <div className="dp-kpi-label">Best Fill Rate</div>
               <div className="dp-kpi-value">{data.summary.bestFillRate ? `${data.summary.bestFillRate.value}%` : "--"}</div>
               <div className="dp-kpi-sub">{data.summary.bestFillRate?.department ?? ""}</div>
             </div>
-            <div className="dp-kpi-tile">
+            <div className="dp-kpi-tile dp-kpi-tile--blue">
               <div className="dp-kpi-label">Fastest Hiring</div>
               <div className="dp-kpi-value">{data.summary.fastestHiring ? `${data.summary.fastestHiring.days}d` : "--"}</div>
               <div className="dp-kpi-sub">{data.summary.fastestHiring?.department ?? ""}</div>
             </div>
-            <div className="dp-kpi-tile">
+            <div className="dp-kpi-tile dp-kpi-tile--gold">
               <div className="dp-kpi-label">Most Open Roles</div>
               <div className="dp-kpi-value">{data.summary.mostOpenRoles ? data.summary.mostOpenRoles.count : "--"}</div>
               <div className="dp-kpi-sub">{data.summary.mostOpenRoles?.department ?? ""}</div>
             </div>
-            <div className="dp-kpi-tile">
+            <div className="dp-kpi-tile dp-kpi-tile--red">
               <div className="dp-kpi-label">Overdue Roles</div>
               <div className="dp-kpi-value">{data.summary.overdueRoles}</div>
-              <div className="dp-kpi-sub">&nbsp;</div>
+              <div className="dp-kpi-sub">All departments</div>
             </div>
           </div>
 

@@ -25,12 +25,15 @@
   font-size: 13px;
 }
 
+/* Label/select styling matches hiringManager/VacanciesPage.css's
+   .hmv-filter-field exactly, per direct user request for one consistent
+   filter look sitewide -- same label size and color, same select
+   border/radius/padding, as every other filter bar in the app. */
 .cc-page label {
   display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--altrium-ink);
-  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--altrium-ink-soft);
+  margin-bottom: 4px;
 }
 
 .cc-page select {
@@ -39,40 +42,78 @@
   border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 8px 10px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-family: var(--sans);
   background: white;
   margin-bottom: 24px;
 }
 
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile. 290px here vs. 220px on the 4-tile
+   dashboards since 3 tiles need a bit more width each to stay balanced
+   rather than one fixed system-wide value. */
 .cc-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
   gap: 14px;
   margin-bottom: 24px;
 }
 
+/* KPI tile styling matches hiringManager/DashboardPage.css's .hmd-kpi-tile
+   exactly, per direct user request to bring every dashboard/leaderboard/KPI
+   display in the system to the same look: white card, soft shadow, and a
+   4px accent-color bar along the top instead of a flat tinted background. */
 .cc-kpi-tile {
-  /* Corrections doc: KPI cards and charts should have a background colour
-     to make them pop, instead of sitting flush white. */
-  background: #faf5ea;
-  border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 20px;
+  position: relative;
+  box-sizing: border-box;
+  width: 290px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
+.cc-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.cc-kpi-tile--blue,
+.cc-kpi-tile--gold,
+.cc-kpi-tile--green,
+.cc-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
 .cc-kpi-value {
-  font-size: 36px;
+  font-size: 42px;
   font-weight: 700;
   color: var(--altrium-black);
+  line-height: 1;
 }
 
 .cc-kpi-label {
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--altrium-ink);
-  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
 }
 
 .cc-panels {
@@ -89,16 +130,20 @@
   gap: 20px;
 }
 
+/* Panel styling matches hiringManager/DashboardPage.css's .hmd-panel /
+   .hmd-section-title exactly, per direct user request -- same white card
+   with the same soft shadow as every other dashboard panel in the system. */
 .cc-panel {
-  background: #faf9f6;
+  background: var(--altrium-white);
   border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 18px 20px;
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
 .cc-panel-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--altrium-black);
   margin: 0 0 12px;
 }
@@ -176,12 +221,18 @@
   color: var(--altrium-black);
 }
 
+/* Follow-up correction: this used to force height: 100% to match the left
+   column's stacked panels, so with only one or two comments it stretched
+   into a tall, mostly-empty box. The grid it sits in (.cc-panels) already
+   has align-items: start, so dropping the forced height lets the panel
+   size to its actual content -- short with one comment, taller once more
+   candidates have feedback. */
 .cc-comments-panel {
-  background: #faf9f6;
+  background: var(--altrium-white);
   border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 18px 20px;
-  height: 100%;
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
   box-sizing: border-box;
 }
 

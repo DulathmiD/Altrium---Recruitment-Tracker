@@ -279,7 +279,12 @@ export default function VacanciesPage() {
 
   async function handleSave() {
     if (!form.title.trim() || !form.department.trim() || !form.description.trim()) {
-      setFormError("Title, department, and description are required.");
+      // Department is never a field HR fills in here -- it's pre-filled from
+      // whichever department page this modal was opened from (see
+      // form.department above) -- so telling HR it's "required" alongside
+      // Title/Description would point at a field they can't even see. Only
+      // mention the two fields actually on this form.
+      setFormError("Title and description are required.");
       return;
     }
     setSaving(true);

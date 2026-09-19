@@ -499,7 +499,12 @@ export async function getComparison(req: Request, res: Response) {
       count: top.filter((c) => c.score >= b.min && c.score <= b.max).length,
     }));
 
-    const comments = top.slice(0, 3).map((c) => ({ candidateId: c.candidateId, name: c.name, comments: c.comments }));
+    // Follow-up correction: this used to cap at 3 regardless of TOP_N, so
+    // Top Candidate Comments silently dropped the 4th/5th candidate even
+    // when the Score Ranking panel (which maps over the full topCandidates
+    // array, uncapped) showed all 5. Matches TOP_N now so every ranked
+    // candidate has a corresponding comments entry.
+    const comments = top.slice(0, TOP_N).map((c) => ({ candidateId: c.candidateId, name: c.name, comments: c.comments }));
 
     res.json({ vacancy, topCandidates: top, summary, distribution, comments });
   } catch (err) {

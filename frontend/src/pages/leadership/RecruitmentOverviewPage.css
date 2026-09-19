@@ -1,8 +1,11 @@
 .ro-page {
-  max-width: 90vw;
+  max-width: 1180px;
   font-family: var(--sans);
 }
 
+/* Matches VacanciesPage's .vac-title / .vac-divider exactly, per direct
+   user request -- same size, weight, and color heading with the same plain
+   divider underneath, rather than each page inventing its own header style. */
 .ro-title {
   font-size: 22px;
   font-weight: 600;
@@ -25,10 +28,14 @@
   font-size: 13px;
 }
 
+/* Filter bar styling matches hiringManager/VacanciesPage.css's
+   .hmv-filter-bar exactly, per direct user request for one consistent
+   filter look sitewide: label stacked above its select, same label size and
+   color, same select border/radius/padding, across every filter bar. */
 .ro-filter-bar {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  gap: 24px;
   margin-bottom: 24px;
 }
 
@@ -49,8 +56,15 @@
   padding: 8px 10px;
   font-size: 13.5px;
   font-family: var(--sans);
-  background: white;
-  min-width: 160px;
+  background: var(--altrium-white);
+  color: var(--altrium-ink);
+  min-width: 150px;
+}
+
+.ro-filter-field select:focus {
+  outline: none;
+  border-color: var(--altrium-gold);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
 }
 
 .ro-apply-btn {
@@ -63,71 +77,146 @@
   font-size: 13.5px;
   font-family: var(--sans);
   font-weight: 500;
+  margin-left: auto;
 }
 
+/* Per direct user feedback: tiles read as too wide -- narrowed each one to
+   a fixed width instead of stretching to fill 1fr, with the row switched
+   to flex + space-evenly so the leftover space becomes equal gaps before,
+   between, and after every tile rather than one fixed system-wide width. */
 .ro-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
   gap: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 28px;
 }
 
+/* Card look: white surface, soft shadow, and a 4px accent bar along the top
+   (color set per-tile below) rather than the old flat beige box. */
 .ro-kpi-tile {
-  /* Follow-up correction: tinted background for consistency with the other
-     dashboards' "big and pretty" KPI tile treatment. */
+  position: relative;
+  box-sizing: border-box;
+  width: 220px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: #faf5ea;
-  border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 24px 20px;
+  align-items: center;
   text-align: center;
+  gap: 10px;
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
+.ro-kpi-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-color, var(--altrium-gold));
+}
+
+/* Per direct scrum-master feedback: every KPI tile in the system now uses
+   the same brand gold instead of a different color per tile. */
+.ro-kpi-tile--blue,
+.ro-kpi-tile--gold,
+.ro-kpi-tile--green,
+.ro-kpi-tile--red { --accent-color: var(--altrium-gold); }
+
 .ro-kpi-value {
-  font-size: 44px;
+  font-size: 42px;
   font-weight: 700;
   color: var(--altrium-black);
   line-height: 1;
 }
 
 .ro-kpi-label {
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--altrium-ink);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--altrium-ink-soft);
+  white-space: nowrap;
+}
+
+/* Recruitment Progress now lives inside one card, matching the KPI tiles
+   above, instead of floating tiles directly on the page background. */
+.ro-panel {
+  background: var(--altrium-white);
+  border: 1px solid var(--altrium-line);
+  border-radius: 14px;
+  padding: 24px 26px 26px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px rgba(15, 23, 42, 0.05);
 }
 
 .ro-section-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--altrium-black);
   margin: 0 0 4px;
 }
 
-.ro-progress-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-  margin: 16px 0 0;
-}
-
-.ro-progress-tile {
+.ro-progress-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 0 0 calc(25% - 12px);
-  background: #faf9f6;
-  border: 1px solid var(--altrium-line);
-  border-radius: 10px;
-  padding: 20px 16px;
-  text-align: center;
-  box-sizing: border-box;
+  gap: 16px;
+  margin-top: 20px;
 }
 
-.ro-progress-value {
-  font-size: 27px;
+/* Comparative bar list -- bar length is relative to whichever stage/round
+   has the most candidates, so the shape of the pipeline is visible at a
+   glance instead of reading a grid of same-size boxes number by number. */
+.ro-progress-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 44px;
+  align-items: center;
+  gap: 16px;
+}
+
+.ro-progress-row-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--altrium-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ro-progress-row-track {
+  background: #f1f1ef;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.ro-progress-row-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+/* Follow-up correction: the previous pale/dark/deep ramp used real ambers
+   that looked like different colors once rendered, not "lighter gold".
+   Switched to a pure white-mixed tint ramp of the exact brand hex
+   (#f5a623) instead -- lightest tint for Rounds, progressively closer to
+   the true gold for Shortlisted/Hired, and Rejected at the full,
+   unmixed brand color. Class names/accent keys are unchanged. */
+.ro-progress-row-fill--blue { background: var(--altrium-gold-100); }
+.ro-progress-row-fill--green { background: var(--altrium-gold-200); }
+.ro-progress-row-fill--gold { background: var(--altrium-gold-300); }
+.ro-progress-row-fill--red { background: var(--altrium-gold); }
+
+.ro-progress-row-value {
+  font-size: 15px;
   font-weight: 700;
   color: var(--altrium-black);
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .ro-progress-row { grid-template-columns: 140px 1fr 36px; gap: 10px; }
 }

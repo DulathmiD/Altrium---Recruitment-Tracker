@@ -170,14 +170,21 @@ export default function CandidateDetailPage() {
   // null (see the CandidateApplicationRow comment) -- a REJECTED application
   // that came out of a real post-interview hiring decision is a final
   // outcome, not reopened here.
+  //
+  // Correction (direct user feedback, caught by live testing): moves back
+  // to APPLIED ("Unreviewed"), not SHORTLISTED -- Shortlist/Reject always
+  // requires a freshly saved CV review note (application.controller.ts's
+  // updateApplicationStatus), and Reconsider shouldn't be a way to skip
+  // that just because this candidate already has an old note on file. The
+  // backend clears that stale note as part of this same request.
   async function handleReconsider() {
     if (!row) return;
     setActionBusy(true);
     setActionError("");
     try {
-      await updateApplicationStatus(row.id, "SHORTLISTED");
+      await updateApplicationStatus(row.id, "APPLIED");
       navigate("/hr/candidates", {
-        state: { toast: `${row.candidate.name} was reconsidered and moved back to Shortlisted.` },
+        state: { toast: `${row.candidate.name} was reconsidered and moved back to Unreviewed.` },
       });
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Could not reconsider candidate");
@@ -216,8 +223,9 @@ export default function CandidateDetailPage() {
     setReviewNoteSaving(true);
     setReviewNoteError("");
     try {
-      const updated = await saveCandidateReviewNote(candidateDetail.id, reviewNoteDraft.trim());
-      setCandidateDetail((prev) => (prev ? { ...prev, lastCvReviewNote: updated.lastCvReviewNote } : prev));
+      await saveCandidateReviewNote(candidateDetail.id, reviewNoteDraft.trim());
+      const refreshed = await getCandidateDetail(candidateDetail.id);
+      setCandidateDetail(refreshed);
     } catch (err) {
       setReviewNoteError(err instanceof Error ? err.message : "Could not save review note");
     } finally {
@@ -306,6 +314,15 @@ export default function CandidateDetailPage() {
   // still be blocked even if this check were removed.
   const isVacancyOnHold = row.vacancy.status === "ON_HOLD";
 
+  // Real gap the user caught by using the app: Shortlist/Reject were
+  // reachable with zero review note written down. Mirrors the same
+  // server-side check in application.controller.ts's updateApplicationStatus
+  // -- checked against the *saved* lastCvReviewNote, not reviewNoteDraft, so
+  // typing something without hitting Save Note still doesn't unlock this
+  // (this is purely a UI mirror; the backend is the real enforcement, same
+  // pattern as isVacancyOnHold above).
+  const hasSavedReviewNote = Boolean(candidateDetail?.lastCvReviewNote?.trim());
+
   return (
     <div className="cnd-page cnd-detail-page">
       <Link to="/hr/candidates" className="cnd-back-link">
@@ -319,11 +336,31 @@ export default function CandidateDetailPage() {
 
       {isVacancyOnHold && (
         <p className="cnd-muted cnd-locked-hint">
-          This vacancy is on hold -- this candidate can't be shortlisted, rejected, or progressed until it's reopened.
+          This vacancy is on hold. This candidate can't be shortlisted, rejected, or progressed until it's reopened.
         </p>
       )}
       {detailError && <p className="cnd-error">{detailError}</p>}
       {actionError && <p className="cnd-error">{actionError}</p>}
+
+      {/* Moved up from the bottom of the page, per direct user feedback --
+          this is important context (a rejected candidate someone might want
+          to reconsider, potentially a while later) that shouldn't require
+          scrolling past CV/notes/interviews to notice. Reworded away from
+          "There's no way to reapply for this vacancy" (accurate but blunt)
+          to a plain question. */}
+      {row.stage === "REJECTED" && !row.hiringDecision && (
+        <div className="cnd-reconsider-banner">
+          <p>This candidate was rejected before being shortlisted for this vacancy. Would you like to reconsider them?</p>
+          <button
+            className="cnd-action-btn cnd-action-shortlist"
+            onClick={handleReconsider}
+            disabled={actionBusy || isVacancyOnHold}
+            title={isVacancyOnHold ? "This vacancy is on hold" : undefined}
+          >
+            Reconsider
+          </button>
+        </div>
+      )}
 
       <div className="cnd-detail-section">
         <label>CV</label>
@@ -449,7 +486,7 @@ export default function CandidateDetailPage() {
           </p>
         ) : row.stage === "APPLIED" ? (
           <p className="cnd-muted cnd-locked-hint">
-            This candidate hasn't been shortlisted yet -- shortlist them first before assigning a Hiring Manager.
+            This candidate hasn't been shortlisted yet. Shortlist them first before assigning a Hiring Manager.
           </p>
         ) : row.stage === "REJECTED" ? (
           <p className="cnd-muted cnd-locked-hint">
@@ -524,41 +561,43 @@ export default function CandidateDetailPage() {
       </div>
 
       {row.stage === "APPLIED" && (
-        <div className="cnd-detail-decision-row">
-          <button
-            className="cnd-action-btn cnd-action-reject"
-            onClick={handleReject}
-            disabled={actionBusy || isVacancyOnHold}
-            title={isVacancyOnHold ? "This vacancy is on hold" : undefined}
-          >
-            Reject
-          </button>
-          <button
-            className="cnd-action-btn cnd-action-shortlist"
-            onClick={handleShortlist}
-            disabled={actionBusy || isVacancyOnHold}
-            title={isVacancyOnHold ? "This vacancy is on hold" : undefined}
-          >
-            Shortlist
-          </button>
-        </div>
-      )}
-
-      {row.stage === "REJECTED" && !row.hiringDecision && (
-        <div className="cnd-detail-decision-row cnd-detail-decision-row-space">
-          <p className="cnd-muted">
-            Rejected before being shortlisted. There's no way to reapply for this vacancy, but you can reconsider
-            them instead.
-          </p>
-          <button
-            className="cnd-action-btn cnd-action-shortlist"
-            onClick={handleReconsider}
-            disabled={actionBusy || isVacancyOnHold}
-            title={isVacancyOnHold ? "This vacancy is on hold" : undefined}
-          >
-            Reconsider
-          </button>
-        </div>
+        <>
+          {!hasSavedReviewNote && !isVacancyOnHold && (
+            <p className="cnd-muted cnd-locked-hint">
+              Write and save a CV review note above before shortlisting or rejecting this candidate.
+            </p>
+          )}
+          <div className="cnd-detail-decision-row">
+            <button
+              className="cnd-action-btn cnd-action-reject"
+              onClick={handleReject}
+              disabled={actionBusy || isVacancyOnHold || !hasSavedReviewNote}
+              title={
+                isVacancyOnHold
+                  ? "This vacancy is on hold"
+                  : !hasSavedReviewNote
+                    ? "Write and save a CV review note first"
+                    : undefined
+              }
+            >
+              Reject
+            </button>
+            <button
+              className="cnd-action-btn cnd-action-shortlist"
+              onClick={handleShortlist}
+              disabled={actionBusy || isVacancyOnHold || !hasSavedReviewNote}
+              title={
+                isVacancyOnHold
+                  ? "This vacancy is on hold"
+                  : !hasSavedReviewNote
+                    ? "Write and save a CV review note first"
+                    : undefined
+              }
+            >
+              Shortlist
+            </button>
+          </div>
+        </>
       )}
 
     </div>

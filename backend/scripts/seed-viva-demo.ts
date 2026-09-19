@@ -68,7 +68,11 @@ type CandidateSpec = {
   email: string;
   phoneNumber: string;
   cv: CvProfile;
-  reviewed?: { byUserId: number; note: string };
+  // daysAgo backdates the review so a candidate who later gets updated via
+  // ensureUpdatedCvAndReview has a sensible chronological order -- the
+  // original submission needs an earlier timestamp than the update, not
+  // "now" for both just because they happened in the same script run.
+  reviewed?: { byUserId: number; note: string; daysAgo?: number };
 };
 
 async function ensureCandidate(spec: CandidateSpec) {
@@ -78,6 +82,7 @@ async function ensureCandidate(spec: CandidateSpec) {
   const filename = `${sanitizeForFilename(spec.name)}.pdf`;
   const pdfBytes = await buildCvPdf(spec.cv);
   await saveFile(pdfBytes, filename);
+  const reviewedAt = spec.reviewed ? new Date(Date.now() - (spec.reviewed.daysAgo ?? 0) * DAY_MS) : null;
 
   const candidate = await prisma.candidate.create({
     data: {
@@ -86,12 +91,49 @@ async function ensureCandidate(spec: CandidateSpec) {
       phoneNumber: spec.phoneNumber,
       cvUrl: filename,
       ...(spec.reviewed
-        ? { lastCvReviewedByUserId: spec.reviewed.byUserId, lastCvReviewedAt: new Date(), lastCvReviewNote: spec.reviewed.note }
+        ? { lastCvReviewedByUserId: spec.reviewed.byUserId, lastCvReviewedAt: reviewedAt!, lastCvReviewNote: spec.reviewed.note }
         : {}),
     },
   });
+
   console.log(`Created candidate "${candidate.name}" <${candidate.email}> with a real CV (${filename})`);
   return candidate;
+}
+
+// Per direct user feedback ("make test data ... so that i can check all
+// dashboards and see all values"): a handful of already-created candidates
+// get their CV and review note overwritten here, simulating a later
+// re-upload/re-review. CV History and Review Notes History (the features
+// this used to also populate, via CandidateCvVersion/CandidateReviewNote)
+// were removed in a later revert, and those two tables were dropped -- this
+// now just updates the live Candidate fields. Idempotent: skips straight
+// through if this candidate's cvUrl already shows the updated filename.
+async function ensureUpdatedCvAndReview(opts: {
+  candidate: { id: number; name: string };
+  cv: CvProfile;
+  vacancyTitle: string;
+  reviewedByUserId: number;
+  note: string;
+  daysAgo: number;
+}) {
+  const filename = `${sanitizeForFilename(opts.candidate.name)}_updated.pdf`;
+  const current = await prisma.candidate.findUnique({ where: { id: opts.candidate.id }, select: { cvUrl: true } });
+  if (current?.cvUrl === filename) return;
+
+  const pdfBytes = await buildCvPdf(opts.cv);
+  await saveFile(pdfBytes, filename);
+  const uploadedAt = new Date(Date.now() - opts.daysAgo * DAY_MS);
+
+  await prisma.candidate.update({
+    where: { id: opts.candidate.id },
+    data: {
+      cvUrl: filename,
+      lastCvReviewedByUserId: opts.reviewedByUserId,
+      lastCvReviewedAt: uploadedAt,
+      lastCvReviewNote: opts.note,
+    },
+  });
+  console.log(`  Updated CV + review note for "${opts.candidate.name}" (${filename})`);
 }
 
 async function ensureApplication(
@@ -345,7 +387,7 @@ async function main() {
       education: { degree: "BSc Software Engineering", school: "University of Nottingham", period: "2016 – 2019" },
       skills: ["Node.js", "PostgreSQL", "Kafka", "Kubernetes", "System Design"],
     },
-    reviewed: { byUserId: hr.id, note: "Strong distributed-systems background, moved to shortlist for the Technical Interview round." },
+    reviewed: { byUserId: hr.id, note: "Strong distributed-systems background, moved to shortlist for the Technical Interview round.", daysAgo: 4 },
   });
   const tomasApp = await ensureApplication(tomas.id, backendEng.id, hiringManager.id, "SHORTLISTED", beStage1.id, 4);
   const tomasSlot = new Date(Date.now() + 3 * DAY_MS); tomasSlot.setHours(10, 30, 0, 0);
@@ -513,6 +555,12 @@ async function main() {
   await writeAuditLog(hiringManager.id, "HM_DECISION_COMMENT", "CandidateApplication", baptisteApp.id, {
     decision: "HIRE", comments: "Strong final round, easy hire.",
   });
+  // Baptiste's HIRE above always implied this role was filled, but nothing
+  // ever transitioned the vacancy itself to CLOSED -- Department Performance
+  // computes fillRate purely from vacancy.status, so Marketing was reading
+  // as 0% filled despite already having a hired candidate. Closing it here
+  // reflects the outcome that already existed.
+  await prisma.vacancy.update({ where: { id: marketing.id }, data: { status: "CLOSED" } });
 
   // Second Marketing candidate, still SHORTLISTED (not yet decided) with a
   // completed, scored round-1 interview -- without this, Candidate
@@ -530,7 +578,7 @@ async function main() {
       education: { degree: "BA Marketing Communications", school: "University of Southampton", period: "2018 – 2021" },
       skills: ["SEO", "Content Strategy", "Email Marketing", "Analytics"],
     },
-    reviewed: { byUserId: hr.id, note: "Strong portfolio, moved to Portfolio Review round." },
+    reviewed: { byUserId: hr.id, note: "Strong portfolio, moved to Portfolio Review round.", daysAgo: 6 },
   });
   const priyaApp = await ensureApplication(priya.id, marketing.id, hiringManager.id, "SHORTLISTED", marketingStage1.id, 6);
   const priyaSlot = new Date(Date.now() - 3 * DAY_MS); priyaSlot.setHours(11, 0, 0, 0);
@@ -721,7 +769,7 @@ async function main() {
       education: { degree: "BA Human Resource Management", school: "University of the West of England", period: "2015 – 2018" },
       skills: ["Employee Relations", "Workforce Planning", "Performance Management", "Stakeholder Management"],
     },
-    reviewed: { byUserId: hr.id, note: "Strong generalist background, moved to Screening Call." },
+    reviewed: { byUserId: hr.id, note: "Strong generalist background, moved to Screening Call.", daysAgo: 5 },
   });
   const camilleApp = await ensureApplication(camille.id, hrBp.id, hiringManager.id, "SHORTLISTED", hrStage1.id, 5);
   const camilleSlot = new Date(Date.now() - 2 * DAY_MS); camilleSlot.setHours(13, 0, 0, 0);
@@ -791,7 +839,7 @@ async function main() {
       education: { degree: "BA Economics", school: "University of Glasgow", period: "2017 – 2020" },
       skills: ["Budgeting", "Cost Analysis", "Excel", "Power BI"],
     },
-    reviewed: { byUserId: hr.id, note: "Solid budgeting background, moved to Case Study round." },
+    reviewed: { byUserId: hr.id, note: "Solid budgeting background, moved to Case Study round.", daysAgo: 6 },
   });
   const julianApp = await ensureApplication(julian.id, finance.id, hiringManager.id, "SHORTLISTED", financeStage1.id, 6);
   const julianSlot = new Date(Date.now() - 3 * DAY_MS); julianSlot.setHours(14, 30, 0, 0);
@@ -1182,7 +1230,7 @@ async function main() {
   // membership, so these don't need ensurePoolMember calls to show up there.
   const qaEng = await ensureVacancy("QA Engineer", "IT", "Own manual and automated test coverage across our core platform releases.");
   const qaEngStage1 = await ensureStage(qaEng.id, "Technical Interview", 1);
-  await ensureFillerCandidate({
+  const jonas = await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Jonas Kessler", email: "jonas.kessler@example.com", phone: "+44 7700 900163", location: "Sheffield, UK",
     headline: "QA Engineer", company: "Millbrook Software", bullet: "Built the team's first automated regression suite, cutting release testing time in half.",
@@ -1190,6 +1238,32 @@ async function main() {
     vacancy: qaEng, stage: qaEngStage1, score: 7, comment: "Good automation instincts, clear about testing trade-offs.",
     appliedDaysAgo: 8, interviewDaysAgo: 3,
   });
+  // Department Performance needs real hired/fill-rate variety across
+  // departments (previously every one of these single-stage secondary roles
+  // sat SHORTLISTED forever, so fillRate was 0% everywhere). This candidate's
+  // currentVacancyStageId is already the vacancy's only (and therefore last)
+  // configured round, satisfying the same hire-decision guard used for
+  // Baptiste above, so the HIRE is legitimate under the app's own rules.
+  const jonasApp = await prisma.candidateApplication.findUniqueOrThrow({
+    where: { candidateId_vacancyId: { candidateId: jonas.id, vacancyId: qaEng.id } },
+  });
+  await prisma.candidateApplication.update({
+    where: { id: jonasApp.id },
+    data: { stage: "HIRED", hiringDecision: "HIRE", decidedByUserId: hiringManager.id, decidedAt: new Date(Date.now() - 2 * DAY_MS) },
+  });
+  await sendOnceAndLog({
+    actorUserId: hiringManager.id, entityType: "CandidateApplication", entityId: jonasApp.id, recipient: jonas.email,
+    reason: "hiring_decision_hire", vars: { candidateName: jonas.name, vacancyTitle: qaEng.title },
+  });
+  await writeAuditLog(hiringManager.id, "HM_DECISION_COMMENT", "CandidateApplication", jonasApp.id, {
+    decision: "HIRE", comments: "Automation-first mindset, immediately useful for the regression suite. Easy hire.",
+  });
+  await prisma.vacancy.update({ where: { id: qaEng.id }, data: { status: "CLOSED" } });
+
+  // Now that QA Engineer is filled, this CV-stage applicant gets a real
+  // courtesy rejection rather than sitting APPLIED against a closed vacancy
+  // forever -- same minimal REJECTED pattern as Freya's CV-stage reject
+  // above (no interview, no hiringDecision fields, just an HR review note).
   const bethany = await ensureCandidate({
     name: "Bethany Coleman", email: "bethany.coleman@example.com", phoneNumber: "+44 7700 900164",
     cv: {
@@ -1200,8 +1274,9 @@ async function main() {
       education: { degree: "BSc Software Engineering", school: "University of Hull", period: "2016 – 2019" },
       skills: ["Manual Testing", "Test Planning", "Jira"],
     },
+    reviewed: { byUserId: hr.id, note: "Solid manual testing background, but the role was filled by another candidate before this application progressed." },
   });
-  await ensureApplication(bethany.id, qaEng.id, hiringManager.id, "APPLIED", null, 2);
+  await ensureApplication(bethany.id, qaEng.id, hiringManager.id, "REJECTED", null, 2);
 
   const socialMedia = await ensureVacancy("Social Media Manager", "Marketing", "Own the brand's voice and growth across all social channels.");
   const socialMediaStage1 = await ensureStage(socialMedia.id, "Portfolio Review", 1);
@@ -1251,7 +1326,7 @@ async function main() {
 
   const supportSpec = await ensureVacancy("Support Specialist", "Customer Service", "Frontline technical support for our self-serve customer base.");
   const supportSpecStage1 = await ensureStage(supportSpec.id, "Screening Call", 1);
-  await ensureFillerCandidate({
+  const sana = await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Sana Iqbal", email: "sana.iqbal@example.com", phone: "+44 7700 900169", location: "Bradford, UK",
     headline: "Support Specialist", company: "Millrace Software", bullet: "Maintained a 96% CSAT score across 40+ tickets a day.",
@@ -1259,6 +1334,26 @@ async function main() {
     vacancy: supportSpec, stage: supportSpecStage1, score: 8, comment: "Clear communicator, strong troubleshooting examples.",
     appliedDaysAgo: 6, interviewDaysAgo: 2,
   });
+  // Same reasoning as Jonas above -- single-stage vacancy, this candidate's
+  // stage is already the last one, so a real HIRE is valid here.
+  const sanaApp = await prisma.candidateApplication.findUniqueOrThrow({
+    where: { candidateId_vacancyId: { candidateId: sana.id, vacancyId: supportSpec.id } },
+  });
+  await prisma.candidateApplication.update({
+    where: { id: sanaApp.id },
+    data: { stage: "HIRED", hiringDecision: "HIRE", decidedByUserId: hiringManager.id, decidedAt: new Date(Date.now() - 1 * DAY_MS) },
+  });
+  await sendOnceAndLog({
+    actorUserId: hiringManager.id, entityType: "CandidateApplication", entityId: sanaApp.id, recipient: sana.email,
+    reason: "hiring_decision_hire", vars: { candidateName: sana.name, vacancyTitle: supportSpec.title },
+  });
+  await writeAuditLog(hiringManager.id, "HM_DECISION_COMMENT", "CandidateApplication", sanaApp.id, {
+    decision: "HIRE", comments: "Confident troubleshooting and a great customer manner from the first call. Easy yes.",
+  });
+  await prisma.vacancy.update({ where: { id: supportSpec.id }, data: { status: "CLOSED" } });
+
+  // Same courtesy-rejection reasoning as Bethany above -- Support Specialist
+  // is now filled.
   const dexter = await ensureCandidate({
     name: "Dexter Holt", email: "dexter.holt@example.com", phoneNumber: "+44 7700 900170",
     cv: {
@@ -1269,12 +1364,13 @@ async function main() {
       education: { degree: "BA Business", school: "Leeds Beckett University", period: "2019 – 2022" },
       skills: ["Zendesk", "Live Chat Support", "Ticket Triage"],
     },
+    reviewed: { byUserId: hr.id, note: "Good support experience, but the position was filled by another candidate first." },
   });
-  await ensureApplication(dexter.id, supportSpec.id, hiringManager.id, "APPLIED", null, 1);
+  await ensureApplication(dexter.id, supportSpec.id, hiringManager.id, "REJECTED", null, 1);
 
   const talentCoord = await ensureVacancy("Talent Acquisition Coordinator", "HR", "Coordinate scheduling and candidate communication across the full recruitment pipeline.");
   const talentCoordStage1 = await ensureStage(talentCoord.id, "Screening Call", 1);
-  await ensureFillerCandidate({
+  const rosalind = await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Rosalind Pike", email: "rosalind.pike@example.com", phone: "+44 7700 900171", location: "Ipswich, UK",
     headline: "Talent Acquisition Coordinator", company: "Fenmarsh Group", bullet: "Coordinated scheduling for 30+ interviews a month across 4 hiring managers.",
@@ -1282,6 +1378,26 @@ async function main() {
     vacancy: talentCoord, stage: talentCoordStage1, score: 7, comment: "Organised, personable, good sense of candidate experience.",
     appliedDaysAgo: 8, interviewDaysAgo: 3,
   });
+  // Same reasoning as Jonas above -- single-stage vacancy, this candidate's
+  // stage is already the last one, so a real HIRE is valid here.
+  const rosalindApp = await prisma.candidateApplication.findUniqueOrThrow({
+    where: { candidateId_vacancyId: { candidateId: rosalind.id, vacancyId: talentCoord.id } },
+  });
+  await prisma.candidateApplication.update({
+    where: { id: rosalindApp.id },
+    data: { stage: "HIRED", hiringDecision: "HIRE", decidedByUserId: hiringManager.id, decidedAt: new Date(Date.now() - 2 * DAY_MS) },
+  });
+  await sendOnceAndLog({
+    actorUserId: hiringManager.id, entityType: "CandidateApplication", entityId: rosalindApp.id, recipient: rosalind.email,
+    reason: "hiring_decision_hire", vars: { candidateName: rosalind.name, vacancyTitle: talentCoord.title },
+  });
+  await writeAuditLog(hiringManager.id, "HM_DECISION_COMMENT", "CandidateApplication", rosalindApp.id, {
+    decision: "HIRE", comments: "Organised and personable, exactly the coordination support the team needs.",
+  });
+  await prisma.vacancy.update({ where: { id: talentCoord.id }, data: { status: "CLOSED" } });
+
+  // Same courtesy-rejection reasoning as Bethany above -- Talent Acquisition
+  // Coordinator is now filled.
   const gideon = await ensureCandidate({
     name: "Gideon Marsh", email: "gideon.marsh@example.com", phoneNumber: "+44 7700 900172",
     cv: {
@@ -1292,12 +1408,13 @@ async function main() {
       education: { degree: "BA Business with HR", school: "University of East Anglia", period: "2017 – 2020" },
       skills: ["Onboarding", "Scheduling", "HRIS"],
     },
+    reviewed: { byUserId: hr.id, note: "Relevant HR administration background, but the role was filled before this application could progress." },
   });
-  await ensureApplication(gideon.id, talentCoord.id, hiringManager.id, "APPLIED", null, 2);
+  await ensureApplication(gideon.id, talentCoord.id, hiringManager.id, "REJECTED", null, 2);
 
   const apSpecialist = await ensureVacancy("Accounts Payable Specialist", "Finance and Accounting", "Own the end-to-end accounts payable process, from invoice intake to payment run.");
   const apSpecialistStage1 = await ensureStage(apSpecialist.id, "Case Study Interview", 1);
-  await ensureFillerCandidate({
+  const elliot = await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Elliot Nakashima", email: "elliot.nakashima@example.com", phone: "+44 7700 900173", location: "Chelmsford, UK",
     headline: "Accounts Payable Specialist", company: "Crestwood Finance", bullet: "Processed 500+ invoices a month with a 99.5% accuracy rate.",
@@ -1305,6 +1422,26 @@ async function main() {
     vacancy: apSpecialist, stage: apSpecialistStage1, score: 9, comment: "Meticulous, excellent walkthrough of a three-way-match discrepancy.",
     appliedDaysAgo: 5, interviewDaysAgo: 2,
   });
+  // Same reasoning as Jonas above -- single-stage vacancy, this candidate's
+  // stage is already the last one, so a real HIRE is valid here.
+  const elliotApp = await prisma.candidateApplication.findUniqueOrThrow({
+    where: { candidateId_vacancyId: { candidateId: elliot.id, vacancyId: apSpecialist.id } },
+  });
+  await prisma.candidateApplication.update({
+    where: { id: elliotApp.id },
+    data: { stage: "HIRED", hiringDecision: "HIRE", decidedByUserId: hiringManager.id, decidedAt: new Date(Date.now() - 1 * DAY_MS) },
+  });
+  await sendOnceAndLog({
+    actorUserId: hiringManager.id, entityType: "CandidateApplication", entityId: elliotApp.id, recipient: elliot.email,
+    reason: "hiring_decision_hire", vars: { candidateName: elliot.name, vacancyTitle: apSpecialist.title },
+  });
+  await writeAuditLog(hiringManager.id, "HM_DECISION_COMMENT", "CandidateApplication", elliotApp.id, {
+    decision: "HIRE", comments: "Meticulous and fast; the three-way-match walkthrough sealed it.",
+  });
+  await prisma.vacancy.update({ where: { id: apSpecialist.id }, data: { status: "CLOSED" } });
+
+  // Same courtesy-rejection reasoning as Bethany above -- Accounts Payable
+  // Specialist is now filled.
   const paloma = await ensureCandidate({
     name: "Paloma Serrano", email: "paloma.serrano@example.com", phoneNumber: "+44 7700 900174",
     cv: {
@@ -1315,12 +1452,13 @@ async function main() {
       education: { degree: "BA Accounting and Finance", school: "University of Bedfordshire", period: "2019 – 2022" },
       skills: ["Invoice Processing", "Excel", "Vendor Management"],
     },
+    reviewed: { byUserId: hr.id, note: "Relevant accounts payable experience, but the position was filled by another candidate first." },
   });
-  await ensureApplication(paloma.id, apSpecialist.id, hiringManager.id, "APPLIED", null, 1);
+  await ensureApplication(paloma.id, apSpecialist.id, hiringManager.id, "REJECTED", null, 1);
 
   const logisticsCoord = await ensureVacancy("Logistics Coordinator", "Operations", "Coordinate inbound and outbound freight schedules across 2 fulfilment sites.");
   const logisticsCoordStage1 = await ensureStage(logisticsCoord.id, "Initial Interview", 1);
-  await ensureFillerCandidate({
+  const reuben = await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Reuben Frost", email: "reuben.frost@example.com", phone: "+44 7700 900175", location: "Doncaster, UK",
     headline: "Logistics Coordinator", company: "Ashfield Freight", bullet: "Coordinated freight scheduling across 3 carriers, reducing late shipments by 18%.",
@@ -1328,6 +1466,26 @@ async function main() {
     vacancy: logisticsCoord, stage: logisticsCoordStage1, score: 7, comment: "Solid coordination experience, practical answers throughout.",
     appliedDaysAgo: 9, interviewDaysAgo: 4,
   });
+  // Same reasoning as Jonas above -- single-stage vacancy, this candidate's
+  // stage is already the last one, so a real HIRE is valid here.
+  const reubenApp = await prisma.candidateApplication.findUniqueOrThrow({
+    where: { candidateId_vacancyId: { candidateId: reuben.id, vacancyId: logisticsCoord.id } },
+  });
+  await prisma.candidateApplication.update({
+    where: { id: reubenApp.id },
+    data: { stage: "HIRED", hiringDecision: "HIRE", decidedByUserId: hiringManager.id, decidedAt: new Date(Date.now() - 3 * DAY_MS) },
+  });
+  await sendOnceAndLog({
+    actorUserId: hiringManager.id, entityType: "CandidateApplication", entityId: reubenApp.id, recipient: reuben.email,
+    reason: "hiring_decision_hire", vars: { candidateName: reuben.name, vacancyTitle: logisticsCoord.title },
+  });
+  await writeAuditLog(hiringManager.id, "HM_DECISION_COMMENT", "CandidateApplication", reubenApp.id, {
+    decision: "HIRE", comments: "Strong freight-scheduling background, ready to start immediately.",
+  });
+  await prisma.vacancy.update({ where: { id: logisticsCoord.id }, data: { status: "CLOSED" } });
+
+  // Same courtesy-rejection reasoning as Bethany above -- Logistics
+  // Coordinator is now filled.
   const vera = await ensureCandidate({
     name: "Vera Lindholm", email: "vera.lindholm@example.com", phoneNumber: "+44 7700 900176",
     cv: {
@@ -1338,8 +1496,9 @@ async function main() {
       education: { degree: "BSc Business Operations", school: "Sheffield Hallam University", period: "2019 – 2022" },
       skills: ["Dispatch Scheduling", "WMS Systems", "Inventory Tracking"],
     },
+    reviewed: { byUserId: hr.id, note: "Relevant warehouse dispatch experience, but the role was filled before this application progressed." },
   });
-  await ensureApplication(vera.id, logisticsCoord.id, hiringManager.id, "APPLIED", null, 2);
+  await ensureApplication(vera.id, logisticsCoord.id, hiringManager.id, "REJECTED", null, 2);
 
   const complianceOfficer = await ensureVacancy("Compliance Officer", "Legal", "Own regulatory compliance monitoring and reporting across the business.");
   const complianceOfficerStage1 = await ensureStage(complianceOfficer.id, "Initial Interview", 1);
@@ -1363,6 +1522,118 @@ async function main() {
     },
   });
   await ensureApplication(silas.id, complianceOfficer.id, hiringManager.id, "APPLIED", null, 1);
+
+  // Per direct user feedback on Candidate Comparison ("add test so top 5
+  // candidates can be seen and their comments ... Numeric Score Distribution
+  // this also can be filled in all numbers"): Anouk above was the only
+  // scored candidate on this vacancy, so the comparison page only ever
+  // showed a Top 1 and a single filled bucket. Four more filler candidates
+  // here, scored 6/7/9/10 alongside Anouk's 8, give this vacancy a genuine
+  // Top 5 with every Numeric Score Distribution bucket (Below 7 through 10)
+  // populated at least once.
+  await ensureFillerCandidate({
+    actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
+    name: "Harriet Voss", email: "harriet.voss@example.com", phone: "+44 7700 900179", location: "Cambridge, UK",
+    headline: "Compliance Coordinator", company: "Ashworth Regulatory Group", bullet: "Coordinated cross-team responses to two FCA information requests within tight deadlines.",
+    degree: "LLB Law", school: "Anglia Ruskin University", skills: ["Regulatory Compliance", "Policy Review", "Stakeholder Liaison"],
+    vacancy: complianceOfficer, stage: complianceOfficerStage1, score: 9, comment: "Excellent grasp of regulatory frameworks, gave the strongest scenario answers of the day.",
+    appliedDaysAgo: 10, interviewDaysAgo: 5,
+  });
+  await ensureFillerCandidate({
+    actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
+    name: "Dominic Ashworth", email: "dominic.ashworth@example.com", phone: "+44 7700 900180", location: "Luton, UK",
+    headline: "Compliance Associate", company: "Northgate Financial Services", bullet: "Maintained the compliance monitoring calendar across 4 regulated product lines.",
+    degree: "BA Law and Business", school: "University of Bedfordshire", skills: ["Compliance Monitoring", "Policy Drafting", "Excel"],
+    vacancy: complianceOfficer, stage: complianceOfficerStage1, score: 7, comment: "Good working knowledge, answers were a little rehearsed under follow-up questioning.",
+    appliedDaysAgo: 8, interviewDaysAgo: 4,
+  });
+  await ensureFillerCandidate({
+    actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
+    name: "Isla Bramwell", email: "isla.bramwell@example.com", phone: "+44 7700 900181", location: "Hertford, UK",
+    headline: "Regulatory Compliance Specialist", company: "Colworth Risk Partners", bullet: "Rebuilt the firm's AML monitoring procedure ahead of its most recent external audit.",
+    degree: "LLM Regulatory Law", school: "University of Hertfordshire", skills: ["AML", "Regulatory Reporting", "Audit Preparation"],
+    vacancy: complianceOfficer, stage: complianceOfficerStage1, score: 10, comment: "Outstanding technical depth and composure -- the clear standout candidate.",
+    appliedDaysAgo: 9, interviewDaysAgo: 4,
+  });
+  await ensureFillerCandidate({
+    actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
+    name: "Callum Whitfield", email: "callum.whitfield@example.com", phone: "+44 7700 900182", location: "Stevenage, UK",
+    headline: "Junior Compliance Officer", company: "Redmere Consulting", bullet: "Assisted with quarterly compliance reporting for a mid-sized asset manager.",
+    degree: "BA Business Law", school: "University of Hertfordshire", skills: ["Compliance Reporting", "Risk Assessment", "Excel"],
+    vacancy: complianceOfficer, stage: complianceOfficerStage1, score: 6, comment: "Junior for the role -- solid fundamentals but light on regulatory-audit experience.",
+    appliedDaysAgo: 6, interviewDaysAgo: 2,
+  });
+
+  // ------------------------------------------- CV/Review history examples --
+  // Per direct user feedback ("make test data ... so that i can check all
+  // dashboards and see all values"): four already-shortlisted candidates,
+  // spread across different departments, get a second CV + review a couple
+  // of days after their first -- real multi-entry data for CV History and
+  // Review Notes History to actually show, rather than every seeded
+  // candidate having exactly one of each.
+  await ensureUpdatedCvAndReview({
+    candidate: tomas,
+    cv: {
+      name: "Tomas Reyes", email: "tomas.reyes@example.com", phone: "+44 7700 900113", location: "Birmingham, UK",
+      headline: "Backend Software Engineer",
+      summary: "Backend-focused engineer with a strong background in distributed systems and API design, having spent the last three years building high-throughput services for a fintech platform. Recently completed AWS Solutions Architect certification.",
+      experience: [
+        { title: "Backend Engineer", company: "Pryce Financial", period: "2021 – Present", bullets: ["Designed the payments-reconciliation service handling 2M+ transactions daily.", "Led adoption of contract testing across 12 microservices, cutting integration bugs by a third.", "Earned AWS Certified Solutions Architect - Associate (2026)."] },
+        { title: "Junior Developer", company: "Hallow Digital", period: "2019 – 2021", bullets: ["Built internal tooling for QA automation used across three product teams."] },
+      ],
+      education: { degree: "BSc Software Engineering", school: "University of Nottingham", period: "2016 – 2019" },
+      skills: ["Node.js", "PostgreSQL", "Kafka", "Kubernetes", "System Design", "AWS"],
+    },
+    vacancyTitle: backendEng.title,
+    reviewedByUserId: hr.id,
+    note: "Updated CV adds a fresh AWS certification -- keeps him shortlisted for the Technical Interview round.",
+    daysAgo: 2,
+  });
+  await ensureUpdatedCvAndReview({
+    candidate: camille,
+    cv: {
+      name: "Camille Dupont", email: "camille.dupont@example.com", phone: "+44 7700 900122", location: "Bristol, UK",
+      headline: "HR Business Partner",
+      summary: "HR generalist with five years' experience partnering with department leads on workforce planning, performance management, and employee relations. Now also leading a cross-department engagement survey initiative.",
+      experience: [{ title: "HR Business Partner", company: "Ashford Retail Group", period: "2021 – Present", bullets: ["Partnered with three department heads on annual headcount planning and performance calibration.", "Reduced average time-to-resolution on employee relations cases by 35%.", "Led the 2026 company-wide engagement survey, presenting findings to senior leadership."] }],
+      education: { degree: "BA Human Resource Management", school: "University of the West of England", period: "2015 – 2018" },
+      skills: ["Employee Relations", "Workforce Planning", "Performance Management", "Stakeholder Management", "Engagement Surveys"],
+    },
+    vacancyTitle: hrBp.title,
+    reviewedByUserId: hr.id,
+    note: "Updated CV shows she's since led a company-wide engagement survey -- still on track for Screening Call.",
+    daysAgo: 2,
+  });
+  await ensureUpdatedCvAndReview({
+    candidate: priya,
+    cv: {
+      name: "Priya Chandrasekaran", email: "priya.chandrasekaran@example.com", phone: "+44 7700 900130", location: "Southampton, UK",
+      headline: "Content Marketing Specialist",
+      summary: "Content marketer with three years' experience across SEO-led blog strategy and lifecycle email for B2B SaaS. Recently expanded into paid social to round out channel experience.",
+      experience: [{ title: "Content Marketer", company: "Ferrow Digital", period: "2022 – Present", bullets: ["Grew organic search traffic 65% year-on-year through a refreshed content cluster strategy.", "Ran a 6-email onboarding sequence that lifted trial-to-paid conversion by 12%.", "Piloted a paid social campaign that cut cost-per-lead by 20%."] }],
+      education: { degree: "BA Marketing Communications", school: "University of Southampton", period: "2018 – 2021" },
+      skills: ["SEO", "Content Strategy", "Email Marketing", "Analytics", "Paid Social"],
+    },
+    vacancyTitle: marketing.title,
+    reviewedByUserId: hr.id,
+    note: "Updated CV shows new paid social experience, addressing the channel-mix gap flagged after Portfolio Review.",
+    daysAgo: 2,
+  });
+  await ensureUpdatedCvAndReview({
+    candidate: julian,
+    cv: {
+      name: "Julian Ostrowski", email: "julian.ostrowski@example.com", phone: "+44 7700 900125", location: "Glasgow, UK",
+      headline: "Senior Financial Analyst",
+      summary: "Financial analyst with four years' experience in budgeting and cost analysis within the manufacturing sector. Recently completed a scenario-planning project ahead of the Case Study round.",
+      experience: [{ title: "Financial Analyst", company: "Kilbride Manufacturing", period: "2021 – Present", bullets: ["Managed the annual budgeting process for a £40M cost centre.", "Identified cost-saving opportunities totalling £250k annually.", "Built a three-scenario cost model used in the 2027 budget planning cycle."] }],
+      education: { degree: "BA Economics", school: "University of Glasgow", period: "2017 – 2020" },
+      skills: ["Budgeting", "Cost Analysis", "Excel", "Power BI", "Scenario Planning"],
+    },
+    vacancyTitle: finance.title,
+    reviewedByUserId: hr.id,
+    note: "Updated CV shows recent scenario-planning work -- good sign ahead of the Case Study round.",
+    daysAgo: 2,
+  });
 
   // --------------------------------------------------------- Notifications --
   // Light, real-looking bell content for each staff account so it never

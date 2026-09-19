@@ -197,7 +197,7 @@ export async function scheduleInterview(req: Request, res: Response) {
       select: { status: true },
     });
     if (scheduleVacancy?.status === "ON_HOLD") {
-      return res.status(400).json({ error: "This vacancy is on hold -- reopen it before scheduling interviews" });
+      return res.status(400).json({ error: "This vacancy is on hold. Reopen it before scheduling interviews." });
     }
 
     // The round being scheduled must actually belong to this application's
@@ -504,7 +504,7 @@ export async function addCandidatesToSlot(req: Request, res: Response) {
       select: { status: true },
     });
     if (slotVacancy?.status === "ON_HOLD") {
-      return res.status(400).json({ error: "This vacancy is on hold -- reopen it before scheduling interviews" });
+      return res.status(400).json({ error: "This vacancy is on hold. Reopen it before scheduling interviews." });
     }
 
     const added: number[] = [];

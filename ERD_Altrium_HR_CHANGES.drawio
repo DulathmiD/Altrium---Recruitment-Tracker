@@ -1,0 +1,42 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="ERD Changes - pendingCv cleanup" id="erd-changes">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="hdr" value="CANDIDATE — updated (3 rows removed)" style="text;html=1;align=left;fontColor=#000000;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tCandidate" value="&lt;table border=&quot;1&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; style=&quot;border-collapse:collapse;width:100%;&quot;&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot; align=&quot;center&quot;&gt;&lt;b&gt;CANDIDATE&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td width=&quot;30%&quot;&gt;PK&lt;/td&gt;&lt;td&gt;id&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;name&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;UK&lt;/td&gt;&lt;td&gt;email&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;phoneNumber&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;cvUrl&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;createdAt&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;lastCvReviewedByUserId&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;lastCvReviewedAt&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;lastCvReviewNote&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;verticalAlign=top;align=left;spacing=0;overflow=fill;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="220" height="206" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hdr2" value="Removed entirely (whole tables)" style="text;html=1;align=left;fontColor=#000000;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="360" y="10" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tRevNote" value="&lt;table border=&quot;1&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; style=&quot;border-collapse:collapse;width:100%;&quot;&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot; align=&quot;center&quot;&gt;&lt;b&gt;CANDIDATE_REVIEW_NOTE&lt;/b&gt;&lt;br&gt;&lt;i&gt;DELETED&lt;/i&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td width=&quot;30%&quot;&gt;PK&lt;/td&gt;&lt;td&gt;id&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;candidateId&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;note&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;authorUserId&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;createdAt&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;dashed=1;verticalAlign=top;align=left;spacing=0;overflow=fill;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="360" y="40" width="220" height="146" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tCvVer" value="&lt;table border=&quot;1&quot; cellpadding=&quot;4&quot; cellspacing=&quot;0&quot; style=&quot;border-collapse:collapse;width:100%;&quot;&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot; align=&quot;center&quot;&gt;&lt;b&gt;CANDIDATE_CV_VERSION&lt;/b&gt;&lt;br&gt;&lt;i&gt;DELETED&lt;/i&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td width=&quot;30%&quot;&gt;PK&lt;/td&gt;&lt;td&gt;id&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;FK&lt;/td&gt;&lt;td&gt;candidateId&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;cvUrl&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;uploadedAt&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;vacancyTitle&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" style="html=1;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;dashed=1;verticalAlign=top;align=left;spacing=0;overflow=fill;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="360" y="220" width="220" height="146" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eCandRevNote" value="REMOVED (writes)" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;dashed=1;endArrow=ERmany;startArrow=ERone;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="tCandidate" target="tRevNote">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eCandCvVer" value="REMOVED (has)" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;dashed=1;endArrow=ERmany;startArrow=ERone;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="tCandidate" target="tCvVer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note" value="Also removed, not pictured (no visual box to show, since these were never rendered as their own field row):&#10;- VACANCY.pendingCvCandidates relation field (reverse side of Candidate.pendingCvVacancyId)&#10;- Edge: VACANCY --pending target--&gt; CANDIDATE (Vacancy o|--o{ Candidate)&#10;- Edge: USER --writes--&gt; CANDIDATE_REVIEW_NOTE (User o|--o{ CandidateReviewNote)" style="text;html=1;align=left;verticalAlign=top;fontColor=#000000;fontSize=11;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="540" height="100" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

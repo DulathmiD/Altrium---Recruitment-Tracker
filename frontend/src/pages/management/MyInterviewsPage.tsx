@@ -118,7 +118,7 @@ export default function MyInterviewsPage() {
       <div className="mi-divider" />
 
       {!hasDepartment && (
-        <p className="mi-muted">No department is set on your account, so there's nothing to scope this to yet -- ask IT Admin to set your department.</p>
+        <p className="mi-muted">No department is set on your account, so there's nothing to scope this to yet. Ask IT Admin to set your department.</p>
       )}
 
       {hasDepartment && (

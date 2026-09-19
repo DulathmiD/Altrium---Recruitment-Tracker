@@ -17,6 +17,7 @@ export const EVENT_TYPE: Record<AuditAction, string> = {
   VACANCY_EDITED: "Vacancy Management",
   VACANCY_CLOSED: "Vacancy Management",
   CV_UPLOADED: "Candidate Management",
+  CV_REPLACED: "Candidate Management",
   FEEDBACK_SUBMITTED: "Record Feedback",
   INTERVIEW_SCHEDULED: "Interview Management",
   NOTIFICATION_SENT: "Notifications",
@@ -47,6 +48,8 @@ export function describeAction(action: string, metadata: unknown): string {
       return `Closed vacancy: ${str(m.title, "Untitled vacancy")}`;
     case "CV_UPLOADED":
       return `Uploaded a CV for ${str(m.name, str(m.email, "a candidate"))}`;
+    case "CV_REPLACED":
+      return `Replaced the CV on file for ${str(m.name, str(m.email, "a candidate"))}`;
     case "FEEDBACK_SUBMITTED":
       return `Submitted feedback for ${str(m.candidateName, "a candidate")}`;
     case "INTERVIEW_SCHEDULED":

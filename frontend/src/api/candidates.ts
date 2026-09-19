@@ -201,24 +201,35 @@ export function extractCvFiles(files: File[]) {
 
 export type ConfirmCvEntry = { fileId: string; name: string; email: string; phoneNumber?: string };
 
-// SCRUM2-30: `matched` is a distinct outcome from `created`/`failed` -- the
-// uploaded CV's email already belongs to an existing candidate in the
-// system, so no new Candidate row was created. `existingVacancies` lists
-// every other vacancy that person has already applied to, so HR sees
-// exactly why this wasn't treated as a brand-new applicant.
+// SCRUM2-30 (duplicate candidate detection): every upload that matches an
+// existing candidate's email comes back as a `matched` entry, purely
+// informational -- see candidate.controller.ts's confirmCvUpload.
+// `alreadyOnThisVacancy` distinguishes a genuine re-application (nothing
+// changed, `applicationId` points at the existing application to link to)
+// from a reuse-on-a-different-vacancy match (the CV/name/phone were already
+// silently updated server-side, and this candidate is also in `created` so
+// the frontend's own apply loop creates the new application and can use
+// that application's id instead).
 export type ConfirmCvResult = {
   createdCount: number;
   matchedCount: number;
   failedCount: number;
   created: { fileId: string; candidateId: number; email: string }[];
-  matched: { fileId: string; candidateId: number; email: string; existingName: string; existingVacancies: string[] }[];
+  matched: {
+    fileId: string;
+    candidateId: number;
+    email: string;
+    existingName: string;
+    alreadyOnThisVacancy: boolean;
+    applicationId: number | null;
+  }[];
   failed: { fileId?: string; error: string }[];
 };
 
-export function confirmCvUpload(candidates: ConfirmCvEntry[]) {
+export function confirmCvUpload(candidates: ConfirmCvEntry[], vacancyId?: number) {
   return apiFetch<ConfirmCvResult>("/candidates/cv-confirm", {
     method: "POST",
-    body: JSON.stringify({ candidates }),
+    body: JSON.stringify({ candidates, vacancyId }),
   });
 }
 
@@ -237,3 +248,4 @@ export async function fetchCvBlobUrl(candidateId: number): Promise<string> {
   const blob = await res.blob();
   return URL.createObjectURL(blob);
 }
+

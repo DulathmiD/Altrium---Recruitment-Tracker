@@ -110,11 +110,15 @@ def test_role_change_disabled_for_own_account():
         _login_admin(driver)
         driver.get(f"{BASE_URL}/admin/users")
         wait_visible(driver, By.CSS_SELECTOR, ".usr-table")
-        my_row = driver.find_elements(By.XPATH, f"//tr[td[contains(text(),'{ACCOUNTS['IT_ADMIN']}')]]")
+        my_row = driver.find_elements(By.XPATH, f"//table[contains(@class,'usr-table')]/tbody/tr[td[contains(text(),'{ACCOUNTS['IT_ADMIN']}')]]")
         if not my_row:
             return report("test_role_change_disabled_for_own_account", True, "own row not found in table, skipped")
-        role_btn = my_row[0].find_element(By.CSS_SELECTOR, "button.usr-role-btn")
-        ok = role_btn.get_attribute("disabled") is not None
+        my_row[0].find_element(By.CSS_SELECTOR, "button.usr-edit-btn").click()
+        wait_visible(driver, By.ID, "pwc-password").send_keys(IT_ADMIN_PASSWORD)
+        driver.find_element(By.CSS_SELECTOR, "button.pwc-confirm-btn").click()
+        role_select = wait_visible(driver, By.ID, "usr-edit-role")
+        ok = role_select.get_attribute("disabled") is not None
+        driver.find_element(By.CSS_SELECTOR, "button.usr-cancel-btn").click()
         return report("test_role_change_disabled_for_own_account", ok)
     finally:
         safe_quit(driver)
@@ -126,10 +130,12 @@ def test_edit_user_shows_deactivate_button_with_password_gate():
         _login_admin(driver)
         driver.get(f"{BASE_URL}/admin/users")
         wait_visible(driver, By.CSS_SELECTOR, ".usr-table")
-        other_row = driver.find_elements(By.XPATH, f"//tr[not(td[contains(text(),'{ACCOUNTS['IT_ADMIN']}')])]")
+        other_row = driver.find_elements(By.XPATH, f"//table[contains(@class,'usr-table')]/tbody/tr[not(td[contains(text(),'{ACCOUNTS['IT_ADMIN']}')])]")
         if not other_row:
             return report("test_edit_user_shows_deactivate_button_with_password_gate", True, "no other users found, skipped")
         other_row[0].find_element(By.CSS_SELECTOR, "button.usr-edit-btn").click()
+        wait_visible(driver, By.ID, "pwc-password").send_keys(IT_ADMIN_PASSWORD)
+        driver.find_element(By.CSS_SELECTOR, "button.pwc-confirm-btn").click()
         toggle_btn = wait_visible(driver, By.CSS_SELECTOR, "button.usr-toggle-btn")
         ok = toggle_btn.text.strip() in ("Deactivate", "Activate")
         toggle_btn.click()

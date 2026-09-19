@@ -304,6 +304,7 @@
 }
 
 .cnd-modal {
+  position: relative;
   background: white;
   border-radius: 12px;
   padding: 24px;
@@ -313,8 +314,29 @@
   font-family: var(--sans);
 }
 
+/* Matches VacanciesPage.css's .vac-modal-close -- same circular X pattern
+   used across the app's other modals (Create Vacancy, Schedule Interview). */
+.cnd-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #f1f2f4;
+  color: var(--altrium-ink-soft);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cnd-modal-close:hover {
+  background: #e4e6e9;
+  color: var(--altrium-black);
+}
+
 .cnd-modal h2 {
-  margin: 0 0 16px;
+  margin: 0 24px 16px 0;
   font-size: 17px;
   color: var(--altrium-black);
 }
@@ -726,62 +748,72 @@
   line-height: 1.5;
 }
 
-/* Duplicate-match notice on CV upload -- centered modal (reuses the shared
-   .cnd-modal-backdrop/.cnd-modal pattern, same as the Upload CV modal) rather
-   than a bottom toast, since HR reported the toast read like a fleeting error
-   and was easy to miss. Can hold multiple rows (one per matched CV in a
-   batch upload), each with a real link through to the application. */
-.cnd-duplicate-modal {
-  width: 440px;
-  text-align: center;
-}
-.cnd-duplicate-modal-icon {
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 14px;
-  border-radius: 50%;
-  background: #fdf2d9;
-  color: var(--altrium-gold-dark);
-  font-family: var(--sans);
-  font-size: 18px;
-  font-weight: 700;
+/* "This candidate was rejected before being shortlisted" notice on the
+   candidate profile page (CandidateDetailPage.tsx) -- laid out as a row
+   (text + button) since there's only one action. */
+.cnd-reconsider-banner {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-}
-.cnd-duplicate-modal h2 {
-  text-align: center;
+  gap: 16px;
+  padding: 14px 16px;
   margin-bottom: 18px;
-}
-.cnd-duplicate-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.cnd-duplicate-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 14px;
-  background: #faf9f7;
-  border: 1px solid var(--altrium-line);
+  background: #fdf2d9;
+  border: 1px solid #f0d999;
   border-radius: 10px;
-  text-align: center;
 }
-.cnd-duplicate-row p {
+.cnd-reconsider-banner p {
   margin: 0;
   font-size: 14px;
   color: var(--altrium-ink);
+  max-width: 70%;
 }
-.cnd-duplicate-link {
+
+/* SCRUM2-30 (duplicate candidate detection): plain informational notice
+   shown after a CV upload matches an existing candidate's email -- a
+   centered modal (reusing .cnd-modal-backdrop/.cnd-modal) rather than a
+   decision to make, since there's nothing to resolve. */
+.cnd-duplicate-modal-icon {
+  display: block;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #fdf2d9;
   color: var(--altrium-gold-dark);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 36px;
+  text-align: center;
+}
+
+.cnd-duplicate-modal h2 {
+  text-align: center;
+  margin: 0 0 16px;
+}
+
+.cnd-duplicate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cnd-duplicate-row {
+  border: 1px solid var(--altrium-line);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.cnd-duplicate-row p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--altrium-ink);
+}
+
+.cnd-duplicate-link {
+  font-size: 13px;
   font-weight: 600;
-  font-size: 13.5px;
+  color: var(--altrium-gold-dark);
   text-decoration: none;
 }
 .cnd-duplicate-link:hover { text-decoration: underline; }
-.cnd-duplicate-modal .cnd-modal-actions {
-  justify-content: center;
-  margin-top: 22px;
-}

@@ -1,0 +1,273 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Use Case - Corrected" id="usecase-corrected">
+    <mxGraphModel dx="1800" dy="1300" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1450" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="boundary" value="Recruitment Tracking System" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontStyle=1;fontSize=18;" vertex="1" parent="1">
+          <mxGeometry x="190" y="20" width="1660" height="1360" as="geometry" />
+        </mxCell>
+
+        <!-- Groups -->
+        <mxCell id="g1" value="Vacancy Management" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="260" width="430" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="Interview Scheduling" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="690" y="260" width="430" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="Hiring Decisions" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="260" width="430" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="g4" value="Candidate Intake &amp; Screening" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="610" width="430" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="g5" value="Interview Feedback" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="690" y="610" width="430" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="g6" value="Candidate Outcomes &amp; History" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="610" width="430" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="g7" value="Dashboards &amp; Reports" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="960" width="890" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="g8" value="Administration" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="960" width="430" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- Shared login -->
+        <mxCell id="ucLogin" value="Log in" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="970" y="70" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ucAuth" value="Authenticate User" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="970" y="170" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- G1 Vacancy Management -->
+        <mxCell id="ucManageVac" value="Manage Vacancies&#10;(create / edit / close)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="310" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucConfigStages" value="Configure Interview Stages" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="470" y="310" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucAssignPanel" value="Assign Interview Panel&#10;(to vacancy pool)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="420" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- G2 Interview Scheduling -->
+        <mxCell id="ucAssignHM" value="Assign Hiring Manager&#10;(per application)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="720" y="310" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucSchedInterview" value="Schedule Interview" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="930" y="310" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucSelectPanel" value="Select Panelists&#10;from Assigned Pool" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="720" y="420" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucCheckConflict" value="Check Scheduling&#10;Conflict (409)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="930" y="420" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucSendNotif" value="Send Interview&#10;Notification" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="825" y="510" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- G3 Hiring Decisions -->
+        <mxCell id="ucViewFeedback" value="View Interview Feedback&#10;(same vacancy)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="310" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucViewFeedbackHistory" value="View Feedback&#10;Edit History" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="310" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucRecommendStage" value="Recommend Stage&#10;Progression" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="420" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucCompareCandidates" value="Compare Shortlisted&#10;Candidates" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="420" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- G4 Candidate Intake & Screening -->
+        <mxCell id="ucUploadCV" value="Upload CVs&#10;(single or bulk)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="660" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucViewAllCandidates" value="View All Candidates&#10;(filter: vacancy, stage,&#10;status, min. score)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="470" y="660" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucExtractReview" value="Extract &amp; Review&#10;CV Data" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="760" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucScreenShortlist" value="Screen &amp; Shortlist /&#10;Reject Candidate" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="470" y="760" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucDetectDup" value="Detect Duplicate&#10;Candidate" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="860" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucViewCV" value="View CV&#10;(stamps last-reviewed)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="470" y="860" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- G5 Interview Feedback -->
+        <mxCell id="ucViewAssigned" value="View Assigned&#10;Candidates &amp; CVs" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="720" y="660" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucViewSchedule" value="View Interview&#10;Schedule" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="930" y="660" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucRecordFeedback" value="Record Interview&#10;Feedback" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="720" y="760" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucEditFeedback" value="Edit Own&#10;Interview Feedback" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="930" y="760" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucEnterReason" value="Enter Reason&#10;for Change" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="825" y="860" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- G6 Candidate Outcomes & History -->
+        <mxCell id="ucSendEmail" value="Send Selection /&#10;Rejection Email" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="660" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucViewAppHistory" value="View Candidate&#10;Application History" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="660" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucRecordFeedbackMod" value="Record Feedback&#10;Modification" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="760" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- G7 Dashboards & Reports -->
+        <mxCell id="ucViewDashboard" value="View Recruitment&#10;Dashboard (own dept.)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="1010" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucMonitorKPIs" value="Monitor Recruitment&#10;KPIs" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1010" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucCandidateProgress" value="View Candidate&#10;Progress" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="660" y="1010" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucGenerateReport" value="Generate Vacancy&#10;Report" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="860" y="1010" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucExportPDF" value="Export Report&#10;as PDF" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="860" y="1110" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucOrgDashboard" value="View Organization-&#10;Wide Dashboard" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="1110" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucFilterDept" value="Filter by&#10;Department" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1110" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucDeptPerformance" value="View Department&#10;Performance" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="660" y="1110" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucHiringTrends" value="View Hiring&#10;Trends" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="260" y="1210" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- G8 Administration -->
+        <mxCell id="ucManageUsers" value="Manage User&#10;Accounts" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="1010" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucAssignRoles" value="Assign User&#10;Roles" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="1010" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucAuditLogs" value="Maintain Audit&#10;Logs" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="1110" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucSysPerf" value="Monitor System&#10;Performance" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="1110" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucNotifTemplates" value="Manage Notification&#10;Templates" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="1210" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ucBackups" value="Manage System&#10;Backups" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="1210" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Actors -->
+        <mxCell id="actHR" value="HR Officer" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="480" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="actInterviewer" value="Interviewer" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="830" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="actHM" value="Hiring Manager" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1900" y="380" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="actManagement" value="Management" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1900" y="1020" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="actLeadership" value="Leadership Management" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1900" y="1150" width="40" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="actITAdmin" value="IT Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1900" y="1280" width="40" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- HR associations -->
+        <mxCell id="e1" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucLogin"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucManageVac"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucAssignPanel"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucUploadCV"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucViewAllCandidates"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucScreenShortlist"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucAssignHM"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucSchedInterview"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucSendEmail"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHR" target="ucViewAppHistory"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Interviewer associations -->
+        <mxCell id="e11" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actInterviewer" target="ucLogin"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actInterviewer" target="ucViewAssigned"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actInterviewer" target="ucViewSchedule"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actInterviewer" target="ucRecordFeedback"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e15" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actInterviewer" target="ucEditFeedback"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Hiring Manager associations -->
+        <mxCell id="e16" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHM" target="ucLogin"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e17" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHM" target="ucViewFeedback"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e18" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHM" target="ucViewFeedbackHistory"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e19" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHM" target="ucRecommendStage"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e20" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actHM" target="ucCompareCandidates"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Management associations -->
+        <mxCell id="e21" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actManagement" target="ucLogin"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e22" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actManagement" target="ucViewDashboard"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e23" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actManagement" target="ucMonitorKPIs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e24" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actManagement" target="ucCandidateProgress"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e25" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actManagement" target="ucGenerateReport"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e26" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actManagement" target="ucViewSchedule"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Leadership associations -->
+        <mxCell id="e27" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actLeadership" target="ucLogin"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e28" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actLeadership" target="ucOrgDashboard"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e29" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actLeadership" target="ucDeptPerformance"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e30" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actLeadership" target="ucHiringTrends"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- IT Admin associations -->
+        <mxCell id="e31" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actITAdmin" target="ucLogin"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e32" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actITAdmin" target="ucManageUsers"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e33" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actITAdmin" target="ucAssignRoles"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e34" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actITAdmin" target="ucAuditLogs"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e35" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actITAdmin" target="ucSysPerf"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e36" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actITAdmin" target="ucNotifTemplates"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e37" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="actITAdmin" target="ucBackups"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Include relationships -->
+        <mxCell id="i1" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucLogin" target="ucAuth"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i2" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucUploadCV" target="ucExtractReview"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i3" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucUploadCV" target="ucDetectDup"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i4" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucScreenShortlist" target="ucViewCV"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i5" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucSchedInterview" target="ucSelectPanel"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i6" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucSchedInterview" target="ucCheckConflict"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i7" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucSchedInterview" target="ucSendNotif"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i8" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucEditFeedback" target="ucEnterReason"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i9" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucEditFeedback" target="ucRecordFeedbackMod"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="i10" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucGenerateReport" target="ucExportPDF"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Extend relationships (arrow points from extension to base) -->
+        <mxCell id="x1" value="&lt;&lt;extend&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucConfigStages" target="ucManageVac"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="x2" value="&lt;&lt;extend&gt;&gt;" style="endArrow=open;dashed=1;html=1;strokeColor=#000000;fontColor=#000000;fontSize=10;" edge="1" parent="1" source="ucFilterDept" target="ucOrgDashboard"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -4,7 +4,10 @@ import { apiFetch } from "./client";
 // application. Interview-round progression and final HIRE/REJECT decisions
 // go through the Hiring Manager's recommendation/decision endpoints instead,
 // not this one (see application.controller.ts updateApplicationStatus).
-export type ApplicationStatusTarget = "SHORTLISTED" | "REJECTED";
+// "APPLIED" is only a valid target for Reconsider (moving a REJECTED,
+// not-finally-decided application back to Unreviewed) -- the backend
+// rejects it for any other current stage.
+export type ApplicationStatusTarget = "SHORTLISTED" | "REJECTED" | "APPLIED";
 
 export function updateApplicationStatus(applicationId: number, status: ApplicationStatusTarget) {
   return apiFetch(`/applications/${applicationId}/status`, {

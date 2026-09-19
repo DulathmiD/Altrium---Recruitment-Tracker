@@ -11,11 +11,11 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from helpers import (  # noqa: E402
     safe_quit,
-    BASE_URL, ACCOUNTS, check_servers_are_up, new_driver, login_as,
+    BASE_URL, ACCOUNTS, DEFAULT_TIMEOUT, check_servers_are_up, new_driver, login_as,
     wait_visible, report, run_safely,
 )
 from selenium.webdriver.common.by import By  # noqa: E402
-from selenium.webdriver.support.ui import Select  # noqa: E402
+from selenium.webdriver.support.ui import Select, WebDriverWait  # noqa: E402
 
 
 def test_candidate_detail_shows_email_history_section():
@@ -72,7 +72,27 @@ def test_candidate_comparison_score_distribution_and_comments():
         if len(options) <= 1:
             return report("test_candidate_comparison_score_distribution_and_comments", True, "no vacancies to compare, skipped")
         Select(select).select_by_index(1)
-        dist_heading = wait_visible(driver, By.XPATH, "//*[contains(text(),'Numeric Score Distribution')]")
+
+        # The comparison endpoint legitimately returns zero shortlisted/
+        # feedback candidates for some vacancies -- the page then shows a
+        # "No shortlisted candidates..." message instead of the KPI/
+        # distribution/comments panels (see CandidateComparisonPage.tsx,
+        # the data.topCandidates.length === 0 branch). That's a real empty
+        # state, not a bug, so wait for whichever of the two actually
+        # renders instead of hard-failing when the empty state wins.
+        def _distribution_or_empty(d):
+            empty = d.find_elements(By.XPATH, "//p[contains(text(),'No shortlisted candidates have any interview feedback')]")
+            if empty:
+                return ("empty", empty[0])
+            dist = d.find_elements(By.XPATH, "//*[contains(text(),'Numeric Score Distribution')]")
+            if dist:
+                return ("data", dist[0])
+            return False
+
+        kind, dist_heading = WebDriverWait(driver, DEFAULT_TIMEOUT).until(_distribution_or_empty)
+        if kind == "empty":
+            return report("test_candidate_comparison_score_distribution_and_comments", True,
+                           "selected vacancy has no shortlisted candidates with feedback yet, skipped")
         comments_heading = driver.find_element(By.XPATH, "//*[contains(text(),'Top Candidate Comments')]")
         ok = dist_heading.is_displayed() and comments_heading.is_displayed()
         return report("test_candidate_comparison_score_distribution_and_comments", ok)

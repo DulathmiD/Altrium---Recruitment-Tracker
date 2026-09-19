@@ -60,7 +60,7 @@ export default function DepartmentVacanciesPage() {
       <div className="dv-divider" />
 
       {!hasDepartment && (
-        <p className="dv-muted">No department is set on your account, so there's nothing to scope this to yet -- ask IT Admin to set your department.</p>
+        <p className="dv-muted">No department is set on your account, so there's nothing to scope this to yet. Ask IT Admin to set your department.</p>
       )}
 
       {hasDepartment && (

@@ -23,6 +23,14 @@ def test_follow_ups_page_loads_all_sections():
     try:
         login_as(driver, ACCOUNTS["HR"], role="HR")
         driver.get(f"{BASE_URL}/hr/follow-ups")
+        # find_elements() never waits and never throws -- called right after
+        # a fresh page load it can return [] before React has rendered
+        # anything, which silently "fails" the test with no exception at
+        # all (exactly what happened here). .fu-title renders synchronously,
+        # but the sections themselves are gated behind an async data fetch
+        # ({!loading && data && (...)}) that finishes later -- so we must
+        # wait for a .fu-section-title itself, not just the page shell.
+        wait_visible(driver, By.CSS_SELECTOR, ".fu-section-title")
         headings = [h.text for h in driver.find_elements(By.CSS_SELECTOR, ".fu-section-title")]
         expected = ["Pending Feedback", "Interview Invites - Interviewers", "Interview Invites - Candidates", "Calls"]
         ok = all(e in headings for e in expected)

@@ -1,0 +1,270 @@
+Table User {
+  id int [pk, increment]
+  name varchar [not null]
+  email varchar [not null, unique]
+  passwordHash varchar [not null]
+  role varchar [not null]
+  department varchar
+  phoneNumber varchar
+  isActive boolean [not null]
+  mustChangePassword boolean [not null]
+  createdAt datetime [not null]
+  resetTokenHash varchar
+  resetTokenExpiresAt datetime
+  lastActiveAt datetime
+}
+
+Table Vacancy {
+  id int [pk, increment]
+  title varchar [not null]
+  department varchar [not null]
+  description text [not null]
+  requirements text
+  preferredSkills text
+  status varchar [not null]
+  createdAt datetime [not null]
+  targetFillDate datetime
+
+  indexes {
+    (title, department) [unique]
+  }
+}
+
+Table VacancyStage {
+  id int [pk, increment]
+  vacancyId int [not null]
+  name varchar [not null]
+  order int [not null]
+
+  indexes {
+    (vacancyId, order) [unique]
+  }
+}
+
+Table VacancyInterviewer {
+  id int [pk, increment]
+  vacancyId int [not null]
+  userId int [not null]
+
+  indexes {
+    (vacancyId, userId) [unique]
+  }
+}
+
+Table InterviewPanel {
+  id int [pk, increment]
+  vacancyId int [not null]
+  name varchar [not null]
+  createdAt datetime [not null]
+
+  indexes {
+    (vacancyId, name) [unique]
+  }
+}
+
+Table InterviewPanelMember {
+  id int [pk, increment]
+  panelId int [not null]
+  userId int [not null]
+
+  indexes {
+    (panelId, userId) [unique]
+  }
+}
+
+Table Candidate {
+  id int [pk, increment]
+  name varchar [not null]
+  email varchar [not null, unique]
+  phoneNumber varchar
+  cvUrl varchar [not null]
+  createdAt datetime [not null]
+  lastCvReviewedByUserId int
+  lastCvReviewedAt datetime
+  lastCvReviewNote text
+  pendingCvFileId varchar [note: 'unused since SCRUM2-30 revert']
+  pendingCvIsIdentical boolean [note: 'unused since SCRUM2-30 revert']
+  pendingCvVacancyId int [note: 'unused since SCRUM2-30 revert']
+}
+
+Table CandidateReviewNote {
+  id int [pk, increment]
+  candidateId int [not null]
+  note text [not null]
+  authorUserId int
+  createdAt datetime [not null]
+
+  Note: 'Kept in schema/migrations but no longer read or written by the app (SCRUM2-30 revert).'
+}
+
+Table CandidateCvVersion {
+  id int [pk, increment]
+  candidateId int [not null]
+  cvUrl varchar [not null]
+  uploadedAt datetime [not null]
+  vacancyTitle varchar
+
+  Note: 'Kept in schema/migrations but no longer read or written by the app (SCRUM2-30 revert).'
+}
+
+Table CandidateApplication {
+  id int [pk, increment]
+  candidateId int [not null]
+  vacancyId int [not null]
+  stage varchar [not null]
+  appliedAt datetime [not null]
+  currentVacancyStageId int
+  hiringDecision varchar
+  decidedByUserId int
+  decidedAt datetime
+  hiringManagerId int
+
+  indexes {
+    (candidateId, vacancyId) [unique]
+  }
+}
+
+Table ApplicationStageHistory {
+  id int [pk, increment]
+  applicationId int [not null]
+  stage varchar
+  vacancyStageId int
+  enteredAt datetime [not null]
+  exitedAt datetime
+  changedByUserId int
+}
+
+Table StageRecommendation {
+  id int [pk, increment]
+  applicationId int [not null]
+  hiringManagerId int [not null]
+  recommendation varchar [not null]
+  comments text
+  createdAt datetime [not null]
+}
+
+Table InterviewSlot {
+  id int [pk, increment]
+  vacancyStageId int [not null]
+  scheduledAt datetime [not null]
+  roundLabel varchar
+  createdAt datetime [not null]
+  reminderSentAt datetime
+}
+
+Table InterviewPanelist {
+  id int [pk, increment]
+  slotId int [not null]
+  userId int [not null]
+
+  indexes {
+    (slotId, userId) [unique]
+  }
+}
+
+Table Interview {
+  id int [pk, increment]
+  slotId int [not null]
+  applicationId int [not null]
+  createdAt datetime [not null]
+
+  indexes {
+    (slotId, applicationId) [unique]
+  }
+}
+
+Table Feedback {
+  id int [pk, increment]
+  interviewId int [not null]
+  interviewerId int [not null]
+  score int [not null]
+  comments text [not null]
+  createdAt datetime [not null]
+
+  indexes {
+    (interviewId, interviewerId) [unique]
+  }
+}
+
+Table FeedbackAuditLog {
+  id int [pk, increment]
+  feedbackId int [not null]
+  editedByUserId int [not null]
+  previousScore int [not null]
+  previousComments text [not null]
+  newScore int [not null]
+  newComments text [not null]
+  reason text [not null]
+  editedAt datetime [not null]
+}
+
+Table AuditLog {
+  id int [pk, increment]
+  userId int [not null]
+  action varchar [not null]
+  entityType varchar [not null]
+  entityId int
+  metadata json
+  createdAt datetime [not null]
+}
+
+Table NotificationTemplate {
+  id int [pk, increment]
+  key varchar [not null, unique]
+  subject varchar [not null]
+  body text [not null]
+  updatedAt datetime [not null]
+  updatedByUserId int
+}
+
+Table Notification {
+  id int [pk, increment]
+  userId int [not null]
+  type varchar [not null]
+  message text [not null]
+  link varchar
+  read boolean [not null]
+  createdAt datetime [not null]
+}
+
+Ref: VacancyStage.vacancyId > Vacancy.id
+Ref: VacancyInterviewer.vacancyId > Vacancy.id
+Ref: InterviewPanel.vacancyId > Vacancy.id
+Ref: CandidateApplication.vacancyId > Vacancy.id
+Ref: Candidate.pendingCvVacancyId > Vacancy.id
+
+Ref: VacancyInterviewer.userId > User.id
+Ref: InterviewPanelMember.userId > User.id
+Ref: Candidate.lastCvReviewedByUserId > User.id
+Ref: CandidateReviewNote.authorUserId > User.id
+Ref: CandidateApplication.decidedByUserId > User.id
+Ref: CandidateApplication.hiringManagerId > User.id
+Ref: ApplicationStageHistory.changedByUserId > User.id
+Ref: StageRecommendation.hiringManagerId > User.id
+Ref: InterviewPanelist.userId > User.id
+Ref: Feedback.interviewerId > User.id
+Ref: FeedbackAuditLog.editedByUserId > User.id
+Ref: AuditLog.userId > User.id
+Ref: NotificationTemplate.updatedByUserId > User.id
+Ref: Notification.userId > User.id
+
+Ref: InterviewPanelMember.panelId > InterviewPanel.id
+
+Ref: CandidateApplication.candidateId > Candidate.id
+Ref: CandidateCvVersion.candidateId > Candidate.id
+Ref: CandidateReviewNote.candidateId > Candidate.id
+
+Ref: CandidateApplication.currentVacancyStageId > VacancyStage.id
+Ref: InterviewSlot.vacancyStageId > VacancyStage.id
+Ref: ApplicationStageHistory.vacancyStageId > VacancyStage.id
+
+Ref: Interview.applicationId > CandidateApplication.id
+Ref: ApplicationStageHistory.applicationId > CandidateApplication.id
+Ref: StageRecommendation.applicationId > CandidateApplication.id
+
+Ref: InterviewPanelist.slotId > InterviewSlot.id
+Ref: Interview.slotId > InterviewSlot.id
+
+Ref: Feedback.interviewId > Interview.id
+
+Ref: FeedbackAuditLog.feedbackId > Feedback.id

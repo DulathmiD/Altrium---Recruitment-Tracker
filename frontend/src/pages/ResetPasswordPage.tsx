@@ -22,7 +22,7 @@ export default function ResetPasswordPage() {
     setError("");
 
     if (!token) {
-      setError("This reset link is missing its token -- use the link from the email exactly as sent.");
+      setError("This reset link is missing its token. Use the link from the email exactly as sent.");
       return;
     }
     if (newPassword.length < 8) {

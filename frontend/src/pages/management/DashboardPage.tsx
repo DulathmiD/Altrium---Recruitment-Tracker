@@ -4,6 +4,15 @@ import "./DashboardPage.css";
 
 type DateRangeFilter = "" | "30" | "90";
 
+// Visual redesign pass, per direct user feedback ("recreate the dashboards
+// ... make it nice and legite and corporate like and proffesional"): same
+// data/instructions as before, just restyled -- same pattern as the Hiring
+// Manager and Leadership dashboards, for a consistent look across every
+// role. Accent colors are pulled straight from the status-pill palette
+// already used across the app (CandidatesPage.css's .cnd-status-* colors),
+// not invented new.
+type ProgressRow = { key: string; label: string; count: number; accent: "green" | "gold" | "red" | "blue" };
+
 export default function DashboardPage() {
   const [data, setData] = useState<ManagementDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +39,35 @@ export default function DashboardPage() {
 
   const hasFilters = useMemo(() => vacancyOptions.length > 0, [vacancyOptions]);
 
+  // Anchors + rounds combined into one comparable list so Recruitment
+  // Progress can render as proportional bars (relative to whichever stage
+  // has the most candidates) instead of a grid of same-size boxes.
+  const progressRows: ProgressRow[] = useMemo(() => {
+    if (!data || !data.hasDepartment) return [];
+    const anchorRows: ProgressRow[] = data.anchors
+      .filter((a) => a.stage !== "APPLIED")
+      .map((a) => ({
+        key: `anchor-${a.stage}`,
+        label: a.label,
+        count: a.candidateCount,
+        accent: a.stage === "HIRED" ? "gold" : a.stage === "REJECTED" ? "red" : "green",
+      }));
+    const roundRows: ProgressRow[] = data.rounds.map((r) => ({
+      key: `round-${r.order}`,
+      label: r.label,
+      count: r.candidateCount,
+      accent: "blue",
+    }));
+    return [...roundRows, ...anchorRows];
+  }, [data]);
+  const maxProgressCount = Math.max(1, ...progressRows.map((r) => r.count));
+
   return (
     <div className="mgd-page">
+      {/* Title styling and the divider below it match VacanciesPage's
+          "Vacancies" heading exactly, per direct user request (applied to
+          HM's dashboard first, mirrored here for a consistent look across
+          all three role dashboards); the descriptive subtitle was dropped. */}
       <h1 className="mgd-title">Department Recruitment</h1>
       <div className="mgd-divider" />
 
@@ -68,19 +104,19 @@ export default function DashboardPage() {
           )}
 
           <div className="mgd-kpi-grid">
-            <div className="mgd-kpi-tile">
+            <div className="mgd-kpi-tile mgd-kpi-tile--blue">
               <div className="mgd-kpi-label">Open Vacancies</div>
               <div className="mgd-kpi-value">{data.openVacancies}</div>
             </div>
-            <div className="mgd-kpi-tile">
+            <div className="mgd-kpi-tile mgd-kpi-tile--gold">
               <div className="mgd-kpi-label">Active Candidates</div>
               <div className="mgd-kpi-value">{data.activeCandidates}</div>
             </div>
-            <div className="mgd-kpi-tile">
+            <div className="mgd-kpi-tile mgd-kpi-tile--green">
               <div className="mgd-kpi-label">Hires This Month</div>
               <div className="mgd-kpi-value">{data.hiresThisMonth}</div>
             </div>
-            <div className="mgd-kpi-tile">
+            <div className="mgd-kpi-tile mgd-kpi-tile--red">
               <div className="mgd-kpi-label">Rejected</div>
               <div className="mgd-kpi-value">{data.rejected}</div>
             </div>
@@ -90,22 +126,20 @@ export default function DashboardPage() {
               Ups tab -- it was actionable watch-list content sitting next to
               an overview panel, and duplicated ground the Candidate Progress
               page already covers in more detail. */}
-          <div className="mgd-progress-col">
+          <div className="mgd-panel">
             <h2 className="mgd-section-title">Recruitment Progress</h2>
             <p className="mgd-muted">Across every vacancy in your department.</p>
-            <div className="mgd-progress-grid">
-              {data.anchors
-                .filter((a) => a.stage !== "APPLIED")
-                .map((a) => (
-                  <div key={a.stage} className="mgd-progress-tile">
-                    <div className="mgd-progress-value">{a.candidateCount}</div>
-                    <div className="mgd-kpi-label">{a.label}</div>
+            <div className="mgd-progress-list">
+              {progressRows.map((r) => (
+                <div key={r.key} className="mgd-progress-row">
+                  <span className="mgd-progress-row-label">{r.label}</span>
+                  <div className="mgd-progress-row-track">
+                    <div
+                      className={`mgd-progress-row-fill mgd-progress-row-fill--${r.accent}`}
+                      style={{ width: `${Math.max(4, (r.count / maxProgressCount) * 100)}%` }}
+                    />
                   </div>
-                ))}
-              {data.rounds.map((r) => (
-                <div key={r.order} className="mgd-progress-tile">
-                  <div className="mgd-progress-value">{r.candidateCount}</div>
-                  <div className="mgd-kpi-label">{r.label}</div>
+                  <span className="mgd-progress-row-value">{r.count}</span>
                 </div>
               ))}
             </div>

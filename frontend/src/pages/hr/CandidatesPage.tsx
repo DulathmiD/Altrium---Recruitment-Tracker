@@ -13,7 +13,6 @@ import {
 } from "../../api/candidates";
 import { listVacancies, type Vacancy } from "../../api/vacancy";
 import { listVacancyStages } from "../../api/vacancyStages";
-import { ApiError } from "../../api/client";
 import Toast from "../../components/Toast";
 import "./CandidatesPage.css";
 
@@ -105,6 +104,19 @@ type ReviewRow = ExtractedCvFile & {
 
 type UploadStep = "select" | "review";
 
+// SCRUM2-30 (duplicate candidate detection): one entry per existing-candidate
+// email match a confirmCvUpload batch produced -- purely informational, shown
+// in a separate centered modal once the upload modal closes so HR can click
+// through and confirm it's really the same person. `applicationId` is the
+// application to link to when known (always known for a same-vacancy match;
+// for a cross-vacancy match it's filled in from the apply loop below, once
+// the new application has actually been created).
+type DuplicateMatch = {
+  fileId: string;
+  message: string;
+  applicationId: number | null;
+};
+
 export default function CandidatesPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -179,16 +191,10 @@ export default function CandidatesPage() {
   const [reviewRows, setReviewRows] = useState<ReviewRow[]>([]);
   const [uploadToast, setUploadToast] = useState<string | null>(null);
   const [confirmFailNotice, setConfirmFailNotice] = useState<string | null>(null);
-  // SCRUM2-30: separate from confirmFailNotice on purpose -- a matched
-  // duplicate isn't a failure, the application still gets created. Holds one
-  // entry per matched CV (not a joined string) so each can link straight to
-  // the existing candidate's newly-linked application instead of just
-  // naming them in text -- HR asked to be able to click through and check
-  // it's really the same person, not just be told so.
-  const [duplicateMatches, setDuplicateMatches] = useState<
-    { applicationId: number; name: string; existingVacancies: string[]; alreadyOnThisVacancy: boolean }[]
-  >([]);
   const [confirming, setConfirming] = useState(false);
+  // SCRUM2-30: existing-candidate matches from the most recent upload batch,
+  // shown in their own centered modal once the upload modal closes.
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[] | null>(null);
   // Frontend-corrections pass: real drag-and-drop dropzone (dragActive is
   // just hover styling while a drag is over it) and files that failed the
   // PDF-only check server-side -- shown as a persistent "Failed" row rather
@@ -331,6 +337,7 @@ export default function CandidatesPage() {
     setShowFailedNotice(false);
     setConfirmFailNotice(null);
     setDragActive(false);
+    setDuplicateMatches(null);
     setUploadOpen(true);
   }
 
@@ -427,15 +434,9 @@ export default function CandidatesPage() {
     setConfirming(true);
     setUploadError("");
     setConfirmFailNotice(null);
-    setDuplicateMatches([]);
     let successCount = 0;
     const failReasons: string[] = [];
-    const newDuplicateMatches: {
-      applicationId: number;
-      name: string;
-      existingVacancies: string[];
-      alreadyOnThisVacancy: boolean;
-    }[] = [];
+
     try {
       const result = await confirmCvUpload(
         reviewRows.map((r) => ({
@@ -443,99 +444,53 @@ export default function CandidatesPage() {
           name: r.name.trim(),
           email: r.email.trim(),
           ...(r.phoneNumber.trim() ? { phoneNumber: r.phoneNumber.trim() } : {}),
-        }))
+        })),
+        vacancyId
       );
 
-      // Newly created candidates: apply them to the chosen vacancy.
-      for (const created of result.created) {
+      // Every entry in `created` gets applied to the vacancy -- brand-new
+      // candidates and existing candidates reused for a genuinely different
+      // vacancy both land here (see candidate.controller.ts's
+      // confirmCvUpload); neither can conflict, since a same-vacancy match
+      // never reaches `created` at all. Tracked by candidateId so a
+      // same-email-different-vacancy match's `matched` entry below can link
+      // to the application id this loop just created for it.
+      const applicationIdByCandidateId = new Map<number, number>();
+      for (const c of result.created) {
         try {
-          await applyCandidateToVacancy(vacancyId, created.candidateId);
+          const application = await applyCandidateToVacancy(vacancyId, c.candidateId);
+          applicationIdByCandidateId.set(c.candidateId, application.id);
           successCount++;
         } catch (err) {
           failReasons.push(err instanceof Error ? err.message : "Could not apply this candidate to the vacancy");
         }
       }
 
-      // SCRUM2-30 (duplicate candidate detection): the backend already
-      // detected these emails belong to an existing candidate and did not
-      // create a second Candidate row (see candidate.controller.ts). Apply
-      // the existing record to this vacancy, and explicitly tell HR this CV
-      // matched someone already in the system -- "warn, don't block" means
-      // HR is informed, not that the app pretends nothing happened.
-      for (const match of result.matched) {
-        try {
-          const application = await applyCandidateToVacancy(vacancyId, match.candidateId);
-          successCount++;
-          // Link straight to the application this CV just got attached to
-          // (application.id), not just name the match in text -- HR asked to
-          // be able to click through and confirm it's really the same
-          // person rather than take the match on faith.
-          newDuplicateMatches.push({
-            applicationId: application.id,
-            name: match.existingName,
-            existingVacancies: match.existingVacancies,
-            alreadyOnThisVacancy: false,
-          });
-        } catch (err) {
-          // This specific person has already applied to THIS vacancy before
-          // (re-uploading the same CV a second time, or two files in one
-          // batch resolving to the same email) -- previously just a dead-end
-          // "already uploaded" text notice. The backend now names the
-          // existing application's id on this exact 409
-          // (application.controller.ts's applyCandidateToVacancy), so this
-          // can link straight to it instead, same as a cross-vacancy match.
-          const existingApplicationId =
-            err instanceof ApiError && err.data && typeof err.data === "object"
-              ? (err.data as { existingApplicationId?: number | null }).existingApplicationId
-              : null;
-          if (existingApplicationId) {
-            newDuplicateMatches.push({
-              applicationId: existingApplicationId,
-              name: match.existingName,
-              existingVacancies: match.existingVacancies,
-              alreadyOnThisVacancy: true,
-            });
-          } else {
-            failReasons.push(err instanceof Error ? err.message : "Could not apply this candidate to the vacancy");
-          }
-        }
-      }
+      // SCRUM2-30 (duplicate candidate detection): an existing-candidate
+      // email match is purely informational here -- nothing left to decide,
+      // just a notice HR can click through on to confirm it's the same
+      // person. Shown in its own modal once this one closes.
+      const matches: DuplicateMatch[] = result.matched.map((m) => ({
+        fileId: m.fileId,
+        message: m.alreadyOnThisVacancy
+          ? `${m.existingName} has already applied to this vacancy.`
+          : `${m.existingName} already has a candidate profile and has also applied to this vacancy.`,
+        applicationId: m.alreadyOnThisVacancy ? m.applicationId : applicationIdByCandidateId.get(m.candidateId) ?? null,
+      }));
 
-      // Failed creates: whatever the backend-reported reason (missing
-      // fields, expired upload), kept verbatim so the notice below can name
-      // the actual cause instead of a vague fallback.
       for (const failure of result.failed) {
         failReasons.push(failure.error);
       }
 
-      if (newDuplicateMatches.length > 0) {
-        setDuplicateMatches(newDuplicateMatches);
-      }
-
-      // Single toast instead of a separate "Upload Complete" summary step --
-      // per user feedback, HR just wants confirmation, not a per-file list.
-      // Kept strictly separate from failures: the success toast never
-      // mentions failed counts -- any failure instead surfaces via the same
-      // red notice style used for the "PDF only" rejection in the select
-      // step, per user feedback. The notice names the actual reason instead
-      // of a generic phrase -- other backend-reported reasons (e.g. an
-      // expired upload) are shown as-is rather than invented. A candidate
-      // who's already applied to THIS vacancy is no longer counted as a
-      // failure at all -- see the matched-loop catch above, it's routed into
-      // duplicateMatches (a clickable link to their existing application)
-      // instead, so it doesn't inflate failReasons or need special-casing
-      // here anymore.
-      const total = successCount + failReasons.length;
+      const total = successCount + matches.length + failReasons.length;
       if (failReasons.length === 0) {
-        // successCount can legitimately be 0 here if every file in the batch
-        // turned out to already have an application on this vacancy (all
-        // caught by duplicateMatches, none of them a real failure) -- don't
-        // claim a false "Successfully uploaded 0 CVs" in that case, let the
-        // duplicateMatches panel alone explain what happened.
         if (successCount > 0) {
-          setUploadToast(`Successfully uploaded ${total} ${total === 1 ? "CV" : "CVs"}.`);
+          setUploadToast(`Successfully uploaded ${successCount} ${successCount === 1 ? "CV" : "CVs"}.`);
         }
         setUploadOpen(false);
+        if (matches.length > 0) {
+          setDuplicateMatches(matches);
+        }
       } else {
         // Keep the modal open on failure instead of closing it -- the notice
         // is shown inline in the review step, same as the "PDF only"
@@ -546,6 +501,9 @@ export default function CandidatesPage() {
             ? uniqueReasons[0]
             : `${failReasons.length} of ${total} CVs could not be uploaded: ${uniqueReasons.join("; ")}`;
         setConfirmFailNotice(message);
+        if (matches.length > 0) {
+          setDuplicateMatches(matches);
+        }
       }
 
       await refresh(currentFilters());
@@ -833,6 +791,37 @@ export default function CandidatesPage() {
         </div>
       )}
 
+      {/* SCRUM2-30 (duplicate candidate detection): a plain informational
+          notice for every existing-candidate email match the most recent
+          upload produced -- shown as its own centered modal once the upload
+          modal closes, since it's no longer something HR needs to resolve. */}
+      {duplicateMatches && duplicateMatches.length > 0 && (
+        <div className="cnd-modal-backdrop" onClick={() => setDuplicateMatches(null)}>
+          <div className="cnd-modal cnd-duplicate-modal" onClick={(e) => e.stopPropagation()}>
+            <span className="cnd-duplicate-modal-icon">!</span>
+            <h2>{duplicateMatches.length > 1 ? "Existing candidates found" : "Existing candidate found"}</h2>
+            <div className="cnd-duplicate-list">
+              {duplicateMatches.map((m) => (
+                <div key={m.fileId} className="cnd-duplicate-row">
+                  <p>{m.message}</p>
+                  {m.applicationId !== null && (
+                    <Link
+                      to={`/hr/candidates/${m.applicationId}`}
+                      className="cnd-duplicate-link"
+                      onClick={() => setDuplicateMatches(null)}
+                    >
+                      View their profile &rarr;
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="cnd-modal-actions">
+              <button className="cnd-cancel-btn" onClick={() => setDuplicateMatches(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {uploadToast && (
         <Toast message={uploadToast} duration={8000} dismissible onClose={() => setUploadToast(null)} />
@@ -840,56 +829,6 @@ export default function CandidatesPage() {
 
       {decisionToast && (
         <Toast message={decisionToast} duration={6000} dismissible onClose={() => setDecisionToast(null)} />
-      )}
-
-      {/* SCRUM2-30: rendered as a centered modal (unlike confirmFailNotice)
-          because a duplicate match isn't a failure -- the upload modal already
-          closed on the success path by the time this needs to be seen, and a
-          bottom toast was easy to miss/misread as an error. No auto-dismiss:
-          this is worth HR actually reading, not a one-line confirmation that
-          can flash by. One row per match rather than a single joined message,
-          each a real link to the application this CV just got attached to --
-          so HR can click through and check it's really the same person
-          instead of taking the match on faith. Reuses this file's existing
-          .cnd-modal-backdrop/.cnd-modal pattern (same as the Upload CV modal)
-          since a batch upload can produce more than one match at once. */}
-      {duplicateMatches.length > 0 && (
-        <div className="cnd-modal-backdrop" onClick={() => setDuplicateMatches([])}>
-          <div
-            className="cnd-modal cnd-duplicate-modal"
-            role="alertdialog"
-            aria-labelledby="cnd-duplicate-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="cnd-duplicate-modal-icon" aria-hidden="true">!</div>
-            <h2 id="cnd-duplicate-modal-title">
-              {duplicateMatches.length === 1 ? "Existing candidate found" : "Existing candidates found"}
-            </h2>
-            <div className="cnd-duplicate-list">
-              {duplicateMatches.map((m) => (
-                <div key={m.applicationId} className="cnd-duplicate-row">
-                  <p>
-                    {m.alreadyOnThisVacancy
-                      ? `${m.name} has already applied to this vacancy.`
-                      : `${m.name} already has a candidate profile${
-                          m.existingVacancies.length > 0 ? ` and has also applied to ${m.existingVacancies.join(", ")}` : ""
-                        }.`}
-                  </p>
-                  <Link
-                    to={`/hr/candidates/${m.applicationId}`}
-                    className="cnd-duplicate-link"
-                    onClick={() => setDuplicateMatches([])}
-                  >
-                    View their profile &rarr;
-                  </Link>
-                </div>
-              ))}
-            </div>
-            <div className="cnd-modal-actions">
-              <button className="cnd-cancel-btn" onClick={() => setDuplicateMatches([])}>Close</button>
-            </div>
-          </div>
-        </div>
       )}
 
     </div>

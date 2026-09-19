@@ -72,15 +72,15 @@ export default function SystemPage() {
       {data && (
         <div className="sys-content">
           <div className="sys-kpi-grid">
-            <div className="sys-kpi-tile">
+            <div className="sys-kpi-tile sys-kpi-tile--blue">
               <div className="sys-kpi-label">Server Load</div>
               <div className="sys-kpi-value">{data.serverLoadPercent}%</div>
             </div>
-            <div className="sys-kpi-tile">
+            <div className="sys-kpi-tile sys-kpi-tile--gold">
               <div className="sys-kpi-label">Response Time</div>
               <div className="sys-kpi-value">{data.responseTimeMs !== null ? `${data.responseTimeMs}ms` : "—"}</div>
             </div>
-            <div className="sys-kpi-tile">
+            <div className="sys-kpi-tile sys-kpi-tile--green">
               <div className="sys-kpi-label">Concurrent Users</div>
               <div className="sys-kpi-value">{data.concurrentUsers}</div>
             </div>
