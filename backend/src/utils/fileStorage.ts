@@ -1,29 +1,44 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Storage } from "@google-cloud/storage";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  CopyObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // Local-disk storage for uploaded CV files, kept behind this module so the
 // backing store can be swapped for cloud storage later without touching any
 // controller code -- every read/write of a CV file goes through here, same
 // choke-point pattern as writeAuditLog()/sendEmail().
 //
-// Falls back to local disk when GCS_BUCKET_NAME isn't set (local dev), same
+// Falls back to local disk when B2_BUCKET_NAME isn't set (local dev), same
 // pattern as SMTP_* falling back to console-logging emails when
 // unconfigured (see docs/cloud-deployment-guide.md). Deployed environments
-// set GCS_BUCKET_NAME to use Google Cloud Storage instead, which persists
-// independently of the compute instance -- fixes R-02 in the risk register
-// (CVs on local disk are lost every time Render's free-plan disk resets).
+// set B2_* to use Backblaze B2 instead, which persists independently of the
+// compute instance -- fixes R-02 in the risk register (CVs on local disk
+// are lost every time Render's free-plan disk resets).
+//
+// Backblaze B2 exposes an S3-compatible API, so this uses the standard AWS
+// S3 SDK pointed at B2's endpoint rather than a Backblaze-specific SDK --
+// same client would work unchanged against real AWS S3 or Cloudflare R2 too,
+// only the endpoint/credentials differ.
 const CV_DIR = path.join(process.cwd(), "uploads", "cvs");
-const GCS_BUCKET_NAME = process.env.GCS_BUCKET_NAME;
+const B2_BUCKET_NAME = process.env.B2_BUCKET_NAME;
+const B2_ENDPOINT = process.env.B2_ENDPOINT; // e.g. https://s3.eu-central-003.backblazeb2.com
+const B2_REGION = process.env.B2_REGION; // e.g. eu-central-003 (the segment in the endpoint above)
+const B2_KEY_ID = process.env.B2_KEY_ID; // Backblaze "keyID"
+const B2_APPLICATION_KEY = process.env.B2_APPLICATION_KEY; // Backblaze "applicationKey"
 
-const storage = GCS_BUCKET_NAME
-  ? new Storage(
-      process.env.GCS_KEYFILE_JSON
-        ? { credentials: JSON.parse(process.env.GCS_KEYFILE_JSON) }
-        : undefined // falls back to Application Default Credentials if unset
-    )
+const s3 = B2_BUCKET_NAME
+  ? new S3Client({
+      endpoint: B2_ENDPOINT,
+      region: B2_REGION,
+      credentials: { accessKeyId: B2_KEY_ID!, secretAccessKey: B2_APPLICATION_KEY! },
+    })
   : null;
-const bucket = storage && GCS_BUCKET_NAME ? storage.bucket(GCS_BUCKET_NAME) : null;
 
 async function ensureDir(): Promise<void> {
   await fs.mkdir(CV_DIR, { recursive: true });
@@ -44,8 +59,8 @@ function resolveSafePath(filename: string): string {
 }
 
 export async function saveFile(buffer: Buffer, filename: string): Promise<void> {
-  if (bucket) {
-    await bucket.file(filename).save(buffer);
+  if (s3) {
+    await s3.send(new PutObjectCommand({ Bucket: B2_BUCKET_NAME, Key: filename, Body: buffer }));
     return;
   }
   await ensureDir();
@@ -53,17 +68,22 @@ export async function saveFile(buffer: Buffer, filename: string): Promise<void> 
 }
 
 export async function getFile(filename: string): Promise<Buffer> {
-  if (bucket) {
-    const [contents] = await bucket.file(filename).download();
-    return contents;
+  if (s3) {
+    const res = await s3.send(new GetObjectCommand({ Bucket: B2_BUCKET_NAME, Key: filename }));
+    const bytes = await res.Body!.transformToByteArray();
+    return Buffer.from(bytes);
   }
   return fs.readFile(resolveSafePath(filename));
 }
 
 export async function fileExists(filename: string): Promise<boolean> {
-  if (bucket) {
-    const [exists] = await bucket.file(filename).exists();
-    return exists;
+  if (s3) {
+    try {
+      await s3.send(new HeadObjectCommand({ Bucket: B2_BUCKET_NAME, Key: filename }));
+      return true;
+    } catch {
+      return false;
+    }
   }
   try {
     await fs.access(resolveSafePath(filename));
@@ -74,11 +94,17 @@ export async function fileExists(filename: string): Promise<boolean> {
 }
 
 export async function renameFile(oldFilename: string, newFilename: string): Promise<void> {
-  if (bucket) {
-    // GCS has no native rename -- copy then delete the original, same net
-    // effect as fs.rename() below.
-    await bucket.file(oldFilename).copy(bucket.file(newFilename));
-    await bucket.file(oldFilename).delete();
+  if (s3) {
+    // S3-compatible APIs have no native rename -- copy then delete the
+    // original, same net effect as fs.rename() below.
+    await s3.send(
+      new CopyObjectCommand({
+        Bucket: B2_BUCKET_NAME,
+        CopySource: `${B2_BUCKET_NAME}/${oldFilename}`,
+        Key: newFilename,
+      })
+    );
+    await s3.send(new DeleteObjectCommand({ Bucket: B2_BUCKET_NAME, Key: oldFilename }));
     return;
   }
   await ensureDir();
@@ -86,11 +112,11 @@ export async function renameFile(oldFilename: string, newFilename: string): Prom
 }
 
 export async function deleteFile(filename: string): Promise<void> {
-  if (bucket) {
+  if (s3) {
     try {
-      await bucket.file(filename).delete();
+      await s3.send(new DeleteObjectCommand({ Bucket: B2_BUCKET_NAME, Key: filename }));
     } catch (err: any) {
-      if (err.code !== 404) throw err;
+      if (err.name !== "NotFound" && err.$metadata?.httpStatusCode !== 404) throw err;
     }
     return;
   }
