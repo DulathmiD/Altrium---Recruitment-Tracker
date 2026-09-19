@@ -1,9 +1,13 @@
 import type { Request, Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
+import { ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { prisma } from "../prisma.js";
 import { getAverageResponseTimeMs, getServerLoadPercent } from "../utils/systemMetrics.js";
 import { runBackupNow } from "../jobs/backupJob.js";
+import { cloudClient, cloudBucketName } from "../utils/fileStorage.js";
+
+const CLOUD_BACKUP_PREFIX = "backups/";
 
 // "Concurrent users" has no real session-tracking to read from (auth is
 // stateless JWT, no server-side session table) -- the closest honest proxy
@@ -33,7 +37,31 @@ const ACTIVE_USERS_WINDOW_MS = 10 * 60 * 1000;
 // instead -- see backupJob.ts's runBackupNow()).
 const BACKUP_DIR = path.join(process.cwd(), "backups");
 
-function readBackupHistory(limit: number): { at: string; status: "successful"; filename: string; sizeBytes: number }[] {
+// Prefers listing cloud backups when B2 is configured -- BACKUP_DIR lives on
+// Render's disk, which is wiped on restart, so right after any restart the
+// local listing would misleadingly show no history at all even though real
+// backups exist safely in B2. Falls back to the local listing only when no
+// cloud storage is configured (e.g. local dev).
+async function readBackupHistory(limit: number): Promise<{ at: string; status: "successful"; filename: string; sizeBytes: number }[]> {
+  if (cloudClient) {
+    try {
+      const listed = await cloudClient.send(new ListObjectsV2Command({ Bucket: cloudBucketName, Prefix: CLOUD_BACKUP_PREFIX }));
+      return (listed.Contents ?? [])
+        .filter((obj) => obj.Key?.endsWith(".sql"))
+        .map((obj) => ({
+          at: (obj.LastModified ?? new Date(0)).toISOString(),
+          status: "successful" as const,
+          filename: obj.Key!.slice(CLOUD_BACKUP_PREFIX.length),
+          sizeBytes: obj.Size ?? 0,
+        }))
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+        .slice(0, limit);
+    } catch (err) {
+      console.error("Could not list cloud backup history:", err);
+      return [];
+    }
+  }
+
   let entries: string[];
   try {
     entries = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith(".sql"));
@@ -65,7 +93,7 @@ export async function getSystemMetrics(_req: Request, res: Response) {
       orderBy: { lastActiveAt: "desc" },
     });
 
-    const history = readBackupHistory(BACKUP_HISTORY_LIMIT);
+    const history = await readBackupHistory(BACKUP_HISTORY_LIMIT);
 
     res.json({
       serverLoadPercent: getServerLoadPercent(),

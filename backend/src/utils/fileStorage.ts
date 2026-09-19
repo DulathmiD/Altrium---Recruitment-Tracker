@@ -40,6 +40,15 @@ const s3 = B2_BUCKET_NAME
     })
   : null;
 
+// Exposed so another module needing the same B2 bucket for a different
+// purpose (backupJob.ts, storing database dumps under a "backups/" prefix
+// in the same bucket) can reuse this one client/bucket instead of parsing
+// the same five B2_* env vars a second time. Null when B2 isn't configured,
+// same meaning as everywhere else in this file -- callers should fall back
+// to local-disk behaviour of their own when this is null.
+export const cloudClient = s3;
+export const cloudBucketName = B2_BUCKET_NAME;
+
 async function ensureDir(): Promise<void> {
   await fs.mkdir(CV_DIR, { recursive: true });
 }

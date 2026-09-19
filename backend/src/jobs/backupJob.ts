@@ -22,9 +22,21 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import fs from "node:fs";
 import path from "node:path";
+import { PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { prisma } from "../prisma.js";
 import { Role } from "../../generated/prisma/index.js";
 import { writeAuditLog } from "../utils/auditLog.js";
+import { cloudClient, cloudBucketName } from "../utils/fileStorage.js";
+
+// Local dump files still get written to BACKUP_DIR below regardless of
+// cloud config -- that part is unchanged from before. But BACKUP_DIR lives
+// on Render's disk, which is wiped on every restart/redeploy (same root
+// cause as R-02 for CVs, before that was fixed). A backup that only exists
+// on the same disk that just got wiped isn't a backup. So when B2 is
+// configured (reusing the same bucket/credentials CVs already use, under a
+// "backups/" prefix -- no separate bucket needed), each dump is also
+// uploaded there, which is what actually survives a restart.
+const CLOUD_BACKUP_PREFIX = "backups/";
 
 const execFileAsync = promisify(execFile);
 
@@ -92,7 +104,25 @@ export async function runBackupNow(opts: { actorUserId?: number; trigger?: "sche
     );
     fs.writeFileSync(filePath, stdout);
     console.log(`Backup job: wrote ${filePath} (${(stdout.length / 1024).toFixed(1)} KB).`);
+
+    if (cloudClient) {
+      try {
+        await cloudClient.send(
+          new PutObjectCommand({ Bucket: cloudBucketName, Key: `${CLOUD_BACKUP_PREFIX}${filename}`, Body: Buffer.from(stdout) })
+        );
+        console.log(`Backup job: also uploaded ${filename} to cloud storage (${CLOUD_BACKUP_PREFIX}).`);
+      } catch (err) {
+        // A cloud upload failure shouldn't fail the whole backup run -- the
+        // local copy still exists (until the next restart), and the next
+        // scheduled run will try again. Logged loudly since this is exactly
+        // the kind of silent failure that made the local-only version look
+        // fine until someone actually needed a backup.
+        console.error(`Backup job: local dump succeeded but cloud upload failed for ${filename}:`, err);
+      }
+    }
+
     pruneOldBackups();
+    if (cloudClient) await pruneOldCloudBackups();
 
     let actorUserId = opts.actorUserId;
     if (actorUserId === undefined) {
@@ -136,6 +166,25 @@ function pruneOldBackups(): void {
     } catch (err) {
       console.error(`Backup job: could not prune ${full}:`, err);
     }
+  }
+}
+
+// Same 14-day retention as pruneOldBackups() above, applied to the cloud
+// copies instead. Needed separately -- the two live in different places and
+// nothing else clears out old cloud backups.
+async function pruneOldCloudBackups(): Promise<void> {
+  const cutoff = Date.now() - RETENTION_DAYS * MS_PER_DAY;
+  try {
+    const listed = await cloudClient!.send(
+      new ListObjectsV2Command({ Bucket: cloudBucketName, Prefix: CLOUD_BACKUP_PREFIX })
+    );
+    for (const obj of listed.Contents ?? []) {
+      if (obj.Key && obj.LastModified && obj.LastModified.getTime() < cutoff) {
+        await cloudClient!.send(new DeleteObjectCommand({ Bucket: cloudBucketName, Key: obj.Key }));
+      }
+    }
+  } catch (err) {
+    console.error("Backup job: could not prune old cloud backups:", err);
   }
 }
 
