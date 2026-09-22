@@ -5,6 +5,7 @@ import { prisma } from "../prisma.js";
 import { signToken } from "../utils/jwt.js";
 import { sendEmail } from "../utils/mailer.js";
 import { renderTemplate } from "../utils/notificationTemplates.js";
+import { withDbRetry } from "../utils/dbRetry.js";
 import { Role } from "../../generated/prisma/index.js";
 
 const GENERIC_ERROR = "Invalid email or password";
@@ -32,7 +33,15 @@ export async function login(req: Request, res: Response) {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email }, omit: { passwordHash: false } });
+    // Wrapped in a single retry: a pooled DB connection that's gone stale
+    // after the app (and a free-tier host) sat idle for a while otherwise
+    // throws on the very first query after waking back up, surfacing as a
+    // 500 on login for no real reason. One retry after a short delay lets
+    // the pool replace the dead connection transparently; a second failure
+    // still falls through to the catch block below as a real error.
+    const user = await withDbRetry(() =>
+      prisma.user.findUnique({ where: { email }, omit: { passwordHash: false } })
+    );
     if (!user) {
       return res.status(401).json({ error: GENERIC_ERROR });
     }
@@ -72,7 +81,15 @@ export async function adminLogin(req: Request, res: Response) {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email }, omit: { passwordHash: false } });
+    // Wrapped in a single retry: a pooled DB connection that's gone stale
+    // after the app (and a free-tier host) sat idle for a while otherwise
+    // throws on the very first query after waking back up, surfacing as a
+    // 500 on login for no real reason. One retry after a short delay lets
+    // the pool replace the dead connection transparently; a second failure
+    // still falls through to the catch block below as a real error.
+    const user = await withDbRetry(() =>
+      prisma.user.findUnique({ where: { email }, omit: { passwordHash: false } })
+    );
     if (!user) {
       return res.status(401).json({ error: GENERIC_ERROR });
     }
