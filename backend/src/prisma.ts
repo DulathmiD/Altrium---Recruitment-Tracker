@@ -21,13 +21,29 @@ const requiresSsl =
   parsedUrl.searchParams.get("sslmode") === "require" ||
   parsedUrl.searchParams.get("ssl") === "true";
 
+// Bug fix #2: `ssl: { rejectUnauthorized: true }` alone wasn't enough --
+// Aiven's MySQL cert chain isn't trusted by Node's default CA store, so
+// the TLS handshake was still failing. Worse, the `mariadb` package's
+// createPool() installs a no-op `pool.on('error', () => {})` handler
+// specifically so a connection error can't crash the whole process, which
+// meant the real TLS error was being silently swallowed -- callers only
+// ever saw a generic "pool timeout: failed to retrieve a connection from
+// pool after 10000ms (active=0 idle=0)" with no hint that TLS was the
+// actual problem. Fix: pass Aiven's own CA certificate (from its Overview
+// page -> "CA certificate" -> Show) via DB_CA_CERT, so Node validates
+// against the actual issuing CA instead of the public trust store it's
+// not part of.
+const caCert = process.env["DB_CA_CERT"];
+
 const adapter = new PrismaMariaDb({
   host: parsedUrl.hostname,
   port: parsedUrl.port ? Number(parsedUrl.port) : 3306,
   user: decodeURIComponent(parsedUrl.username),
   password: decodeURIComponent(parsedUrl.password),
   database: parsedUrl.pathname.replace(/^\//, ""),
-  ...(requiresSsl ? { ssl: { rejectUnauthorized: true } } : {}),
+  ...(requiresSsl
+    ? { ssl: caCert ? { ca: caCert, rejectUnauthorized: true } : { rejectUnauthorized: true } }
+    : {}),
 });
 
 // Global omit: every query returns User rows without these fields, no matter which
