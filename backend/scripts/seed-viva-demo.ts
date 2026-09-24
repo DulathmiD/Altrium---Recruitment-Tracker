@@ -1154,7 +1154,7 @@ async function main() {
     vacancy: finance, stage: financeStage1, score: 7, comment: "Good technical depth, slightly light on stakeholder-facing examples.",
     appliedDaysAgo: 11, interviewDaysAgo: 6,
   });
-  await ensureFillerCandidate({
+  const anya = await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Anya Petrenko", email: "anya.petrenko@example.com", phone: "+44 7700 900138", location: "Glasgow, UK",
     headline: "Financial Analyst", company: "Kestrel Partners", bullet: "Automated the quarterly board reporting pack, saving 2 days per cycle.",
@@ -1162,6 +1162,20 @@ async function main() {
     vacancy: finance, stage: financeStage1, score: 9, comment: "Best case study of the round -- crisp, structured, owned the numbers.",
     appliedDaysAgo: 7, interviewDaysAgo: 2,
   });
+  // Anya is the one candidate here who's actually progressed to round 2
+  // (Final Interview) -- Ingrid/Julian/Grace/Samuel all stay at round 1
+  // ("mid-stage"), giving this vacancy a genuine, demonstrable contrast
+  // between mid-stage and near-final progress for the Candidates list and
+  // Candidate Comparison (which ranks on the LATEST round with feedback, so
+  // her round-1 score of 9 is superseded by this round-2 score).
+  const financeStage2 = await ensureStage(finance.id, "Final Interview", 2);
+  const anyaApp = await ensureApplication(anya.id, finance.id, hiringManager.id, "SHORTLISTED", financeStage1.id, 7);
+  await prisma.candidateApplication.update({ where: { id: anyaApp.id }, data: { currentVacancyStageId: financeStage2.id } });
+  const anyaSlot2 = new Date(Date.now() - 1 * DAY_MS); anyaSlot2.setHours(11, 0, 0, 0);
+  await ensureInterviewAt(anyaApp.id, financeStage2.id, anyaSlot2, [interviewer.id, mgmtFinance.id], [
+    { userId: interviewer.id, score: 9, comments: "Just as sharp as round one -- confidently handled pushback on her assumptions." },
+    { userId: mgmtFinance.id, score: 9, comments: "Clear leadership presence already. Easy yes from my side." },
+  ]);
 
   // Marketing (Content Marketing Specialist) had 2 (Baptiste, Priya) -- 4 more for 6.
   await ensureFillerCandidate({
@@ -1240,7 +1254,7 @@ async function main() {
     vacancy: custService, stage: csStage1, score: 8, comment: "Calm, structured screening call -- clearly done this before.",
     appliedDaysAgo: 11, interviewDaysAgo: 5,
   });
-  await ensureFillerCandidate({
+  const femi = await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Femi Adewale", email: "femi.adewale@example.com", phone: "+44 7700 900148", location: "Coventry, UK",
     headline: "Customer Success Manager", company: "Maplewood CX", bullet: "Reduced churn in an at-risk account segment from 14% to 6% in two quarters.",
@@ -1248,6 +1262,17 @@ async function main() {
     vacancy: custService, stage: csStage1, score: 9, comment: "Excellent screening call -- specific, metrics-led answers throughout.",
     appliedDaysAgo: 8, interviewDaysAgo: 3,
   });
+  // Same "one near-final candidate among several mid-stage ones" contrast as
+  // Anya on Finance above -- Femi advances to round 2 (Final Interview)
+  // while Yuki/Nora/Ali stay at round 1.
+  const csStage2 = await ensureStage(custService.id, "Final Interview", 2);
+  const femiApp = await ensureApplication(femi.id, custService.id, hiringManager.id, "SHORTLISTED", csStage1.id, 8);
+  await prisma.candidateApplication.update({ where: { id: femiApp.id }, data: { currentVacancyStageId: csStage2.id } });
+  const femiSlot2 = new Date(Date.now() - 1 * DAY_MS); femiSlot2.setHours(15, 0, 0, 0);
+  await ensureInterviewAt(femiApp.id, csStage2.id, femiSlot2, [interviewer.id, mgmtCustService.id], [
+    { userId: interviewer.id, score: 9, comments: "Consistent with round one -- calm, specific, clearly knows the playbook." },
+    { userId: mgmtCustService.id, score: 8, comments: "Strong candidate. A couple of answers were slightly rehearsed, but the substance is real." },
+  ]);
   await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Nora Kaminski", email: "nora.kaminski@example.com", phone: "+44 7700 900149", location: "Derby, UK",
