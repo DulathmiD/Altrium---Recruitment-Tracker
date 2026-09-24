@@ -538,7 +538,11 @@ async function main() {
   });
   await writeAuditLog(hiringManager.id, "HM_DECISION_COMMENT", "CandidateApplication", raphaelApp.id, {
     decision: "REJECT",
-    note: "Outstanding interview and a perfect score, but the team ultimately prioritised a candidate whose recent experience matched this specific role's on-call and infrastructure focus more closely. A strong score alone doesn't decide a hire -- the Hiring Manager's judgment call does.",
+    // Was `note:` -- getMyDecisionHistory() only reads `metadata.comments`
+    // (hiringManager.controller.ts), so the wrong key silently dropped this
+    // comment and the Decision History page showed "--" for the one row
+    // where it mattered most.
+    comments: "Outstanding interview and a perfect score, but the team ultimately prioritised a candidate whose recent experience matched this specific role's on-call and infrastructure focus more closely. A strong score alone doesn't decide a hire -- the Hiring Manager's judgment call does.",
   });
 
   const aiko = await ensureCandidate({
