@@ -44,6 +44,7 @@ export default function ITAdminLayout() {
         </div>
         <NotificationBell />
       </aside>
+      <div className="layout-nav-backdrop" onClick={() => setNavOpen(false)} />
       <main className="admin-main">
         <Outlet />
       </main>

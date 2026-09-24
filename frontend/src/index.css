@@ -100,6 +100,11 @@ body {
     position: relative;
     width: 100%;
     height: auto;
+    /* Overriding desktop's overflow-y:auto -- left as auto here, the
+       sidebar itself becomes a scroll container/clipping box for its own
+       contents, which cuts off the absolutely-positioned dropdown panel
+       instead of letting it float freely below the header. */
+    overflow: visible;
     flex-direction: column;
     align-items: stretch;
     border-left: none;
@@ -130,10 +135,47 @@ body {
     width: 34px;
     height: 34px;
     border: none;
+    border-radius: 8px;
     background: none;
     color: var(--altrium-black);
     cursor: pointer;
     flex-shrink: 0;
+  }
+  /* Diagnostic aid, not a design requirement: the button itself now visibly
+     shades gold the instant "nav-open" is applied, tied to the exact same
+     class as the dropdown panel below. If clicking never shades this
+     button, the click handler/state itself isn't firing -- a real JS bug.
+     If it DOES shade but the panel still doesn't appear, the bug is
+     isolated to the panel's own visibility rule instead. */
+  .hr-sidebar.nav-open .layout-menu-btn,
+  .admin-sidebar.nav-open .layout-menu-btn,
+  .hm-sidebar.nav-open .layout-menu-btn,
+  .ivr-sidebar.nav-open .layout-menu-btn,
+  .ld-sidebar.nav-open .layout-menu-btn,
+  .mg-sidebar.nav-open .layout-menu-btn {
+    background: var(--altrium-gold-100);
+  }
+
+  /* Dimmed backdrop behind the open menu -- covers the whole screen
+     (fixed, not relative to the sidebar) so it dims the page content too,
+     not just the area near the header. Tapping anywhere on it closes the
+     menu (see the onClick wired to it in e.g. HRLayout.tsx). Hidden
+     entirely, not just transparent, when the menu's closed -- otherwise
+     it would sit invisibly on top of the whole page eating every tap. */
+  .layout-nav-backdrop {
+    display: none;
+  }
+  .hr-sidebar.nav-open ~ .layout-nav-backdrop,
+  .admin-sidebar.nav-open ~ .layout-nav-backdrop,
+  .hm-sidebar.nav-open ~ .layout-nav-backdrop,
+  .ivr-sidebar.nav-open ~ .layout-nav-backdrop,
+  .ld-sidebar.nav-open ~ .layout-nav-backdrop,
+  .mg-sidebar.nav-open ~ .layout-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 60;
   }
 
   /* The floating dropdown card itself -- collapsed (not rendered) by

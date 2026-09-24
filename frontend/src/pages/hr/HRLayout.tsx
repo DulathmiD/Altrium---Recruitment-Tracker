@@ -52,6 +52,9 @@ export default function HRLayout() {
         </div>
         <NotificationBell />
       </aside>
+      {/* Dims the rest of the screen while the mobile menu is open; tapping
+          it closes the menu, same as tapping a nav item does. */}
+      <div className="layout-nav-backdrop" onClick={() => setNavOpen(false)} />
       <main className="hr-main">
         <Outlet />
       </main>

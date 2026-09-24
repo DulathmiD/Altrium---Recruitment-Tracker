@@ -44,6 +44,7 @@ export default function LeadershipLayout() {
         </div>
         <NotificationBell />
       </aside>
+      <div className="layout-nav-backdrop" onClick={() => setNavOpen(false)} />
       <main className="ld-main">
         <Outlet />
       </main>

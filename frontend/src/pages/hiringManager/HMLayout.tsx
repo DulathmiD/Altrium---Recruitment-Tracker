@@ -51,6 +51,7 @@ export default function HMLayout() {
         </div>
         <NotificationBell />
       </aside>
+      <div className="layout-nav-backdrop" onClick={() => setNavOpen(false)} />
       <main className="hm-main">
         <Outlet />
       </main>

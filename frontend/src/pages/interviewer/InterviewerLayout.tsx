@@ -42,6 +42,7 @@ export default function InterviewerLayout() {
         </div>
         <NotificationBell />
       </aside>
+      <div className="layout-nav-backdrop" onClick={() => setNavOpen(false)} />
       <main className="ivr-main">
         <Outlet />
       </main>

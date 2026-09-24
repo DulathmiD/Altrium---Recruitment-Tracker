@@ -48,6 +48,7 @@ export default function MgmtLayout() {
         </div>
         <NotificationBell />
       </aside>
+      <div className="layout-nav-backdrop" onClick={() => setNavOpen(false)} />
       <main className="mg-main">
         <Outlet />
       </main>
