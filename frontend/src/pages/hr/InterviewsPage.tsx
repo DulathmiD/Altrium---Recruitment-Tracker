@@ -16,6 +16,7 @@ import { listAssignableStaff, roleLabel, type StaffMember } from "../../api/staf
 import { listCandidates, type CandidateApplicationRow } from "../../api/candidates";
 import Toast from "../../components/Toast";
 import { formatSlotTimeRange } from "../../utils/interviewTime";
+import { ApiError } from "../../api/client";
 import "./InterviewsPage.css";
 
 // Interviewers first (most panel members), then Hiring Managers, Management
@@ -738,7 +739,27 @@ function AddCandidateModal({ onClose, onDone }: { onClose: () => void; onDone: (
       const res = await addCandidatesToInterviewSlot(targetSlotId, [...selected]);
       setResult(res);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add candidates");
+      // addCandidatesToSlot (backend) responds with a structured
+      // { added: [], failed: [{ applicationId, error }] } body even when
+      // every candidate fails (HTTP 400) -- apiFetch throws in that case
+      // because the response isn't 2xx, but the real per-candidate reason
+      // (e.g. "Candidate must be shortlisted", a schedule conflict, an
+      // on-hold vacancy) is sitting right there in err.data. Previously this
+      // branch discarded it and fell back to apiFetch's generic "Something
+      // went wrong" (thrown whenever a non-2xx body has no top-level
+      // `error` field), which is what made this failure mode undiagnosable
+      // from the UI. Reusing the existing `result` view surfaces the same
+      // per-item list it already renders for a partial (201) success.
+      if (
+        err instanceof ApiError &&
+        err.data &&
+        typeof err.data === "object" &&
+        Array.isArray((err.data as AddCandidatesResult).failed)
+      ) {
+        setResult(err.data as AddCandidatesResult);
+      } else {
+        setError(err instanceof Error ? err.message : "Could not add candidates");
+      }
     } finally {
       setSaving(false);
     }
