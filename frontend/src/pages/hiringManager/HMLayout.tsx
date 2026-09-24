@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import AltriumLogo from "../../components/AltriumLogo";
 import NotificationBell from "../../components/NotificationBell";
+import MobileMenuButton from "../../components/MobileMenuButton";
 import "./HMLayout.css";
 
 // Corrections doc: "the hiring manager doesn't have an interview page" --
@@ -20,13 +22,17 @@ const NAV_ITEMS = [
 
 export default function HMLayout() {
   const { logout } = useAuth();
+  const [navOpen, setNavOpen] = useState(false);
 
   return (
     <div className="hm-layout">
-      <aside className="hm-sidebar">
-        <div className="hm-sidebar-title">
-          <AltriumLogo size={28} />
-          <span>Altrium</span>
+      <aside className={"hm-sidebar" + (navOpen ? " nav-open" : "")}>
+        <div className="layout-topbar">
+          <div className="hm-sidebar-title">
+            <AltriumLogo size={28} />
+            <span>Altrium</span>
+          </div>
+          <MobileMenuButton open={navOpen} onClick={() => setNavOpen((v) => !v)} />
         </div>
         <nav className="hm-nav">
           {NAV_ITEMS.map((item) => (
@@ -34,6 +40,7 @@ export default function HMLayout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) => "hm-nav-item" + (isActive ? " active" : "")}
+              onClick={() => setNavOpen(false)}
             >
               {item.label}
             </NavLink>

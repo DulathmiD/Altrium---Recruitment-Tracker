@@ -50,6 +50,22 @@ body {
   min-height: 100svh;
 }
 
+/* Desktop/laptop default for the two new mobile-only elements (added
+   across all six role layouts for the collapsible nav below). Declared
+   here, OUTSIDE any media query, so there is no way for a laptop-width
+   screen to ever see a hamburger icon or an extra topbar wrapper row --
+   the max-width:768px block further down is the only place these are
+   ever turned back on. .layout-topbar is a plain, unstyled wrapper at
+   this width, so it doesn't shift the existing desktop sidebar layout
+   (title sits exactly where it always did) even though it's now wrapped
+   in an extra div. */
+.layout-menu-btn {
+  display: none;
+}
+.layout-topbar {
+  display: contents;
+}
+
 /* ============================================================
    SITE-WIDE MOBILE RESPONSIVENESS
    ============================================================
@@ -63,8 +79,11 @@ body {
    Below 768px (phone/small-tablet width), the fixed-width sidebar would
    eat most of a narrow screen (210px of a 375px-wide phone leaves only
    165px for actual content), and the fixed-height/overflow:hidden shell
-   built for desktop doesn't reflow at all. This turns the sidebar into a
-   horizontal top bar and lets the page scroll normally instead. */
+   built for desktop doesn't reflow at all. The sidebar becomes a slim top
+   bar (logo + hamburger button only) with the nav collapsed into a
+   dropdown that expands underneath it on tap -- not a permanently-visible
+   horizontal strip, an actual open/close menu -- and the page scrolls
+   normally instead of being locked to the viewport height. */
 @media (max-width: 768px) {
   .hr-layout, .admin-layout, .hm-layout, .ivr-layout, .ld-layout, .mg-layout {
     flex-direction: column;
@@ -76,43 +95,84 @@ body {
   .hr-sidebar, .admin-sidebar, .hm-sidebar, .ivr-sidebar, .ld-sidebar, .mg-sidebar {
     width: 100%;
     height: auto;
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
     border-left: none;
     border-bottom: 3px solid var(--altrium-gold);
     padding: 10px 12px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Wraps just the logo + hamburger button so they sit side by side on
+     one row, with the (collapsible) nav list stacking full-width beneath
+     once opened -- see the .layout-topbar rule further down for why this
+     wrapper is invisible/inert on desktop. */
+  .layout-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
   }
 
   .hr-sidebar-title, .admin-sidebar-title, .hm-sidebar-title, .ivr-sidebar-title, .ld-sidebar-title, .mg-sidebar-title {
-    padding: 0 12px 0 0;
+    padding: 0;
+  }
+
+  .layout-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: none;
+    color: var(--altrium-black);
+    cursor: pointer;
     flex-shrink: 0;
   }
 
+  /* Collapsed by default -- only a sidebar carrying the "nav-open" class
+     (toggled by the hamburger button's onClick, see e.g. HRLayout.tsx)
+     shows its nav list. Nothing here reacts to hover/focus on its own,
+     it's a deliberate tap-to-open menu, not an accidental-open one. */
   .hr-nav, .admin-nav, .hm-nav, .ivr-nav, .ld-nav, .mg-nav {
-    flex-direction: row;
-    flex: 1 1 auto;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .hr-sidebar.nav-open .hr-nav,
+  .admin-sidebar.nav-open .admin-nav,
+  .hm-sidebar.nav-open .hm-nav,
+  .ivr-sidebar.nav-open .ivr-nav,
+  .ld-sidebar.nav-open .ld-nav,
+  .mg-sidebar.nav-open .mg-nav {
+    display: flex;
   }
 
   .hr-nav-item, .admin-nav-item, .hm-nav-item, .ivr-nav-item, .ld-nav-item, .mg-nav-item {
-    white-space: nowrap;
-    padding: 10px 14px;
+    padding: 12px 10px;
     border-left: none;
-    border-bottom: 3px solid transparent;
+    border-bottom: 1px solid var(--altrium-line);
   }
   .hr-nav-item.active, .admin-nav-item.active, .hm-nav-item.active,
   .ivr-nav-item.active, .ld-nav-item.active, .mg-nav-item.active {
     border-left: none;
-    border-bottom: 3px solid var(--altrium-gold);
   }
 
+  /* Logout only shows up once the menu's open too, alongside the nav
+     items it's already sitting next to in the markup -- otherwise it'd
+     permanently occupy space in the collapsed top bar for no reason. */
   .hr-logout, .admin-logout, .hm-logout, .ivr-logout, .ld-logout, .mg-logout {
-    margin: 6px 0 0;
-    flex-shrink: 0;
+    display: none;
+    margin: 10px 0 0;
+  }
+  .hr-sidebar.nav-open .hr-logout,
+  .admin-sidebar.nav-open .admin-logout,
+  .hm-sidebar.nav-open .hm-logout,
+  .ivr-sidebar.nav-open .ivr-logout,
+  .ld-sidebar.nav-open .ld-logout,
+  .mg-sidebar.nav-open .mg-logout {
+    display: block;
   }
 
   /* Main content: no more forced full-height box with hidden overflow --

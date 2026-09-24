@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import AltriumLogo from "../../components/AltriumLogo";
 import NotificationBell from "../../components/NotificationBell";
+import MobileMenuButton from "../../components/MobileMenuButton";
 import "./InterviewerLayout.css";
 
 const NAV_ITEMS = [
@@ -11,13 +13,17 @@ const NAV_ITEMS = [
 
 export default function InterviewerLayout() {
   const { logout } = useAuth();
+  const [navOpen, setNavOpen] = useState(false);
 
   return (
     <div className="ivr-layout">
-      <aside className="ivr-sidebar">
-        <div className="ivr-sidebar-title">
-          <AltriumLogo size={28} />
-          <span>Altrium</span>
+      <aside className={"ivr-sidebar" + (navOpen ? " nav-open" : "")}>
+        <div className="layout-topbar">
+          <div className="ivr-sidebar-title">
+            <AltriumLogo size={28} />
+            <span>Altrium</span>
+          </div>
+          <MobileMenuButton open={navOpen} onClick={() => setNavOpen((v) => !v)} />
         </div>
         <nav className="ivr-nav">
           {NAV_ITEMS.map((item) => (
@@ -25,6 +31,7 @@ export default function InterviewerLayout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) => "ivr-nav-item" + (isActive ? " active" : "")}
+              onClick={() => setNavOpen(false)}
             >
               {item.label}
             </NavLink>

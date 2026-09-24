@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import AltriumLogo from "../../components/AltriumLogo";
 import NotificationBell from "../../components/NotificationBell";
+import MobileMenuButton from "../../components/MobileMenuButton";
 import "./MgmtLayout.css";
 
 // Corrections doc: "My Candidates" and "Candidate Progress" used to be two
@@ -17,13 +19,17 @@ const NAV_ITEMS = [
 
 export default function MgmtLayout() {
   const { logout } = useAuth();
+  const [navOpen, setNavOpen] = useState(false);
 
   return (
     <div className="mg-layout">
-      <aside className="mg-sidebar">
-        <div className="mg-sidebar-title">
-          <AltriumLogo size={28} />
-          <span>Altrium</span>
+      <aside className={"mg-sidebar" + (navOpen ? " nav-open" : "")}>
+        <div className="layout-topbar">
+          <div className="mg-sidebar-title">
+            <AltriumLogo size={28} />
+            <span>Altrium</span>
+          </div>
+          <MobileMenuButton open={navOpen} onClick={() => setNavOpen((v) => !v)} />
         </div>
         <nav className="mg-nav">
           {NAV_ITEMS.map((item) => (
@@ -31,6 +37,7 @@ export default function MgmtLayout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) => "mg-nav-item" + (isActive ? " active" : "")}
+              onClick={() => setNavOpen(false)}
             >
               {item.label}
             </NavLink>
