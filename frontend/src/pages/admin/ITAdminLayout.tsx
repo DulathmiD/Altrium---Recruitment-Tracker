@@ -27,20 +27,22 @@ export default function ITAdminLayout() {
           </div>
           <MobileMenuButton open={navOpen} onClick={() => setNavOpen((v) => !v)} />
         </div>
-        <nav className="admin-nav">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => "admin-nav-item" + (isActive ? " active" : "")}
-              onClick={() => setNavOpen(false)}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="layout-nav-panel">
+          <nav className="admin-nav">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => "admin-nav-item" + (isActive ? " active" : "")}
+                onClick={() => setNavOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <button className="admin-logout" onClick={logout}>Log out</button>
+        </div>
         <NotificationBell />
-        <button className="admin-logout" onClick={logout}>Log out</button>
       </aside>
       <main className="admin-main">
         <Outlet />

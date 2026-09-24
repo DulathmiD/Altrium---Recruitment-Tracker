@@ -34,20 +34,22 @@ export default function HMLayout() {
           </div>
           <MobileMenuButton open={navOpen} onClick={() => setNavOpen((v) => !v)} />
         </div>
-        <nav className="hm-nav">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => "hm-nav-item" + (isActive ? " active" : "")}
-              onClick={() => setNavOpen(false)}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="layout-nav-panel">
+          <nav className="hm-nav">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => "hm-nav-item" + (isActive ? " active" : "")}
+                onClick={() => setNavOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <button className="hm-logout" onClick={logout}>Log out</button>
+        </div>
         <NotificationBell />
-        <button className="hm-logout" onClick={logout}>Log out</button>
       </aside>
       <main className="hm-main">
         <Outlet />

@@ -65,6 +65,9 @@ body {
 .layout-topbar {
   display: contents;
 }
+.layout-nav-panel {
+  display: contents;
+}
 
 /* ============================================================
    SITE-WIDE MOBILE RESPONSIVENESS
@@ -80,10 +83,11 @@ body {
    eat most of a narrow screen (210px of a 375px-wide phone leaves only
    165px for actual content), and the fixed-height/overflow:hidden shell
    built for desktop doesn't reflow at all. The sidebar becomes a slim top
-   bar (logo + hamburger button only) with the nav collapsed into a
-   dropdown that expands underneath it on tap -- not a permanently-visible
-   horizontal strip, an actual open/close menu -- and the page scrolls
-   normally instead of being locked to the viewport height. */
+   bar (logo + hamburger button only); tapping the hamburger drops down a
+   small floating card -- anchored top-right, under the logo row, sized to
+   its own content -- with the nav list and Log out stacked inside it, not
+   a strip stretching across the full screen width. The page behind it
+   scrolls normally instead of being locked to the viewport height. */
 @media (max-width: 768px) {
   .hr-layout, .admin-layout, .hm-layout, .ivr-layout, .ld-layout, .mg-layout {
     flex-direction: column;
@@ -93,6 +97,7 @@ body {
   }
 
   .hr-sidebar, .admin-sidebar, .hm-sidebar, .ivr-sidebar, .ld-sidebar, .mg-sidebar {
+    position: relative;
     width: 100%;
     height: auto;
     flex-direction: column;
@@ -103,8 +108,7 @@ body {
   }
 
   /* Wraps just the logo + hamburger button so they sit side by side on
-     one row, with the (collapsible) nav list stacking full-width beneath
-     once opened -- see the .layout-topbar rule further down for why this
+     one row -- see the .layout-topbar rule further down for why this
      wrapper is invisible/inert on desktop. */
   .layout-topbar {
     display: flex;
@@ -130,57 +134,72 @@ body {
     flex-shrink: 0;
   }
 
-  /* Collapsed by default -- only a sidebar carrying the "nav-open" class
-     (toggled by the hamburger button's onClick, see e.g. HRLayout.tsx)
-     shows its nav list. Nothing here reacts to hover/focus on its own,
-     it's a deliberate tap-to-open menu, not an accidental-open one. */
-  .hr-nav, .admin-nav, .hm-nav, .ivr-nav, .ld-nav, .mg-nav {
+  /* The floating dropdown card itself -- collapsed (not rendered) by
+     default; a sidebar carrying "nav-open" (toggled by the hamburger's
+     onClick, see e.g. HRLayout.tsx) is the only thing that reveals it.
+     Positioned relative to the sidebar (position:relative above), pinned
+     to its top-right corner just under the topbar row -- sized to its own
+     content via inline-flex/min-width rather than stretching full-width. */
+  .layout-nav-panel {
     display: none;
-    flex-direction: column;
-    width: 100%;
-    margin-top: 8px;
   }
-  .hr-sidebar.nav-open .hr-nav,
-  .admin-sidebar.nav-open .admin-nav,
-  .hm-sidebar.nav-open .hm-nav,
-  .ivr-sidebar.nav-open .ivr-nav,
-  .ld-sidebar.nav-open .ld-nav,
-  .mg-sidebar.nav-open .mg-nav {
+  .hr-sidebar.nav-open .layout-nav-panel,
+  .admin-sidebar.nav-open .layout-nav-panel,
+  .hm-sidebar.nav-open .layout-nav-panel,
+  .ivr-sidebar.nav-open .layout-nav-panel,
+  .ld-sidebar.nav-open .layout-nav-panel,
+  .mg-sidebar.nav-open .layout-nav-panel {
     display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 56px;
+    right: 12px;
+    min-width: 190px;
+    background: var(--altrium-white);
+    border: 1px solid var(--altrium-line);
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+    padding: 10px;
+    z-index: 65;
   }
 
+  .hr-nav, .admin-nav, .hm-nav, .ivr-nav, .ld-nav, .mg-nav {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* Rounded pill-style rows/active-highlight inside the card, replacing
+     the desktop sidebar's full-width divider-line list style -- matches
+     a compact dropdown menu rather than a page-length sidebar. */
   .hr-nav-item, .admin-nav-item, .hm-nav-item, .ivr-nav-item, .ld-nav-item, .mg-nav-item {
-    padding: 12px 10px;
+    padding: 10px 12px;
     border-left: none;
-    border-bottom: 1px solid var(--altrium-line);
+    border-radius: 10px;
+    white-space: nowrap;
   }
   .hr-nav-item.active, .admin-nav-item.active, .hm-nav-item.active,
   .ivr-nav-item.active, .ld-nav-item.active, .mg-nav-item.active {
     border-left: none;
+    background: var(--altrium-black);
+    color: var(--altrium-white);
   }
 
-  /* Logout only shows up once the menu's open too, alongside the nav
-     items it's already sitting next to in the markup -- otherwise it'd
-     permanently occupy space in the collapsed top bar for no reason. */
+  /* Log out sits at the bottom of the same card, visually separated from
+     the nav items above it by a divider, exactly like the reference
+     layout's bottom profile/settings section. */
   .hr-logout, .admin-logout, .hm-logout, .ivr-logout, .ld-logout, .mg-logout {
-    display: none;
-    margin: 10px 0 0;
-  }
-  .hr-sidebar.nav-open .hr-logout,
-  .admin-sidebar.nav-open .admin-logout,
-  .hm-sidebar.nav-open .hm-logout,
-  .ivr-sidebar.nav-open .ivr-logout,
-  .ld-sidebar.nav-open .ld-logout,
-  .mg-sidebar.nav-open .mg-logout {
-    display: block;
+    margin: 8px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--altrium-line);
+    border-radius: 0;
+    width: 100%;
   }
 
   /* Main content: no more forced full-height box with hidden overflow --
      on a phone the whole page should just scroll top to bottom normally.
      Side padding shrinks a lot (was 40px, more than a tenth of a phone's
-     width on its own); top padding shrinks too since the notification
-     bell is repositioned below to sit above the content instead of
-     overlapping it. */
+     width on its own). The dropdown card above is position:absolute, so
+     it floats over this content rather than pushing it down when open. */
   .hr-main, .admin-main, .hm-main, .ivr-main, .ld-main, .mg-main {
     height: auto;
     min-height: 0;
@@ -191,13 +210,13 @@ body {
 
   /* The notification bell is fixed-position site-wide (see
      NotificationBell.css) so it isn't inside the sidebar/main flow at
-     all -- its desktop position (top:28/right:40) would sit on top of
-     the new horizontal top bar on a narrow screen. Nudged down and in so
-     it clears the top bar and lines up with the page's smaller side
-     padding above instead of overlapping either. */
+     all -- its desktop position (top:28/right:40) would otherwise sit
+     directly on top of the hamburger button in the same corner. Moved to
+     the hamburger's left with enough of a gap that the two don't overlap
+     or compete for taps. */
   .ntf-bell-container {
-    top: 8px;
-    right: 10px;
+    top: 14px;
+    right: 54px;
   }
 
   /* A plain HTML <table> can't reflow itself onto a narrow screen the way

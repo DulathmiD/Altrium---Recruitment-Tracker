@@ -31,20 +31,26 @@ export default function HRLayout() {
           </div>
           <MobileMenuButton open={navOpen} onClick={() => setNavOpen((v) => !v)} />
         </div>
-        <nav className="hr-nav">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => "hr-nav-item" + (isActive ? " active" : "")}
-              onClick={() => setNavOpen(false)}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        {/* Grouped together (mobile-only) into one floating dropdown card
+            anchored under the hamburger button -- see .layout-nav-panel --
+            rather than nav and logout being two separate full-width
+            desktop-style blocks stacked down the screen. */}
+        <div className="layout-nav-panel">
+          <nav className="hr-nav">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => "hr-nav-item" + (isActive ? " active" : "")}
+                onClick={() => setNavOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <button className="hr-logout" onClick={logout}>Log out</button>
+        </div>
         <NotificationBell />
-        <button className="hr-logout" onClick={logout}>Log out</button>
       </aside>
       <main className="hr-main">
         <Outlet />

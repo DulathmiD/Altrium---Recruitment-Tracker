@@ -31,20 +31,22 @@ export default function MgmtLayout() {
           </div>
           <MobileMenuButton open={navOpen} onClick={() => setNavOpen((v) => !v)} />
         </div>
-        <nav className="mg-nav">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => "mg-nav-item" + (isActive ? " active" : "")}
-              onClick={() => setNavOpen(false)}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="layout-nav-panel">
+          <nav className="mg-nav">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => "mg-nav-item" + (isActive ? " active" : "")}
+                onClick={() => setNavOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <button className="mg-logout" onClick={logout}>Log out</button>
+        </div>
         <NotificationBell />
-        <button className="mg-logout" onClick={logout}>Log out</button>
       </aside>
       <main className="mg-main">
         <Outlet />

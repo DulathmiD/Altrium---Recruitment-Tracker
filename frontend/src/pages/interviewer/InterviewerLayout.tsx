@@ -25,20 +25,22 @@ export default function InterviewerLayout() {
           </div>
           <MobileMenuButton open={navOpen} onClick={() => setNavOpen((v) => !v)} />
         </div>
-        <nav className="ivr-nav">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => "ivr-nav-item" + (isActive ? " active" : "")}
-              onClick={() => setNavOpen(false)}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="layout-nav-panel">
+          <nav className="ivr-nav">
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => "ivr-nav-item" + (isActive ? " active" : "")}
+                onClick={() => setNavOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <button className="ivr-logout" onClick={logout}>Log out</button>
+        </div>
         <NotificationBell />
-        <button className="ivr-logout" onClick={logout}>Log out</button>
       </aside>
       <main className="ivr-main">
         <Outlet />
