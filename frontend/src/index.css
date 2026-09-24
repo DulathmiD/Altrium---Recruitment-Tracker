@@ -204,25 +204,31 @@ body {
     top: 100%;
     margin-top: 8px;
     left: 12px;
-    min-width: 190px;
+    /* Narrower than before (was 190px) and with taller rows below, so more
+       of the dimmed page stays visible around the card's edges instead of
+       it spanning most of a narrow phone's width. */
+    width: 62%;
+    max-width: 240px;
+    min-width: 160px;
     background: var(--altrium-white);
     border: 1px solid var(--altrium-line);
     border-radius: 14px;
     box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
-    padding: 10px;
+    padding: 12px 8px;
     z-index: 65;
   }
 
   .hr-nav, .admin-nav, .hm-nav, .ivr-nav, .ld-nav, .mg-nav {
     flex-direction: column;
-    gap: 2px;
+    gap: 6px;
   }
 
   /* Rounded pill-style rows/active-highlight inside the card, replacing
      the desktop sidebar's full-width divider-line list style -- matches
-     a compact dropdown menu rather than a page-length sidebar. */
+     a compact dropdown menu rather than a page-length sidebar. Taller
+     (14px vertical padding, was 10px) so the card itself reads taller. */
   .hr-nav-item, .admin-nav-item, .hm-nav-item, .ivr-nav-item, .ld-nav-item, .mg-nav-item {
-    padding: 10px 12px;
+    padding: 14px 12px;
     border-left: none;
     border-radius: 10px;
     white-space: nowrap;
