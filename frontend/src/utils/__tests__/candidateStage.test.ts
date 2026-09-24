@@ -35,10 +35,10 @@ describe("stageDisplayFor", () => {
     expect(result).toEqual({ text: "", rejected: false });
   });
 
-  it("returns an empty display even for a rejected application if it never reached a round", () => {
-    // Guards against a subtle bug: rejection before any interview round
-    // shouldn't render "- Rejected" hanging off an empty round name.
+  it("shows 'Initial Screening' (not blank) for a rejection that never reached a round", () => {
+    // Direct user correction: a CV-review rejection used to render as a
+    // blank cell, which read as missing data rather than a real stage.
     const result = stageDisplayFor(makeRow({ currentVacancyStage: null, stage: "REJECTED" }));
-    expect(result).toEqual({ text: "", rejected: false });
+    expect(result).toEqual({ text: "Initial Screening", rejected: true });
   });
 });

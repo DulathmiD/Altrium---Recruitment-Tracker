@@ -88,7 +88,20 @@ function stageDisplayFor(row: {
   currentVacancyStage: VacancyStageSummary | null;
 }): { text: string; rejected: boolean } {
   const roundName = row.currentVacancyStage?.name ?? "";
-  if (!roundName) return { text: "", rejected: false };
+
+  // Direct user correction: a rejection that happened at CV review -- before
+  // this candidate ever reached a configured interview round -- used to fall
+  // straight through to a blank cell here, which read as though the row was
+  // missing data rather than showing a real, meaningful stage. "Initial
+  // Screening" names that CV-review stage explicitly instead of leaving it
+  // empty. A non-rejected application with no round yet (freshly applied,
+  // or shortlisted but not yet advanced into round 1) still shows blank --
+  // that gap is real too, but only a rejection needs a label standing in for
+  // "this is where they were rejected."
+  if (!roundName) {
+    if (row.stage === "REJECTED") return { text: "Initial Screening", rejected: true };
+    return { text: "", rejected: false };
+  }
 
   if (row.stage === "REJECTED") {
     return { text: roundName, rejected: true };
