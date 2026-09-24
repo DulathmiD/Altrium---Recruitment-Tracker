@@ -148,46 +148,42 @@ export default function CandidateDetailPage() {
     }
   }
 
+  // Direct user feedback: the Hiring Manager dropdown used to only appear
+  // AFTER shortlisting (a separate, second action HR had to remember to come
+  // back and do), even though HR usually already knows who the Hiring
+  // Manager should be at the same moment they decide to shortlist. The
+  // dropdown is now selectable pre-shortlist too (see the JSX below), and
+  // whatever's selected there is applied in the same click as Shortlist --
+  // one action instead of two. A selection made here is meaningless for a
+  // Reject (a rejected-at-CV-review application never gets a Hiring Manager
+  // at all, per the locked-hint case below), so handleReject deliberately
+  // never reads hmSelection -- it's silently ignored, not an error.
   async function handleShortlist() {
     if (!row) return;
     setActionBusy(true);
     setActionError("");
     try {
       await updateApplicationStatus(row.id, "SHORTLISTED");
+      if (hmSelection) {
+        try {
+          await assignHiringManager(row.id, hmSelection);
+        } catch (hmErr) {
+          // Shortlisting itself already succeeded -- don't fail the whole
+          // action or strand the user on this page over the HM assignment
+          // specifically failing. Surface it, but still navigate away with
+          // the shortlist confirmed.
+          console.error("Shortlisted, but could not assign the selected Hiring Manager:", hmErr);
+          navigate("/hr/candidates", {
+            state: {
+              toast: `${row.candidate.name} was shortlisted, but the Hiring Manager could not be assigned -- try again from the Candidates list.`,
+            },
+          });
+          return;
+        }
+      }
       navigate("/hr/candidates", { state: { toast: `${row.candidate.name} was shortlisted.` } });
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Could not shortlist candidate");
-    } finally {
-      setActionBusy(false);
-    }
-  }
-
-  // The one path back from an early CV-screening rejection -- HR rejected
-  // the CV before it was ever shortlisted, and there's currently no way to
-  // reapply (a second application for the same candidate+vacancy is blocked
-  // outright, see the 409 duplicate handling on the Candidates list upload
-  // flow) or otherwise reconsider them. Only offered when hiringDecision is
-  // null (see the CandidateApplicationRow comment) -- a REJECTED application
-  // that came out of a real post-interview hiring decision is a final
-  // outcome, not reopened here.
-  //
-  // Correction (direct user feedback, caught by live testing): moves back
-  // to APPLIED ("Unreviewed"), not SHORTLISTED -- Shortlist/Reject always
-  // requires a freshly saved CV review note (application.controller.ts's
-  // updateApplicationStatus), and Reconsider shouldn't be a way to skip
-  // that just because this candidate already has an old note on file. The
-  // backend clears that stale note as part of this same request.
-  async function handleReconsider() {
-    if (!row) return;
-    setActionBusy(true);
-    setActionError("");
-    try {
-      await updateApplicationStatus(row.id, "APPLIED");
-      navigate("/hr/candidates", {
-        state: { toast: `${row.candidate.name} was reconsidered and moved back to Unreviewed.` },
-      });
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Could not reconsider candidate");
     } finally {
       setActionBusy(false);
     }
@@ -342,26 +338,6 @@ export default function CandidateDetailPage() {
       {detailError && <p className="cnd-error">{detailError}</p>}
       {actionError && <p className="cnd-error">{actionError}</p>}
 
-      {/* Moved up from the bottom of the page, per direct user feedback --
-          this is important context (a rejected candidate someone might want
-          to reconsider, potentially a while later) that shouldn't require
-          scrolling past CV/notes/interviews to notice. Reworded away from
-          "There's no way to reapply for this vacancy" (accurate but blunt)
-          to a plain question. */}
-      {row.stage === "REJECTED" && !row.hiringDecision && (
-        <div className="cnd-reconsider-banner">
-          <p>This candidate was rejected before being shortlisted for this vacancy. Would you like to reconsider them?</p>
-          <button
-            className="cnd-action-btn cnd-action-shortlist"
-            onClick={handleReconsider}
-            disabled={actionBusy || isVacancyOnHold}
-            title={isVacancyOnHold ? "This vacancy is on hold" : undefined}
-          >
-            Reconsider
-          </button>
-        </div>
-      )}
-
       <div className="cnd-detail-section">
         <label>CV</label>
         <div className="cnd-inline-row">
@@ -484,10 +460,6 @@ export default function CandidateDetailPage() {
           <p className="cnd-muted cnd-locked-hint">
             This application already has a final hiring decision, so the Hiring Manager can't be changed here.
           </p>
-        ) : row.stage === "APPLIED" ? (
-          <p className="cnd-muted cnd-locked-hint">
-            This candidate hasn't been shortlisted yet. Shortlist them first before assigning a Hiring Manager.
-          </p>
         ) : row.stage === "REJECTED" ? (
           <p className="cnd-muted cnd-locked-hint">
             This application was rejected at CV review, so a Hiring Manager can't be assigned.
@@ -498,6 +470,11 @@ export default function CandidateDetailPage() {
           </p>
         ) : (
           <>
+            {row.stage === "APPLIED" && (
+              <p className="cnd-muted cnd-locked-hint">
+                Pick a Hiring Manager now and it's assigned automatically the moment you click Shortlist below.
+              </p>
+            )}
             <div className="cnd-inline-row">
               <select value={hmSelection} onChange={(e) => setHmSelection(e.target.value ? Number(e.target.value) : "")}>
                 <option value="">Select a hiring manager</option>
@@ -507,11 +484,19 @@ export default function CandidateDetailPage() {
                   </option>
                 ))}
               </select>
+              {/* Assign here is only a real, backend-accepted action once the
+                  candidate is actually SHORTLISTED (the backend hard-blocks
+                  it otherwise, application.controller.ts's assignHiringManager
+                  -- see comment there). At APPLIED stage the dropdown is only
+                  for pre-selecting who handleShortlist will assign
+                  automatically; this button stays disabled until then so it
+                  can't be clicked into a guaranteed 400. */}
               <button
                 type="button"
                 className="cnd-save-btn"
                 onClick={handleAssignHm}
-                disabled={hmSaving || !hmSelection}
+                disabled={hmSaving || !hmSelection || row.stage === "APPLIED"}
+                title={row.stage === "APPLIED" ? "Assigned automatically when you click Shortlist" : undefined}
               >
                 {hmSaving ? "Saving..." : "Assign"}
               </button>

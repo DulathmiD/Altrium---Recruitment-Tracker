@@ -33,10 +33,57 @@ import { prisma } from "../src/prisma.js";
 import { sendEmail } from "../src/utils/mailer.js";
 import { renderTemplate, type TemplateKey } from "../src/utils/notificationTemplates.js";
 import { writeAuditLog } from "../src/utils/auditLog.js";
-import { saveFile, sanitizeForFilename } from "../src/utils/fileStorage.js";
+import { saveFile, sanitizeForFilename, deleteFile } from "../src/utils/fileStorage.js";
 import { buildCvPdf, type CvProfile } from "./lib/generateCv.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Wipes every candidate/vacancy (and everything that hangs off either) before
+// seeding, so this script always produces the exact curated Sprint 1 viva
+// dataset described at the top of this file, never a mix of this run's data
+// layered on top of whatever was in the DB before (e.g. leftovers from
+// seed-full-demo.ts's 16-vacancy sweep, or a half-finished previous run).
+// Adapted directly from wipe-candidates.ts -- same deletion order (children
+// before parents, since most of these relations aren't onDelete: Cascade)
+// and the same CV-file cleanup, just folded into this script's own main()
+// instead of being a separate manual step. User accounts are deliberately
+// never touched here -- staff logins must survive a re-seed.
+async function wipeExistingData() {
+  const candidates = await prisma.candidate.findMany({ select: { id: true, cvUrl: true } });
+  const vacancyCount = await prisma.vacancy.count();
+
+  const counts = {
+    feedbackAuditLog: await prisma.feedbackAuditLog.deleteMany({}),
+    feedback: await prisma.feedback.deleteMany({}),
+    interviewPanelist: await prisma.interviewPanelist.deleteMany({}),
+    interview: await prisma.interview.deleteMany({}),
+    interviewSlot: await prisma.interviewSlot.deleteMany({}),
+    stageRecommendation: await prisma.stageRecommendation.deleteMany({}),
+    applicationStageHistory: await prisma.applicationStageHistory.deleteMany({}),
+    candidateApplication: await prisma.candidateApplication.deleteMany({}),
+    candidate: await prisma.candidate.deleteMany({}),
+    vacancyInterviewer: await prisma.vacancyInterviewer.deleteMany({}),
+    vacancyStage: await prisma.vacancyStage.deleteMany({}),
+    // InterviewPanel (and InterviewPanelMember, which cascades from it via
+    // onDelete: Cascade in schema.prisma) also holds a vacancyId FK -- added
+    // to the schema after wipe-candidates.ts (the script this wipe order was
+    // copied from) was written, so it was missing here and blocked the
+    // vacancy delete below with a real foreign-key-constraint error the
+    // first time this actually ran against production. Must come before
+    // vacancy since InterviewPanel -> Vacancy has no cascade of its own.
+    interviewPanel: await prisma.interviewPanel.deleteMany({}),
+    vacancy: await prisma.vacancy.deleteMany({}),
+  };
+
+  for (const c of candidates) {
+    if (c.cvUrl) await deleteFile(c.cvUrl);
+  }
+
+  console.log(
+    `Wiped ${candidates.length} candidate(s), ${vacancyCount} vacancy(ies), ${counts.candidateApplication.count} application(s), ` +
+      `${counts.interview.count} interview(s), and ${candidates.length} CV file(s). User accounts were left untouched.\n`
+  );
+}
 
 async function requireUser(email: string) {
   const user = await prisma.user.findUnique({ where: { email } });
@@ -45,7 +92,15 @@ async function requireUser(email: string) {
 }
 
 async function ensureVacancy(title: string, department: string, description: string) {
-  const existing = await prisma.vacancy.findUnique({ where: { title_department: { title, department } } });
+  // NOTE: title+department is no longer a DB-level unique key (migration
+  // 20260920000000_drop_vacancy_title_department_unique -- see the comment
+  // on Vacancy in schema.prisma and assertNoActiveDuplicate() in
+  // vacancy.controller.ts, which now scopes the real duplicate check to
+  // active/OPEN+ON_HOLD vacancies only). This script only ever creates each
+  // of its own known vacancies once, so a plain findFirst is sufficient here
+  // for find-or-create purposes -- it doesn't need to replicate the
+  // controller's active-only scoping.
+  const existing = await prisma.vacancy.findFirst({ where: { title, department } });
   if (existing) return existing;
   const created = await prisma.vacancy.create({ data: { title, department, description, status: "OPEN" } });
   console.log(`Created vacancy "${created.title}" (${department}, id ${created.id})`);
@@ -222,6 +277,48 @@ async function sendOnceAndLog(opts: {
   console.log(`  Sent + logged "${opts.reason}" email to ${opts.recipient}`);
 }
 
+// Realistic, hand-voiced review-note pools for ensureFillerCandidate --
+// previously every filler candidate got the exact same hardcoded
+// "Solid background, moved to interview." note regardless of whether they
+// were ultimately SHORTLISTED or REJECTED, which read as an obvious
+// templated note the moment two candidates with different outcomes sat next
+// to each other on the same Candidates list. Picked deterministically per
+// candidate (see pickReviewNote below) so the script stays reproducible on
+// re-runs rather than picking a new note at random each time.
+const SHORTLISTED_REVIEW_NOTES = [
+  "Solid background, moved to interview.",
+  "Relevant experience for this role, worth a first-round conversation.",
+  "Good fit on paper, moved to shortlist.",
+  "CV shows the right mix of skills for this role -- progressing to interview.",
+  "Clear, relevant track record. Moving forward to the next stage.",
+  "Nothing standout yet, but solid enough fundamentals to shortlist.",
+  "Background lines up well with what this role needs. Shortlisted.",
+  "Reasonable experience for the level -- worth seeing in an interview.",
+  "Strong enough CV to warrant a closer look. Shortlisted for interview.",
+];
+const REJECTED_REVIEW_NOTES = [
+  "Doesn't have quite enough directly relevant experience for this role. Not progressing at this time.",
+  "Background is a bit too junior for what this role needs right now.",
+  "Some relevant experience, but not a strong enough match against the other applicants. Not progressing.",
+  "CV doesn't show the specific experience this role calls for. Not moving forward.",
+  "Thin on the core skills we're looking for here. Not progressing this one.",
+  "Reasonable generalist background, but not a close enough fit for this specific role.",
+  "Experience skews toward a different specialism than this role needs. Not progressing.",
+  "Not enough evidence of the track record this role requires. Passing for now.",
+  "Good candidate on paper, but outmatched by stronger applicants for this particular role.",
+];
+
+// Deterministic pick (sum of the candidate's email char codes, mod pool
+// length) so the same candidate always gets the same note on every re-run of
+// this script, rather than a runtime-random pick that would make diffs
+// between runs meaningless.
+function pickReviewNote(email: string, outcome: "SHORTLISTED" | "REJECTED"): string {
+  const pool = outcome === "REJECTED" ? REJECTED_REVIEW_NOTES : SHORTLISTED_REVIEW_NOTES;
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) hash += email.charCodeAt(i);
+  return pool[hash % pool.length]!;
+}
+
 async function ensureNotification(userId: number, type: string, message: string, link: string | null, daysAgo: number, read: boolean) {
   const existing = await prisma.notification.findFirst({ where: { userId, message } });
   if (existing) return;
@@ -289,6 +386,13 @@ async function ensureFillerCandidate(opts: {
   comment: string;
   appliedDaysAgo: number;
   interviewDaysAgo: number;
+  // Almost every filler candidate ends up SHORTLISTED (the default) -- this
+  // only needs overriding for the rare filler that should read as an actual
+  // rejection, so its review note picks from the REJECTED-flavored pool
+  // instead of the SHORTLISTED one. Doesn't change the application's own
+  // stage below (still driven by the call site), just which note pool
+  // pickReviewNote draws from.
+  outcome?: "SHORTLISTED" | "REJECTED";
 }) {
   const candidate = await ensureCandidate({
     name: opts.name, email: opts.email, phoneNumber: opts.phone,
@@ -300,7 +404,7 @@ async function ensureFillerCandidate(opts: {
       education: { degree: opts.degree, school: opts.school, period: "2015 – 2018" },
       skills: opts.skills,
     },
-    reviewed: { byUserId: opts.hrId, note: "Solid background, moved to interview." },
+    reviewed: { byUserId: opts.hrId, note: pickReviewNote(opts.email, opts.outcome ?? "SHORTLISTED") },
   });
   const app = await ensureApplication(candidate.id, opts.vacancy.id, opts.hiringManagerId, "SHORTLISTED", opts.stage.id, opts.appliedDaysAgo);
   const slot = new Date(Date.now() - opts.interviewDaysAgo * DAY_MS);
@@ -316,6 +420,8 @@ async function ensureFillerCandidate(opts: {
 }
 
 async function main() {
+  await wipeExistingData();
+
   const hr = await requireUser("sharon@altrium.com");
   const interviewer = await requireUser("marcus@altrium.com");
   // `management` (Elena) is IT's own Management account -- kept as the bare
@@ -395,6 +501,44 @@ async function main() {
   await sendRound1Invites({
     actorUserId: hr.id, interviewId: tomasIv.id, candidate: tomas, vacancyTitle: backendEng.title, stageLabel: beStage1.name, scheduledAt: tomasSlot,
     panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
+  });
+
+  // Direct user request: a candidate who scores a perfect 10 in interview
+  // feedback but is still ultimately REJECTED -- demonstrates live that a
+  // top interview score doesn't automatically mean Hired, since the Hiring
+  // Manager's decision is a real, separate human judgment call, not a rule
+  // derived from the score. Rejected here for a genuine, defensible business
+  // reason (the team already had a stronger overall fit for this specific
+  // opening), not because the interview went badly.
+  const raphael = await ensureCandidate({
+    name: "Raphael Song", email: "raphael.song@example.com", phoneNumber: "+44 7700 900199",
+    cv: {
+      name: "Raphael Song", email: "raphael.song@example.com", phone: "+44 7700 900199", location: "Manchester, UK",
+      headline: "Backend Software Engineer",
+      summary: "Backend engineer with six years' experience designing and scaling distributed systems, with deep expertise in event-driven architecture and platform reliability.",
+      experience: [
+        { title: "Senior Backend Engineer", company: "Ferrow Digital", period: "2020 – Present", bullets: ["Redesigned the core event-processing pipeline to handle 5x traffic growth with no added infrastructure cost.", "Mentored three junior engineers, two of whom were since promoted."] },
+        { title: "Backend Engineer", company: "Holloway Systems", period: "2017 – 2020", bullets: ["Built the notification service now handling over 10 million messages a day."] },
+      ],
+      education: { degree: "MEng Computer Science", school: "University of Manchester", period: "2013 – 2017" },
+      skills: ["Node.js", "Go", "Kafka", "PostgreSQL", "System Design", "Mentoring"],
+    },
+    reviewed: { byUserId: hr.id, note: "Excellent, senior-level background -- moved straight to the Technical Interview round.", daysAgo: 6 },
+  });
+  const raphaelApp = await ensureApplication(raphael.id, backendEng.id, hiringManager.id, "REJECTED", beStage1.id, 9, {
+    hiringDecision: "REJECT", decidedByUserId: hiringManager.id, decidedAt: new Date(Date.now() - 1 * DAY_MS),
+  });
+  const raphaelSlot = new Date(Date.now() - 5 * DAY_MS); raphaelSlot.setHours(14, 0, 0, 0);
+  const raphaelIv = await ensureInterviewAt(raphaelApp.id, beStage1.id, raphaelSlot, [interviewer.id], [
+    { userId: interviewer.id, score: 10, comments: "Exceptional -- the strongest system-design answers we've seen for this role, clearly senior-level thinking throughout." },
+  ]);
+  await sendRound1Invites({
+    actorUserId: hr.id, interviewId: raphaelIv.id, candidate: raphael, vacancyTitle: backendEng.title, stageLabel: beStage1.name, scheduledAt: raphaelSlot,
+    panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
+  });
+  await writeAuditLog(hiringManager.id, "HM_DECISION_COMMENT", "CandidateApplication", raphaelApp.id, {
+    decision: "REJECT",
+    note: "Outstanding interview and a perfect score, but the team ultimately prioritised a candidate whose recent experience matched this specific role's on-call and infrastructure focus more closely. A strong score alone doesn't decide a hire -- the Hiring Manager's judgment call does.",
   });
 
   const aiko = await ensureCandidate({
@@ -647,7 +791,10 @@ async function main() {
       education: { degree: "BA Business", school: "Nottingham Trent University", period: "2017 – 2020" },
       skills: ["Salesforce", "Negotiation", "Pipeline Management"],
     },
-    reviewed: { byUserId: hr.id, note: "Solid quota history, moved to Role Play round." },
+    // Was previously "Solid quota history, moved to Role Play round." --
+    // read like an advance even though this candidate is REJECTED below
+    // (audit finding: a rejection with an advance-sounding review note).
+    reviewed: { byUserId: hr.id, note: "Quota history is below what we'd want at this level relative to other applicants. Moved to Role Play round to confirm, but not expecting a strong outcome." },
   });
   const dimitriApp = await ensureApplication(dimitri.id, sales.id, hiringManager.id, "REJECTED", salesStage1.id, 10, {
     hiringDecision: "REJECT", decidedByUserId: hiringManager.id, decidedAt: new Date(Date.now() - 2 * DAY_MS),
@@ -1230,6 +1377,14 @@ async function main() {
   // membership, so these don't need ensurePoolMember calls to show up there.
   const qaEng = await ensureVacancy("QA Engineer", "IT", "Own manual and automated test coverage across our core platform releases.");
   const qaEngStage1 = await ensureStage(qaEng.id, "Technical Interview", 1);
+  // Second configured round -- previously this vacancy only had one round
+  // total, so Jonas's HIRE (below) had exactly one interview behind it, like
+  // 4 of the other 5 single-round hires in this file. Giving QA Engineer a
+  // real second round lets Jonas be one of the 2 (of those 5) that get a
+  // genuine multi-round history before being hired, same spirit as Baptiste/
+  // Elias above -- not "inventing" a round, this vacancy is configured with
+  // it from here on, same as any other two-round vacancy in this dataset.
+  const qaEngStage2 = await ensureStage(qaEng.id, "Final Interview", 2);
   const jonas = await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Jonas Kessler", email: "jonas.kessler@example.com", phone: "+44 7700 900163", location: "Sheffield, UK",
@@ -1238,15 +1393,26 @@ async function main() {
     vacancy: qaEng, stage: qaEngStage1, score: 7, comment: "Good automation instincts, clear about testing trade-offs.",
     appliedDaysAgo: 8, interviewDaysAgo: 3,
   });
-  // Department Performance needs real hired/fill-rate variety across
-  // departments (previously every one of these single-stage secondary roles
-  // sat SHORTLISTED forever, so fillRate was 0% everywhere). This candidate's
-  // currentVacancyStageId is already the vacancy's only (and therefore last)
-  // configured round, satisfying the same hire-decision guard used for
-  // Baptiste above, so the HIRE is legitimate under the app's own rules.
   const jonasApp = await prisma.candidateApplication.findUniqueOrThrow({
     where: { candidateId_vacancyId: { candidateId: jonas.id, vacancyId: qaEng.id } },
   });
+  // Round 2 (Final Interview) -- completed and scored, management (Elena,
+  // IT's own account) included per the enforced "management attends the
+  // final round" convention. currentVacancyStageId moves to this round
+  // before the HIRE below, which needs it to already be the vacancy's last
+  // configured round (application.controller.ts's hire-decision guard).
+  await prisma.candidateApplication.update({ where: { id: jonasApp.id }, data: { currentVacancyStageId: qaEngStage2.id } });
+  const jonasR2 = new Date(Date.now() - 3 * DAY_MS); jonasR2.setHours(14, 0, 0, 0);
+  await ensureInterviewAt(jonasApp.id, qaEngStage2.id, jonasR2, [interviewer.id, management.id], [
+    { userId: interviewer.id, score: 8, comments: "Confident in the final round too -- walked through the regression suite's edge-case coverage in real detail." },
+    { userId: management.id, score: 8, comments: "Practical, detail-oriented, clearly ready to own this. Recommend hire." },
+  ]);
+  // Department Performance needs real hired/fill-rate variety across
+  // departments (previously every one of these single-stage secondary roles
+  // sat SHORTLISTED forever, so fillRate was 0% everywhere). currentVacancyStageId
+  // is now the vacancy's last configured round, satisfying the same
+  // hire-decision guard used for Baptiste above, so the HIRE is legitimate
+  // under the app's own rules.
   await prisma.candidateApplication.update({
     where: { id: jonasApp.id },
     data: { stage: "HIRED", hiringDecision: "HIRE", decidedByUserId: hiringManager.id, decidedAt: new Date(Date.now() - 2 * DAY_MS) },
@@ -1414,6 +1580,11 @@ async function main() {
 
   const apSpecialist = await ensureVacancy("Accounts Payable Specialist", "Finance and Accounting", "Own the end-to-end accounts payable process, from invoice intake to payment run.");
   const apSpecialistStage1 = await ensureStage(apSpecialist.id, "Case Study Interview", 1);
+  // Second configured round -- same reasoning as qaEngStage2 above: this is
+  // one of the 2 (of the 5 single-round hires) picked to get a genuine
+  // multi-round history before hire, so this vacancy is configured with a
+  // real second round rather than Elliot being hired off one interview.
+  const apSpecialistStage2 = await ensureStage(apSpecialist.id, "Final Interview", 2);
   const elliot = await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
     name: "Elliot Nakashima", email: "elliot.nakashima@example.com", phone: "+44 7700 900173", location: "Chelmsford, UK",
@@ -1422,11 +1593,22 @@ async function main() {
     vacancy: apSpecialist, stage: apSpecialistStage1, score: 9, comment: "Meticulous, excellent walkthrough of a three-way-match discrepancy.",
     appliedDaysAgo: 5, interviewDaysAgo: 2,
   });
-  // Same reasoning as Jonas above -- single-stage vacancy, this candidate's
-  // stage is already the last one, so a real HIRE is valid here.
   const elliotApp = await prisma.candidateApplication.findUniqueOrThrow({
     where: { candidateId_vacancyId: { candidateId: elliot.id, vacancyId: apSpecialist.id } },
   });
+  // Round 2 (Final Interview) -- completed and scored, Finance's own
+  // Management account (Nadia) included per the enforced "management
+  // attends the final round" convention. Moves currentVacancyStageId to this
+  // round before the HIRE below, which needs it to already be the vacancy's
+  // last configured round (application.controller.ts's hire-decision guard).
+  await prisma.candidateApplication.update({ where: { id: elliotApp.id }, data: { currentVacancyStageId: apSpecialistStage2.id } });
+  const elliotR2 = new Date(Date.now() - 2 * DAY_MS); elliotR2.setHours(11, 0, 0, 0);
+  await ensureInterviewAt(elliotApp.id, apSpecialistStage2.id, elliotR2, [interviewer.id, mgmtFinance.id], [
+    { userId: interviewer.id, score: 9, comments: "Just as sharp in the final round -- caught a discrepancy in our own worked example almost immediately." },
+    { userId: mgmtFinance.id, score: 9, comments: "Exceptional attention to detail, exactly the reliability this process needs. Recommend hire." },
+  ]);
+  // Same reasoning as Jonas above -- currentVacancyStageId is now the
+  // vacancy's last configured round, so a real HIRE is valid here.
   await prisma.candidateApplication.update({
     where: { id: elliotApp.id },
     data: { stage: "HIRED", hiringDecision: "HIRE", decidedByUserId: hiringManager.id, decidedAt: new Date(Date.now() - 1 * DAY_MS) },
@@ -1563,6 +1745,235 @@ async function main() {
     vacancy: complianceOfficer, stage: complianceOfficerStage1, score: 6, comment: "Junior for the role -- solid fundamentals but light on regulatory-audit experience.",
     appliedDaysAgo: 6, interviewDaysAgo: 2,
   });
+
+  // -------------------------------------------------------- Status coverage --
+  // Direct user request: every department should show 2 OPEN, 1 CLOSED, and
+  // 1 ON_HOLD vacancy, not just a mix of OPEN/CLOSED. Before this block only
+  // 6 of 8 departments had a CLOSED vacancy (Sales and Legal had none), and
+  // NO department had an ON_HOLD one anywhere in the dataset -- ON_HOLD
+  // exists as a real, enforced status (assertVacancyNotOnHold blocks new
+  // applications/interviews/decisions on one) but was never actually
+  // demonstrable live. Each new vacancy below gets at least one configured
+  // round and one real candidate so it doesn't read as an empty shell.
+  async function addStatusCoverageVacancy(opts: {
+    title: string;
+    department: string;
+    description: string;
+    status: "CLOSED" | "ON_HOLD";
+    stageName: string;
+    mgmtUserId: number;
+    candidate: {
+      name: string; email: string; phone: string; location: string;
+      headline: string; company: string; bullet: string; degree: string; school: string; skills: string[];
+    };
+    outcome: "SHORTLISTED" | "REJECTED";
+    reviewNote: string;
+    appliedDaysAgo: number;
+  }) {
+    const vacancy = await ensureVacancy(opts.title, opts.department, opts.description);
+    const stage = await ensureStage(vacancy.id, opts.stageName, 1);
+    await ensurePoolMember(vacancy.id, interviewer.id);
+    await ensurePoolMember(vacancy.id, opts.mgmtUserId);
+
+    const candidate = await ensureCandidate({
+      name: opts.candidate.name, email: opts.candidate.email, phoneNumber: opts.candidate.phone,
+      cv: {
+        name: opts.candidate.name, email: opts.candidate.email, phone: opts.candidate.phone, location: opts.candidate.location,
+        headline: opts.candidate.headline,
+        summary: `${opts.candidate.headline} with solid, directly relevant experience for this role.`,
+        experience: [{ title: opts.candidate.headline, company: opts.candidate.company, period: "2021 – Present", bullets: [opts.candidate.bullet] }],
+        education: { degree: opts.candidate.degree, school: opts.candidate.school, period: "2016 – 2019" },
+        skills: opts.candidate.skills,
+      },
+      reviewed: { byUserId: hr.id, note: opts.reviewNote },
+    });
+    await ensureApplication(candidate.id, vacancy.id, hiringManager.id, opts.outcome, opts.outcome === "SHORTLISTED" ? stage.id : null, opts.appliedDaysAgo);
+
+    await prisma.vacancy.update({ where: { id: vacancy.id }, data: { status: opts.status } });
+    return vacancy;
+  }
+
+  // A brand-new, still-unreviewed OPEN vacancy per department (paired with
+  // each department's existing OPEN vacancy above, so every department shows
+  // 2 OPEN roles, not just 1).
+  async function addSecondOpenVacancy(opts: {
+    title: string; department: string; description: string; stageName: string; mgmtUserId: number;
+    candidate: { name: string; email: string; phone: string; location: string; headline: string; company: string; bullet: string; degree: string; school: string; skills: string[] };
+    appliedDaysAgo: number;
+  }) {
+    const vacancy = await ensureVacancy(opts.title, opts.department, opts.description);
+    await ensureStage(vacancy.id, opts.stageName, 1);
+    await ensurePoolMember(vacancy.id, interviewer.id);
+    await ensurePoolMember(vacancy.id, opts.mgmtUserId);
+
+    // Deliberately left unreviewed (no `reviewed` field) -- a fresh APPLIED
+    // candidate on a brand-new OPEN vacancy realistically hasn't had HR look
+    // at their CV yet, unlike the SHORTLISTED/REJECTED ones above.
+    const candidate = await ensureCandidate({
+      name: opts.candidate.name, email: opts.candidate.email, phoneNumber: opts.candidate.phone,
+      cv: {
+        name: opts.candidate.name, email: opts.candidate.email, phone: opts.candidate.phone, location: opts.candidate.location,
+        headline: opts.candidate.headline,
+        summary: `${opts.candidate.headline} with solid, directly relevant experience for this role.`,
+        experience: [{ title: opts.candidate.headline, company: opts.candidate.company, period: "2021 – Present", bullets: [opts.candidate.bullet] }],
+        education: { degree: opts.candidate.degree, school: opts.candidate.school, period: "2016 – 2019" },
+        skills: opts.candidate.skills,
+      },
+    });
+    await ensureApplication(candidate.id, vacancy.id, hiringManager.id, "APPLIED", null, opts.appliedDaysAgo);
+    return vacancy;
+  }
+
+  // IT
+  await addSecondOpenVacancy({
+    title: "Site Reliability Engineer", department: "IT", stageName: "Technical Interview", mgmtUserId: management.id,
+    description: "Keep our production systems reliable and fast, owning on-call rotation and incident response alongside the platform team.",
+    candidate: { name: "Fenella Okonkwo", email: "fenella.okonkwo@example.com", phone: "+44 7700 900801", location: "Leeds, UK", headline: "Site Reliability Engineer", company: "Northfield Digital", bullet: "Ran the on-call rotation for a 12-service production environment.", degree: "BSc Computer Science", school: "University of Leeds", skills: ["Kubernetes", "Incident Response", "Monitoring"] },
+    appliedDaysAgo: 2,
+  });
+  await addStatusCoverageVacancy({
+    title: "Data Platform Engineer", department: "IT", stageName: "Technical Interview", mgmtUserId: management.id, status: "ON_HOLD",
+    description: "Build and maintain the data pipelines feeding our internal reporting and analytics tools.",
+    candidate: { name: "Marcus Ilunga", email: "marcus.ilunga@example.com", phone: "+44 7700 900802", location: "Sheffield, UK", headline: "Data Engineer", company: "Greymoor Analytics", bullet: "Built ETL pipelines processing several million records a day.", degree: "BSc Data Engineering", school: "University of Sheffield", skills: ["SQL", "Python", "Airflow"] },
+    outcome: "SHORTLISTED", reviewNote: "Strong pipeline experience, good fit -- shortlisted pending budget sign-off on this role.", appliedDaysAgo: 6,
+  });
+
+  // Marketing
+  await addSecondOpenVacancy({
+    title: "Marketing Analyst", department: "Marketing", stageName: "Initial Interview", mgmtUserId: mgmtMarketing.id,
+    description: "Track and report on campaign performance across channels, helping the team decide where to invest budget next quarter.",
+    candidate: { name: "Ruben Castillo", email: "ruben.castillo@example.com", phone: "+44 7700 900803", location: "Bristol, UK", headline: "Marketing Analyst", company: "Fernwood Retail", bullet: "Built the monthly campaign performance dashboard used across the marketing team.", degree: "BSc Marketing Analytics", school: "University of Bristol", skills: ["Google Analytics", "Excel", "Reporting"] },
+    appliedDaysAgo: 3,
+  });
+  await addStatusCoverageVacancy({
+    title: "Brand Partnerships Manager", department: "Marketing", stageName: "Initial Interview", mgmtUserId: mgmtMarketing.id, status: "ON_HOLD",
+    description: "Identify and manage co-marketing partnerships with complementary brands to expand our reach.",
+    candidate: { name: "Sophie Lindqvist", email: "sophie.lindqvist@example.com", phone: "+44 7700 900804", location: "Bath, UK", headline: "Partnerships Manager", company: "Hollowfield Brands", bullet: "Negotiated and ran 6 co-marketing campaigns with partner brands.", degree: "BA Marketing", school: "University of Bath", skills: ["Negotiation", "Campaign Management", "Partnerships"] },
+    outcome: "SHORTLISTED", reviewNote: "Good partnership track record -- shortlisted, on hold while budget for this role is reconfirmed.", appliedDaysAgo: 5,
+  });
+
+  // Sales (already has 2 OPEN -- needs CLOSED + ON_HOLD)
+  await addStatusCoverageVacancy({
+    title: "Enterprise Account Manager", department: "Sales", stageName: "Final Interview", mgmtUserId: mgmtSales.id, status: "CLOSED",
+    description: "Manage and grow relationships with our largest enterprise accounts.",
+    candidate: { name: "Tobias Ferreira", email: "tobias.ferreira@example.com", phone: "+44 7700 900805", location: "Manchester, UK", headline: "Enterprise Account Manager", company: "Ridgeway Solutions", bullet: "Grew an existing enterprise book of business by 18% year over year.", degree: "BA Business", school: "University of Manchester", skills: ["Account Management", "Negotiation", "Salesforce"] },
+    outcome: "REJECTED", reviewNote: "Strong candidate, but the role was filled before this application progressed further.", appliedDaysAgo: 20,
+  });
+  await addStatusCoverageVacancy({
+    title: "Sales Operations Analyst", department: "Sales", stageName: "Final Interview", mgmtUserId: mgmtSales.id, status: "ON_HOLD",
+    description: "Support the sales team with pipeline reporting, forecasting, and CRM data quality.",
+    candidate: { name: "Elodie Marchand", email: "elodie.marchand@example.com", phone: "+44 7700 900806", location: "Manchester, UK", headline: "Sales Operations Analyst", company: "Whitfield & Co", bullet: "Owned CRM data quality across a 40-person sales org.", degree: "BSc Business Analytics", school: "Manchester Metropolitan University", skills: ["Salesforce", "Excel", "Forecasting"] },
+    outcome: "SHORTLISTED", reviewNote: "Solid analytical background -- shortlisted, role on hold pending reorg of the sales ops team.", appliedDaysAgo: 4,
+  });
+
+  // Customer Service
+  await addSecondOpenVacancy({
+    title: "Technical Support Engineer", department: "Customer Service", stageName: "Initial Interview", mgmtUserId: mgmtCustService.id,
+    description: "Provide hands-on technical troubleshooting for our top-tier customers, escalating product bugs as needed.",
+    candidate: { name: "Nadia Kowalski", email: "nadia.kowalski@example.com", phone: "+44 7700 900807", location: "Birmingham, UK", headline: "Technical Support Engineer", company: "Brackenfield Software", bullet: "Resolved an average of 30 technical tickets a week with a 95% satisfaction score.", degree: "BSc Information Technology", school: "Birmingham City University", skills: ["Troubleshooting", "SQL", "Zendesk"] },
+    appliedDaysAgo: 2,
+  });
+  await addStatusCoverageVacancy({
+    title: "Customer Onboarding Specialist", department: "Customer Service", stageName: "Initial Interview", mgmtUserId: mgmtCustService.id, status: "ON_HOLD",
+    description: "Guide new customers through setup and their first few weeks on the platform.",
+    candidate: { name: "Harvey Duclos", email: "harvey.duclos@example.com", phone: "+44 7700 900808", location: "Coventry, UK", headline: "Customer Onboarding Specialist", company: "Millbrook Systems", bullet: "Ran onboarding for over 100 new accounts with a 90%+ activation rate.", degree: "BA Business Management", school: "Coventry University", skills: ["Onboarding", "Customer Success", "Zendesk"] },
+    outcome: "SHORTLISTED", reviewNote: "Good onboarding track record -- shortlisted, role on hold while the onboarding process is redesigned.", appliedDaysAgo: 5,
+  });
+
+  // HR
+  await addSecondOpenVacancy({
+    title: "People Operations Coordinator", department: "HR", stageName: "Initial Interview", mgmtUserId: mgmtHR.id,
+    description: "Keep core HR processes running smoothly, from onboarding paperwork to benefits administration.",
+    candidate: { name: "Amelia Trench", email: "amelia.trench@example.com", phone: "+44 7700 900809", location: "Nottingham, UK", headline: "People Operations Coordinator", company: "Ashgrove Retail", bullet: "Managed onboarding logistics for over 150 new starters in a year.", degree: "BA Human Resource Management", school: "Nottingham Trent University", skills: ["HRIS", "Onboarding", "Benefits Administration"] },
+    appliedDaysAgo: 3,
+  });
+  await addStatusCoverageVacancy({
+    title: "Learning & Development Coordinator", department: "HR", stageName: "Initial Interview", mgmtUserId: mgmtHR.id, status: "ON_HOLD",
+    description: "Coordinate internal training programmes and track completion across departments.",
+    candidate: { name: "Louis Beaumont", email: "louis.beaumont@example.com", phone: "+44 7700 900810", location: "Derby, UK", headline: "L&D Coordinator", company: "Overton Group", bullet: "Coordinated a company-wide training rollout for 300+ staff.", degree: "BA Education and Training", school: "University of Derby", skills: ["Training Coordination", "LMS Systems", "Reporting"] },
+    outcome: "SHORTLISTED", reviewNote: "Good training-coordination background -- shortlisted, role on hold pending L&D budget approval.", appliedDaysAgo: 6,
+  });
+
+  // Finance and Accounting
+  await addSecondOpenVacancy({
+    title: "Payroll Specialist", department: "Finance and Accounting", stageName: "Initial Interview", mgmtUserId: mgmtFinance.id,
+    description: "Run monthly payroll accurately and on time across multiple pay groups, handling employee queries along the way.",
+    candidate: { name: "Ines Dubois", email: "ines.dubois@example.com", phone: "+44 7700 900811", location: "Leicester, UK", headline: "Payroll Specialist", company: "Kingsmill Group", bullet: "Ran monthly payroll for 400+ employees across 3 pay groups with zero errors.", degree: "BA Accounting and Finance", school: "De Montfort University", skills: ["Payroll Software", "Excel", "Compliance"] },
+    appliedDaysAgo: 2,
+  });
+  await addStatusCoverageVacancy({
+    title: "Financial Controller Assistant", department: "Finance and Accounting", stageName: "Initial Interview", mgmtUserId: mgmtFinance.id, status: "ON_HOLD",
+    description: "Support the Financial Controller with month-end close, reconciliations, and audit preparation.",
+    candidate: { name: "Gabriel Voss", email: "gabriel.voss@example.com", phone: "+44 7700 900812", location: "Leicester, UK", headline: "Assistant Financial Controller", company: "Ashworth Manufacturing", bullet: "Supported month-end close for a £40M revenue business unit.", degree: "BSc Accounting", school: "University of Leicester", skills: ["Reconciliations", "Month-End Close", "Excel"] },
+    outcome: "SHORTLISTED", reviewNote: "Strong close-process experience -- shortlisted, role on hold pending finance team restructuring.", appliedDaysAgo: 5,
+  });
+
+  // Operations
+  await addSecondOpenVacancy({
+    title: "Warehouse Supervisor", department: "Operations", stageName: "Initial Interview", mgmtUserId: mgmtOps.id,
+    description: "Supervise day-to-day warehouse operations, coordinating staff schedules and stock accuracy.",
+    candidate: { name: "Callum Reyes", email: "callum.reyes@example.com", phone: "+44 7700 900813", location: "Liverpool, UK", headline: "Warehouse Supervisor", company: "Portside Logistics", bullet: "Supervised a 20-person warehouse team across two shifts.", degree: "BA Operations Management", school: "Liverpool John Moores University", skills: ["Team Scheduling", "Inventory Accuracy", "WMS Systems"] },
+    appliedDaysAgo: 3,
+  });
+  await addStatusCoverageVacancy({
+    title: "Procurement Coordinator", department: "Operations", stageName: "Initial Interview", mgmtUserId: mgmtOps.id, status: "ON_HOLD",
+    description: "Coordinate purchase orders and supplier relationships across our fulfilment sites.",
+    candidate: { name: "Freya Nystrom", email: "freya.nystrom@example.com", phone: "+44 7700 900814", location: "Preston, UK", headline: "Procurement Coordinator", company: "Wexford Supply Co", bullet: "Managed purchase orders across 15 active suppliers.", degree: "BA Supply Chain Management", school: "University of Central Lancashire", skills: ["Procurement", "Supplier Management", "Excel"] },
+    outcome: "SHORTLISTED", reviewNote: "Solid supplier-management background -- shortlisted, role on hold pending procurement budget review.", appliedDaysAgo: 4,
+  });
+
+  // Legal (already has 2 OPEN -- needs CLOSED + ON_HOLD)
+  await addStatusCoverageVacancy({
+    title: "Paralegal", department: "Legal", stageName: "Initial Interview", mgmtUserId: mgmtLegal.id, status: "CLOSED",
+    description: "Support the legal team with contract review, filing, and research on an ongoing basis.",
+    candidate: { name: "Naomi Achterberg", email: "naomi.achterberg@example.com", phone: "+44 7700 900815", location: "St Albans, UK", headline: "Paralegal", company: "Fenwick Legal Partners", bullet: "Supported contract review and filing for a 6-person legal team.", degree: "LLB Law", school: "University of Hertfordshire", skills: ["Contract Review", "Legal Research", "Filing Systems"] },
+    outcome: "REJECTED", reviewNote: "Good fundamentals, but the role was filled before this application progressed further.", appliedDaysAgo: 18,
+  });
+  await addStatusCoverageVacancy({
+    title: "Data Privacy Officer", department: "Legal", stageName: "Initial Interview", mgmtUserId: mgmtLegal.id, status: "ON_HOLD",
+    description: "Own data protection compliance and respond to privacy-related queries from across the business.",
+    candidate: { name: "Theo Marchetti", email: "theo.marchetti@example.com", phone: "+44 7700 900816", location: "Hertford, UK", headline: "Data Privacy Officer", company: "Colworth Legal Group", bullet: "Led GDPR compliance reviews across 3 business units.", degree: "LLM Data Protection Law", school: "University of Hertfordshire", skills: ["GDPR", "Data Protection", "Policy Drafting"] },
+    outcome: "SHORTLISTED", reviewNote: "Strong data-protection background -- shortlisted, role on hold pending scope confirmation.", appliedDaysAgo: 6,
+  });
+
+  // -------------------------------------------------------- Repeat applicants --
+  // Real applicant pools rarely apply to exactly one role. Previously only
+  // Naledi (Sales + Customer Service above) applied to a second vacancy out
+  // of ~70+ candidates -- a 1.4% repeat rate that doesn't read as a real
+  // pipeline. These 8 reuse existing candidates (never brand-new people) and
+  // apply each to one further, different vacancy, chosen so the story makes
+  // sense: rejected-from-one-role candidates trying an adjacent role in the
+  // same department, or a still-APPLIED candidate applying more broadly
+  // within their own field. Combined with Naledi, that's 9 repeat applicants
+  // out of ~71 candidates (roughly 12%).
+  //
+  // Dimitri was REJECTED from Account Executive -- tries the more junior SDR
+  // opening in the same department instead.
+  await ensureApplication(dimitri.id, sdr.id, hiringManager.id, "APPLIED", null, 3);
+  // Freya was REJECTED from Content Marketing Specialist for lacking
+  // long-form content experience -- Social Media Manager is a closer fit for
+  // her actual (social/community) background.
+  await ensureApplication(freya.id, socialMedia.id, hiringManager.id, "APPLIED", null, 4);
+  // Theo is an early-career lawyer still APPLIED to Corporate Counsel --
+  // applying to Compliance Officer too is a natural broadening within Legal.
+  await ensureApplication(theo.id, complianceOfficer.id, hiringManager.id, "APPLIED", null, 2);
+  // Oscar (still APPLIED to Customer Success Manager) also tried Support
+  // Specialist, but that role was filled by Sana before his application
+  // progressed -- same minimal courtesy-reject shape as Bethany/Dexter/
+  // Gideon/Paloma/Vera above (no interview, no hiringDecision fields).
+  await ensureApplication(oscar.id, supportSpec.id, hiringManager.id, "REJECTED", null, 8);
+  // Julian (SHORTLISTED for Senior Financial Analyst) also tried Accounts
+  // Payable Specialist within the same department, filled by Elliot first.
+  await ensureApplication(julian.id, apSpecialist.id, hiringManager.id, "REJECTED", null, 6);
+  // Connor (still APPLIED to Operations Manager) also tried the adjacent
+  // Logistics Coordinator opening, filled by Reuben first.
+  await ensureApplication(connor.id, logisticsCoord.id, hiringManager.id, "REJECTED", null, 7);
+  // Noah (still APPLIED to HR Business Partner) also tried Talent Acquisition
+  // Coordinator within HR, filled by Rosalind first.
+  await ensureApplication(noah.id, talentCoord.id, hiringManager.id, "REJECTED", null, 5);
+  // Silas (still APPLIED to Compliance Officer) also applies to Corporate
+  // Counsel -- a compliance analyst reasonably casting a wider net in Legal.
+  await ensureApplication(silas.id, legal.id, hiringManager.id, "APPLIED", null, 3);
 
   // ------------------------------------------- CV/Review history examples --
   // Per direct user feedback ("make test data ... so that i can check all

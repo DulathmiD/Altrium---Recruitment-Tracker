@@ -21,9 +21,13 @@ describe("stageDisplayFor", () => {
     expect(result).toEqual({ text: "Technical Interview", rejected: false });
   });
 
-  it("appends '- Rejected' and flags rejected when the application was rejected", () => {
+  it("shows the round name plainly (no '- Rejected' suffix) and flags rejected when the application was rejected", () => {
+    // Direct user correction: the caller already shows a separate red
+    // "Rejected" status pill on the same row, so repeating the word in this
+    // column's own text was redundant -- the `rejected` flag alone (used to
+    // colour this text red) is what ties it back to that same rejection.
     const result = stageDisplayFor(makeRow({ stage: "REJECTED" }));
-    expect(result).toEqual({ text: "Technical Interview - Rejected", rejected: true });
+    expect(result).toEqual({ text: "Technical Interview", rejected: true });
   });
 
   it("returns an empty, non-rejected display when there's no current round yet", () => {

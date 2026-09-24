@@ -71,11 +71,15 @@ function statusBucketFor(row: CandidateApplicationRow): "SHORTLISTED" | "IN_PROG
 // "Technical Interview", not "2. Technical Interview", per the wireframe).
 // currentVacancyStage is kept as a historical breadcrumb even after Hired/
 // Rejected (see schema comment on CandidateApplication.currentVacancyStageId),
-// so a rejected candidate still shows which round they were rejected at,
-// e.g. "Technical Interview - Rejected" in red. A rejection with no round at
-// all is signaled by the Status column ("Rejected" in red, see statusFor)
-// instead -- this column just stays blank rather than repeating "Rejected"
-// with nothing in front of it.
+// so a rejected candidate still shows which round they were rejected at --
+// just "Technical Interview" (in red, via `rejected`), not "Technical
+// Interview - Rejected". The word "Rejected" is dropped from this column's
+// own text on direct user correction: the Status column already carries a
+// red "REJECTED" pill on the same row (see statusFor), so repeating the word
+// here was redundant -- the red colour on this column is what ties it back
+// to that same rejection, no second label needed. A rejection with no round
+// at all is still signaled by the Status column alone -- this column just
+// stays blank rather than showing nothing-but-red with no round name.
 // Narrow structural type (rather than the full CandidateApplicationRow) so
 // this can also be reused for CandidateApplicationHistoryEntry rows in the
 // candidate detail view's Applicant History list.
@@ -87,7 +91,7 @@ function stageDisplayFor(row: {
   if (!roundName) return { text: "", rejected: false };
 
   if (row.stage === "REJECTED") {
-    return { text: `${roundName} - Rejected`, rejected: true };
+    return { text: roundName, rejected: true };
   }
   return { text: roundName, rejected: false };
 }

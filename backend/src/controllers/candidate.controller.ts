@@ -204,6 +204,14 @@ export async function updateCandidate(req: Request, res: Response) {
   };
 
   try {
+    // Bug caught via live testing: saving a review note here never stamped
+    // lastCvReviewedByUserId/At -- only markCvReviewed() (fired by the
+    // frontend's View CV button) did, so "Last Reviewed By" stayed "Not yet
+    // reviewed" even right after HR wrote and saved a real note. Writing a
+    // note down IS an act of reviewing the CV, so it should stamp the same
+    // fields markCvReviewed does, not require a separate View CV click first
+    // (which also silently never happens if the CV file itself is missing
+    // from storage, compounding the confusion).
     const candidate = await prisma.candidate.update({
       where: { id },
       data: {
@@ -211,7 +219,11 @@ export async function updateCandidate(req: Request, res: Response) {
         ...(email !== undefined ? { email } : {}),
         ...(phoneNumber !== undefined ? { phoneNumber } : {}),
         ...(reviewNote !== undefined ? { lastCvReviewNote: reviewNote } : {}),
+        ...(reviewNote !== undefined
+          ? { lastCvReviewedByUserId: req.user!.id, lastCvReviewedAt: new Date() }
+          : {}),
       },
+      include: { lastCvReviewedBy: true },
     });
 
     res.json(candidate);
