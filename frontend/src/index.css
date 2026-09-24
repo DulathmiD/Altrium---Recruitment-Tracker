@@ -107,24 +107,26 @@ body {
     padding: 10px 12px;
   }
 
-  /* Wraps just the logo + hamburger button so they sit side by side on
-     one row -- see the .layout-topbar rule further down for why this
-     wrapper is invisible/inert on desktop. */
+  /* Wraps the logo + hamburger button -- stacked as two rows (logo on
+     top, hamburger on its own row underneath, right-aligned) rather than
+     side by side on one line. See the .layout-topbar rule further down
+     for why this wrapper is invisible/inert on desktop. */
   .layout-topbar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
     width: 100%;
   }
 
   .hr-sidebar-title, .admin-sidebar-title, .hm-sidebar-title, .ivr-sidebar-title, .ld-sidebar-title, .mg-sidebar-title {
-    padding: 0;
+    padding: 0 0 8px;
   }
 
   .layout-menu-btn {
     display: flex;
     align-items: center;
     justify-content: center;
+    align-self: flex-end;
     width: 34px;
     height: 34px;
     border: none;
@@ -152,7 +154,13 @@ body {
     display: flex;
     flex-direction: column;
     position: absolute;
-    top: 56px;
+    /* 100% of the sidebar's own height, not a guessed pixel number --
+       since this panel is display:none until opened, the sidebar's
+       rendered height at that moment is just the topbar (logo row +
+       hamburger row) above it, so this always lands flush under the
+       hamburger regardless of exact row heights/font sizes. */
+    top: 100%;
+    margin-top: 8px;
     right: 12px;
     min-width: 190px;
     background: var(--altrium-white);
