@@ -20,6 +20,25 @@ function parseTargetFillDate(value: string | null | undefined): Date | null | un
   return parsed;
 }
 
+// R-10 in the risk register: title+department uniqueness used to be a hard
+// DB constraint covering every vacancy regardless of status, so a CLOSED
+// vacancy permanently blocked ever reposting the same role -- a legitimate,
+// expected business action. Only OPEN/ON_HOLD ("active") vacancies count as
+// a conflict now; a CLOSED one with the same title+department is fine.
+// excludeId lets updateVacancy check without the vacancy matching itself.
+async function hasActiveDuplicate(title: string, department: string, excludeId?: number): Promise<boolean> {
+  const existing = await prisma.vacancy.findFirst({
+    where: {
+      title,
+      department,
+      status: { in: ["OPEN", "ON_HOLD"] },
+      ...(excludeId !== undefined ? { id: { not: excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+  return existing !== null;
+}
+
 export async function createVacancy(req: Request, res: Response) {
   const { title, department, description, requirements, preferredSkills, targetFillDate } = req.body as {
     title?: string;
@@ -42,6 +61,13 @@ export async function createVacancy(req: Request, res: Response) {
   }
 
   try {
+    // A brand new vacancy always starts OPEN (the schema default), which is
+    // active by definition, so this checks unconditionally -- no need to
+    // consider a target status here the way updateVacancy does.
+    if (await hasActiveDuplicate(title, department)) {
+      return res.status(409).json({ error: "An active vacancy with this title and department already exists" });
+    }
+
     const vacancy = await prisma.vacancy.create({
       data: {
         title,
@@ -138,9 +164,21 @@ export async function updateVacancy(req: Request, res: Response) {
   try {
     // Fetched before the update so we can tell "edited" apart from "closed" --
     // both go through this same function, only the status transition differs.
-    const before = await prisma.vacancy.findUnique({ where: { id }, select: { status: true } });
+    // Also used below to compute the *effective* post-update title/
+    // department/status for the active-duplicate check, since a PATCH-style
+    // request may only send some of these fields.
+    const before = await prisma.vacancy.findUnique({ where: { id }, select: { status: true, title: true, department: true } });
     if (!before) {
       return res.status(404).json({ error: "Vacancy not found" });
+    }
+
+    const effectiveTitle = title !== undefined ? title : before.title;
+    const effectiveDepartment = department !== undefined ? department : before.department;
+    const effectiveStatus = status !== undefined ? status : before.status;
+    const isBecomingOrStayingActive = effectiveStatus === "OPEN" || effectiveStatus === "ON_HOLD";
+
+    if (isBecomingOrStayingActive && (await hasActiveDuplicate(effectiveTitle, effectiveDepartment, id))) {
+      return res.status(409).json({ error: "An active vacancy with this title and department already exists" });
     }
 
     const vacancy = await prisma.vacancy.update({

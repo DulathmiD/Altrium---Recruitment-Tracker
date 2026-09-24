@@ -1,0 +1,35 @@
+sequenceDiagram
+    actor HM as Hiring Manager / HR
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant CS as Cloud Storage (Backblaze B2)
+    participant DB as Database (Aiven MySQL via Prisma)
+    participant Mail as Email Service (SMTP)
+
+    HM->>FE: Record final decision for a candidate (Hire or Reject)
+    FE->>BE: PATCH /api/applications/:id/decision {hiringDecision: HIRE | REJECT}
+    BE->>DB: findUnique CandidateApplication by id
+
+    alt application already HIRED or REJECTED
+        BE-->>FE: 400 "Already reached a final outcome"
+    else
+        BE->>DB: Check vacancy is not ON_HOLD
+        alt hiringDecision === HIRE
+            BE->>DB: Confirm candidate has reached the vacancy's FINAL configured interview round
+            alt not yet at final round
+                BE-->>FE: 400 "Must reach the final interview round first"
+            end
+        end
+        BE->>DB: transitionApplicationStage() -- sets stage HIRED/REJECTED, hiringDecision, decidedByUserId, decidedAt
+        alt hiringDecision === REJECT
+            BE->>DB: Count candidate's other applications where stage != REJECTED
+            alt none active elsewhere
+                BE->>CS: renameFile(currentCvKey, "rejected/" + currentCvKey)
+                BE->>DB: Update Candidate.cvUrl
+            end
+        end
+        BE-->>FE: 200 updated application (response sent immediately)
+        Note over BE,Mail: Email sent asynchronously after the response, so the click doesn't wait on mail delivery
+        BE->>Mail: Send "hiring_decision_hire" or "hiring_decision_reject" email to candidate
+        BE->>DB: writeAuditLog(NOTIFICATION_SENT)
+    end

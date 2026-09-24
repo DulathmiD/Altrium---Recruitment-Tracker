@@ -1,0 +1,58 @@
+sequenceDiagram
+    actor HR
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant CS as Cloud Storage (Backblaze B2)
+    participant DB as Database (Aiven MySQL via Prisma)
+
+    Note over HR,DB: Phase 1 -- upload + extract (no Candidate rows created yet)
+    HR->>FE: Select one or more CV PDF files, upload
+    FE->>BE: POST /api/candidates/extract-cv (multipart files)
+    loop for each uploaded file
+        BE->>BE: Check file.mimetype === application/pdf
+        BE->>BE: Check real file bytes start with "%PDF-" (content check, not just declared type)
+        alt not a real PDF
+            BE->>BE: Add to failed[] list, skip (does not abort the whole batch)
+        else is a real PDF
+            BE->>CS: saveFile(buffer, randomUUID + ".pdf")
+            CS-->>BE: stored
+            BE->>BE: extractCvData(buffer) -- best-effort name/email/phone extraction
+            BE->>BE: Add {fileId, extractedName, extractedEmail, extractedPhone} to results[]
+        end
+    end
+    BE-->>FE: 200 {files: results[], failed[]}
+    FE->>HR: Show extracted fields per file for review/correction
+
+    Note over HR,DB: Phase 2 -- HR confirms reviewed/corrected details
+    HR->>FE: Correct name/email/phone if needed, click Confirm
+    FE->>BE: POST /api/candidates/confirm-cv-upload {candidates:[{fileId,name,email,phoneNumber}], vacancyId}
+    loop for each confirmed entry
+        BE->>CS: fileExists(fileId)?
+        alt file missing/expired
+            BE->>BE: Add to failed[] ("re-upload required")
+        else file present
+            BE->>DB: findUnique Candidate by email (incl. applications+vacancy)
+            alt existing candidate already applied to THIS vacancy
+                BE->>BE: Add to matched[] (alreadyOnThisVacancy: true) -- nothing changes
+            else existing candidate, different vacancy (or none yet)
+                BE->>DB: Update existing Candidate (cvUrl, name, phone)
+                BE->>CS: renameFile(fileId, "{candidateId}_{name}.pdf")
+                BE->>DB: Update Candidate.cvUrl to final filename
+                BE->>DB: writeAuditLog(CV_UPLOADED)
+                BE->>BE: Add to matched[] + created[]
+            else no existing candidate
+                BE->>DB: Create new Candidate row
+                BE->>CS: renameFile(fileId, "{candidateId}_{name}.pdf")
+                BE->>DB: Update Candidate.cvUrl to final filename
+                BE->>BE: Add to created[]
+            end
+        end
+    end
+    BE-->>FE: 200 {created[], matched[], failed[]}
+    opt matched[] is non-empty
+        FE->>HR: Show "Existing candidate found" modal with link to profile
+    end
+    loop for each entry in created[]
+        FE->>BE: POST applyCandidateToVacancy (creates CandidateApplication, stage = APPLIED)
+        BE->>DB: Create CandidateApplication + opening ApplicationStageHistory entry
+    end

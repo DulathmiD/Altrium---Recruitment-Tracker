@@ -1,0 +1,43 @@
+sequenceDiagram
+    actor HM as Hiring Manager
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+    participant CS as Cloud Storage (Backblaze B2)
+
+    HM->>FE: Review a candidate mid-pipeline, choose Advance or Do Not Progress
+    FE->>BE: POST /api/applications/:id/recommendation {recommendation, comments}
+    BE->>DB: findUnique CandidateApplication by id
+
+    alt application already HIRED or REJECTED
+        BE-->>FE: 400 "Already reached a final outcome"
+    else
+        BE->>DB: Check vacancy is not ON_HOLD
+        alt recommendation === ADVANCE
+            alt application.stage is not SHORTLISTED
+                BE-->>FE: 400 "Candidate must be shortlisted before entering the interview process"
+            else
+                BE->>DB: Fetch this vacancy's configured interview rounds, ordered
+                alt no rounds configured yet
+                    BE-->>FE: 400 "Ask HR to add at least one round before advancing candidates"
+                else
+                    BE->>BE: Determine next round after currentVacancyStageId
+                    alt already at the final round
+                        BE-->>FE: 400 "Use the hiring decision endpoint instead"
+                    else there is a next round
+                        BE->>DB: transitionApplicationStage() -- advance to next round
+                    end
+                end
+            end
+        else recommendation === DO_NOT_PROGRESS
+            Note over BE,DB: No stage gate -- a valid outcome from any point in the pipeline
+            BE->>DB: transitionApplicationStage(stage: REJECTED)
+            BE->>DB: Count candidate's other applications where stage != REJECTED
+            alt none active elsewhere
+                BE->>CS: renameFile(currentCvKey, "rejected/" + currentCvKey)
+                BE->>DB: Update Candidate.cvUrl
+            end
+        end
+        BE->>DB: Create StageRecommendation record {recommendation, comments, hiringManagerId}
+        BE-->>FE: 201 result
+    end

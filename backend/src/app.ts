@@ -27,6 +27,16 @@ import { requestTimingMiddleware } from "./utils/systemMetrics.js";
 
 export const app = express();
 
+// Required for express-rate-limit (and req.ip generally) to see the real
+// client IP rather than Render's reverse proxy's IP. Without this, every
+// request looks like it comes from the same address behind the proxy, so
+// the login/password-reset rate limits below would apply globally across
+// all users instead of per real client -- one person's failed logins would
+// lock out everyone. `1` trusts exactly one hop of proxy (Render's own),
+// not an arbitrary chain, which matters since trusting proxies you don't
+// control lets a client spoof its own IP via X-Forwarded-For.
+app.set("trust proxy", 1);
+
 app.use(cors());
 app.use(express.json());
 app.use(requestTimingMiddleware);

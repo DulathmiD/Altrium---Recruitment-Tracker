@@ -1,0 +1,23 @@
+sequenceDiagram
+    actor User
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+    participant CS as Cloud Storage (Backblaze B2)
+
+    User->>FE: Click "View CV" or "Download CV" on a candidate
+    FE->>BE: GET /api/candidates/:id/cv
+    BE->>DB: findUnique Candidate by id, read cvUrl
+    alt candidate has no CV on file
+        BE-->>FE: 404 "No CV available for this candidate"
+    else cvUrl present
+        BE->>CS: Fetch object by key (cvUrl, may include rejected/ prefix)
+        alt object not found in storage
+            BE-->>FE: 404 "CV file could not be found"
+        else found
+            CS-->>BE: File bytes
+            BE->>BE: Derive display filename -- strip any folder prefix (e.g. rejected/)
+            BE-->>FE: 200 stream with Content-Disposition header set to inline, filename original-name.pdf
+            FE-->>User: Render PDF inline / trigger download
+        end
+    end

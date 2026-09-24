@@ -1,0 +1,45 @@
+sequenceDiagram
+    actor Admin as IT Admin
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+
+    Note over Admin,DB: Create account
+    Admin->>FE: Fill in name, email, initial password, role
+    FE->>Admin: Prompt "confirm your password to continue" (PasswordConfirmModal)
+    Admin->>FE: Enter own password
+    FE->>BE: POST /api/auth/verify-password {password}
+    BE-->>FE: 200 verified, or 401
+    FE->>BE: POST /api/users {name, email, password, role, department}
+    BE->>DB: bcrypt.hash(password), create User with mustChangePassword = true
+    alt email already in use
+        BE-->>FE: 409 "A user with this email already exists"
+    else created
+        BE->>DB: writeAuditLog(ACCOUNT_CREATED)
+        BE-->>FE: 201 created user
+        Note over FE,Admin: Initial password is shared directly by IT Admin -- forced change on first login
+    end
+
+    Note over Admin,DB: Deactivate / reactivate an account
+    Admin->>FE: Toggle a user's active status
+    alt target account is the admin's own account being deactivated
+        FE-->>Admin: Blocked client-side (also rejected server-side)
+    else different account
+        FE->>BE: PATCH /api/users/:id/active {isActive}
+        BE->>DB: Update User.isActive
+        opt was active, now deactivated
+            BE->>DB: writeAuditLog(ACCOUNT_DEACTIVATED)
+        end
+        BE-->>FE: 200 updated user
+    end
+
+    Note over Admin,DB: Change a user's role
+    Admin->>FE: Select a new role for a user
+    alt target is the admin's own account
+        FE-->>Admin: Blocked (self-role-change not allowed)
+    else different account
+        FE->>BE: PATCH /api/users/:id/role {role}
+        BE->>DB: Update User.role
+        BE->>DB: writeAuditLog(ROLE_CHANGED)
+        BE-->>FE: 200 updated user
+    end

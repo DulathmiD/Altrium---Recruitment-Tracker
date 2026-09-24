@@ -1,0 +1,32 @@
+sequenceDiagram
+    actor User
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+
+    User->>FE: Enter email + password, submit
+    FE->>BE: POST /api/auth/login {email, password}
+    Note over BE: loginRateLimit middleware -- max 10 attempts / 15 min / IP
+    BE->>DB: findUnique User by email (incl. passwordHash)
+    DB-->>BE: User record, or null
+
+    alt user not found
+        BE-->>FE: 401 "Invalid email or password"
+    else user found
+        BE->>BE: bcrypt.compare(password, passwordHash)
+        alt password does not match
+            BE-->>FE: 401 "Invalid email or password"
+        else password matches
+            alt user.isActive is false OR user.role is IT_ADMIN
+                Note over BE: IT_ADMIN must use the separate /admin-login endpoint
+                BE-->>FE: 401 "Invalid email or password"
+            else account active and role allowed
+                BE->>BE: signToken({id, role, department})
+                BE-->>FE: 200 {token, user}
+                FE->>FE: Store token, route to role-specific dashboard
+                opt user.mustChangePassword is true
+                    FE->>User: Force redirect to "Change Password" screen
+                end
+            end
+        end
+    end

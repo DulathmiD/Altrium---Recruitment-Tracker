@@ -1,0 +1,23 @@
+sequenceDiagram
+    actor Admin as IT Admin
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+
+    Note over BE,DB: Writing an entry -- triggered internally by other actions (never a direct user request)
+    Note over BE: e.g. ACCOUNT_CREATED, ROLE_CHANGED, VACANCY_CLOSED, PASSWORD_RESET, BACKUP_COMPLETED
+    BE->>DB: writeAuditLog(eventType, actorId, targetId, metadata)
+
+    Note over Admin,DB: Viewing the log
+    Admin->>FE: Open Audit Log page
+    FE->>BE: GET /api/audit-logs?eventType=&from=&to=&page=
+    BE->>DB: findMany AuditLog with filters, ordered by createdAt desc, paginated
+    BE->>BE: Map raw eventType codes to human-readable labels (EVENT_TYPE mapping)
+    BE-->>FE: 200 {entries, totalCount}
+    FE-->>Admin: Render table with actor, action, target, timestamp
+
+    Note over Admin,DB: Filtering
+    Admin->>FE: Choose event type / date range
+    FE->>BE: GET /api/audit-logs?eventType=ROLE_CHANGED&from=...&to=...
+    BE->>DB: Re-run query with filters applied
+    BE-->>FE: 200 filtered {entries, totalCount}

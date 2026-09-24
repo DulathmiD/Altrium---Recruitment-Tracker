@@ -1,0 +1,30 @@
+sequenceDiagram
+    actor Interviewer
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+
+    Interviewer->>FE: Open a completed interview, enter score (1-10) + comments
+    FE->>BE: POST /api/interviews/:id/feedback {score, comments}
+    BE->>DB: findUnique Interview (incl. slot.scheduledAt, candidate name)
+
+    alt interview not found
+        BE-->>FE: 404 "Interview not found"
+    else
+        alt interview.slot.scheduledAt is in the future
+            BE-->>FE: 400 "Interview hasn't taken place yet"
+        else interview already happened
+            BE->>DB: Check caller is an assigned panelist on this interview's slot
+            alt not a panelist on this interview
+                BE-->>FE: 403 "You are not a panelist on this interview"
+            else is a panelist
+                BE->>DB: Create Feedback row {interviewId, interviewerId, score, comments}
+                alt feedback already exists for this interviewer+interview
+                    BE-->>FE: 409 "You have already submitted feedback"
+                else first submission
+                    BE->>DB: writeAuditLog(FEEDBACK_SUBMITTED)
+                    BE-->>FE: 201 created feedback
+                end
+            end
+        end
+    end

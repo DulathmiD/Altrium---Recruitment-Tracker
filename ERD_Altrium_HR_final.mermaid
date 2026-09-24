@@ -1,0 +1,218 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryBorderColor': '#000000', 'primaryTextColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff'}}}%%
+erDiagram
+    USER {
+        int id PK
+        string name
+        string email UK
+        string passwordHash
+        string role
+        string department
+        string phoneNumber
+        boolean isActive
+        boolean mustChangePassword
+        datetime createdAt
+        string resetTokenHash
+        datetime resetTokenExpiresAt
+        datetime lastActiveAt
+    }
+
+    VACANCY {
+        int id PK
+        string title
+        string department
+        text description
+        text requirements
+        text preferredSkills
+        string status
+        datetime createdAt
+        datetime targetFillDate
+        composite title_department UK
+    }
+
+    VACANCY_STAGE {
+        int id PK
+        int vacancyId FK
+        string name
+        int order
+        composite vacancyId_order UK
+    }
+
+    VACANCY_INTERVIEWER {
+        int id PK
+        int vacancyId FK
+        int userId FK
+        composite vacancyId_userId UK
+    }
+
+    INTERVIEW_PANEL {
+        int id PK
+        int vacancyId FK
+        string name
+        datetime createdAt
+        composite vacancyId_name UK
+    }
+
+    INTERVIEW_PANEL_MEMBER {
+        int id PK
+        int panelId FK
+        int userId FK
+        composite panelId_userId UK
+    }
+
+    CANDIDATE {
+        int id PK
+        string name
+        string email UK
+        string phoneNumber
+        string cvUrl
+        datetime createdAt
+        int lastCvReviewedByUserId FK
+        datetime lastCvReviewedAt
+        text lastCvReviewNote
+    }
+
+    CANDIDATE_APPLICATION {
+        int id PK
+        int candidateId FK
+        int vacancyId FK
+        string stage
+        datetime appliedAt
+        int currentVacancyStageId FK
+        string hiringDecision
+        int decidedByUserId FK
+        datetime decidedAt
+        int hiringManagerId FK
+        composite candidateId_vacancyId UK
+    }
+
+    APPLICATION_STAGE_HISTORY {
+        int id PK
+        int applicationId FK
+        string stage
+        int vacancyStageId FK
+        datetime enteredAt
+        datetime exitedAt
+        int changedByUserId FK
+    }
+
+    STAGE_RECOMMENDATION {
+        int id PK
+        int applicationId FK
+        int hiringManagerId FK
+        string recommendation
+        text comments
+        datetime createdAt
+    }
+
+    INTERVIEW_SLOT {
+        int id PK
+        int vacancyStageId FK
+        datetime scheduledAt
+        string roundLabel
+        datetime createdAt
+        datetime reminderSentAt
+    }
+
+    INTERVIEW_PANELIST {
+        int id PK
+        int slotId FK
+        int userId FK
+        composite slotId_userId UK
+    }
+
+    INTERVIEW {
+        int id PK
+        int slotId FK
+        int applicationId FK
+        datetime createdAt
+        composite slotId_applicationId UK
+    }
+
+    FEEDBACK {
+        int id PK
+        int interviewId FK
+        int interviewerId FK
+        int score
+        text comments
+        datetime createdAt
+        composite interviewId_interviewerId UK
+    }
+
+    FEEDBACK_AUDIT_LOG {
+        int id PK
+        int feedbackId FK
+        int editedByUserId FK
+        int previousScore
+        text previousComments
+        int newScore
+        text newComments
+        text reason
+        datetime editedAt
+    }
+
+    AUDIT_LOG {
+        int id PK
+        int userId FK
+        string action
+        string entityType
+        int entityId
+        json metadata
+        datetime createdAt
+    }
+
+    NOTIFICATION_TEMPLATE {
+        int id PK
+        string key UK
+        string subject
+        text body
+        datetime updatedAt
+        int updatedByUserId FK
+    }
+
+    NOTIFICATION {
+        int id PK
+        int userId FK
+        string type
+        text message
+        string link
+        boolean read
+        datetime createdAt
+    }
+
+    VACANCY ||--o{ VACANCY_STAGE : configures
+    VACANCY ||--o{ VACANCY_INTERVIEWER : pools
+    VACANCY ||--o{ INTERVIEW_PANEL : has
+    VACANCY ||--o{ CANDIDATE_APPLICATION : receives
+
+    USER ||--o{ VACANCY_INTERVIEWER : pooled_on
+    USER ||--o{ INTERVIEW_PANEL_MEMBER : member_of
+    USER o|--o{ CANDIDATE : last_reviewed
+    USER o|--o{ CANDIDATE_APPLICATION : decides
+    USER o|--o{ CANDIDATE_APPLICATION : assigned_hm
+    USER o|--o{ APPLICATION_STAGE_HISTORY : changes
+    USER ||--o{ STAGE_RECOMMENDATION : recommends
+    USER ||--o{ INTERVIEW_PANELIST : sits_on
+    USER ||--o{ FEEDBACK : gives
+    USER ||--o{ FEEDBACK_AUDIT_LOG : edits
+    USER ||--o{ AUDIT_LOG : performs
+    USER o|--o{ NOTIFICATION_TEMPLATE : updates
+    USER ||--o{ NOTIFICATION : receives
+
+    INTERVIEW_PANEL ||--o{ INTERVIEW_PANEL_MEMBER : has
+
+    CANDIDATE ||--o{ CANDIDATE_APPLICATION : submits
+
+    VACANCY_STAGE o|--o{ CANDIDATE_APPLICATION : current_round_of
+    VACANCY_STAGE ||--o{ INTERVIEW_SLOT : scheduled_for
+    VACANCY_STAGE o|--o{ APPLICATION_STAGE_HISTORY : entered_via
+
+    CANDIDATE_APPLICATION ||--o{ INTERVIEW : scheduled_in
+    CANDIDATE_APPLICATION ||--o{ APPLICATION_STAGE_HISTORY : logs
+    CANDIDATE_APPLICATION ||--o{ STAGE_RECOMMENDATION : receives
+
+    INTERVIEW_SLOT ||--o{ INTERVIEW_PANELIST : staffed_by
+    INTERVIEW_SLOT ||--o{ INTERVIEW : hosts
+
+    INTERVIEW ||--o{ FEEDBACK : scored_by
+
+    FEEDBACK ||--o{ FEEDBACK_AUDIT_LOG : edited_via

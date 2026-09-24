@@ -1,0 +1,31 @@
+sequenceDiagram
+    actor HR
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+
+    Note over HR,DB: Add a person to a vacancy's standing interviewer pool
+    HR->>FE: Select a vacancy, pick a user to add
+    FE->>BE: POST /api/vacancies/:id/interviewers {userId}
+    BE->>DB: findUnique User by id
+    alt target user's role is not INTERVIEWER or MANAGEMENT
+        BE-->>FE: 400 "userId must belong to an Interviewer or Management user"
+    else valid role
+        BE->>DB: Create VacancyInterviewer {vacancyId, userId}
+        alt already assigned to this vacancy
+            BE-->>FE: 409 "This user is already assigned to this vacancy"
+        else newly assigned
+            BE->>DB: notifyUser(userId, "vacancy_interviewer_assigned")
+            BE-->>FE: 201 created assignment
+        end
+    end
+
+    Note over HR,DB: Remove a person from the pool
+    HR->>FE: Click remove next to a listed interviewer
+    FE->>BE: DELETE /api/vacancies/:id/interviewers/:userId
+    BE->>DB: Delete VacancyInterviewer {vacancyId, userId}
+    alt no such assignment exists
+        BE-->>FE: 404 "This user is not assigned to this vacancy"
+    else removed
+        BE-->>FE: 204 No Content
+    end

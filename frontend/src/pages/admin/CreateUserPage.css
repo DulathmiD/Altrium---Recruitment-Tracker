@@ -99,23 +99,28 @@
   margin-top: 32px;
 }
 
+/* Padding brought in line with the app's standard button size (most
+   primary/secondary pairs use 10-11px/20px, not 12px/26px) -- this one ran
+   larger than its sibling .cru-secondary-btn's own visual weight elsewhere. */
 .cru-primary-btn {
   background: var(--altrium-black);
   color: white;
   border: none;
   border-radius: 999px;
-  padding: 12px 26px;
+  padding: 11px 22px;
   cursor: pointer;
   font-size: 14px;
   font-family: var(--sans);
   font-weight: 500;
+  transition: background 0.15s ease;
 }
+.cru-primary-btn:hover:not(:disabled) { background: #2a2a2a; }
 
 .cru-secondary-btn {
   background: white;
   border: 1px solid #d1d5db;
   border-radius: 999px;
-  padding: 12px 26px;
+  padding: 11px 22px;
   cursor: pointer;
   font-size: 14px;
   font-family: var(--sans);

@@ -254,7 +254,19 @@ export async function extractCvFiles(req: Request, res: Response) {
   const failed: { originalName: string; error: string }[] = [];
 
   for (const file of files) {
-    if (file.mimetype !== "application/pdf") {
+    // R-09 in the risk register: `file.mimetype` here is whatever the
+    // uploading browser/client declared in the multipart form field -- it's
+    // client-supplied metadata, not a fact about the bytes, so a renamed
+    // .exe with a forged "application/pdf" field would previously have
+    // sailed through this check untouched. A real PDF's first 5 bytes are
+    // always the literal signature "%PDF-" regardless of what the client
+    // claims, so checking that against the actual buffer (from multer's
+    // memoryStorage, already fully in memory at this point) is a real
+    // content check rather than trusting a label. Not a full PDF parse/
+    // validity check -- just enough to reject anything that isn't at least
+    // byte-for-byte shaped like a PDF at the start.
+    const isRealPdf = file.buffer.length >= 5 && file.buffer.subarray(0, 5).toString("latin1") === "%PDF-";
+    if (file.mimetype !== "application/pdf" || !isRealPdf) {
       failed.push({ originalName: file.originalname, error: "Not a PDF file" });
       continue;
     }

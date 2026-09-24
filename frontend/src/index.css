@@ -49,3 +49,117 @@ body {
 #root {
   min-height: 100svh;
 }
+
+/* ============================================================
+   SITE-WIDE MOBILE RESPONSIVENESS
+   ============================================================
+   Every role's app shell (HR/IT Admin/Hiring Manager/Interviewer/
+   Leadership/Management) follows the exact same structure, just with a
+   different two/three-letter class prefix: a fixed-width left sidebar
+   (logo + vertical nav + logout) next to a scrollable main content area.
+   That consistency means one shared breakpoint here fixes all six at
+   once, instead of duplicating the same rules six times per file.
+
+   Below 768px (phone/small-tablet width), the fixed-width sidebar would
+   eat most of a narrow screen (210px of a 375px-wide phone leaves only
+   165px for actual content), and the fixed-height/overflow:hidden shell
+   built for desktop doesn't reflow at all. This turns the sidebar into a
+   horizontal top bar and lets the page scroll normally instead. */
+@media (max-width: 768px) {
+  .hr-layout, .admin-layout, .hm-layout, .ivr-layout, .ld-layout, .mg-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .hr-sidebar, .admin-sidebar, .hm-sidebar, .ivr-sidebar, .ld-sidebar, .mg-sidebar {
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    border-left: none;
+    border-bottom: 3px solid var(--altrium-gold);
+    padding: 10px 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hr-sidebar-title, .admin-sidebar-title, .hm-sidebar-title, .ivr-sidebar-title, .ld-sidebar-title, .mg-sidebar-title {
+    padding: 0 12px 0 0;
+    flex-shrink: 0;
+  }
+
+  .hr-nav, .admin-nav, .hm-nav, .ivr-nav, .ld-nav, .mg-nav {
+    flex-direction: row;
+    flex: 1 1 auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hr-nav-item, .admin-nav-item, .hm-nav-item, .ivr-nav-item, .ld-nav-item, .mg-nav-item {
+    white-space: nowrap;
+    padding: 10px 14px;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+  }
+  .hr-nav-item.active, .admin-nav-item.active, .hm-nav-item.active,
+  .ivr-nav-item.active, .ld-nav-item.active, .mg-nav-item.active {
+    border-left: none;
+    border-bottom: 3px solid var(--altrium-gold);
+  }
+
+  .hr-logout, .admin-logout, .hm-logout, .ivr-logout, .ld-logout, .mg-logout {
+    margin: 6px 0 0;
+    flex-shrink: 0;
+  }
+
+  /* Main content: no more forced full-height box with hidden overflow --
+     on a phone the whole page should just scroll top to bottom normally.
+     Side padding shrinks a lot (was 40px, more than a tenth of a phone's
+     width on its own); top padding shrinks too since the notification
+     bell is repositioned below to sit above the content instead of
+     overlapping it. */
+  .hr-main, .admin-main, .hm-main, .ivr-main, .ld-main, .mg-main {
+    height: auto;
+    min-height: 0;
+    padding: 16px 14px 28px;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  /* The notification bell is fixed-position site-wide (see
+     NotificationBell.css) so it isn't inside the sidebar/main flow at
+     all -- its desktop position (top:28/right:40) would sit on top of
+     the new horizontal top bar on a narrow screen. Nudged down and in so
+     it clears the top bar and lines up with the page's smaller side
+     padding above instead of overlapping either. */
+  .ntf-bell-container {
+    top: 8px;
+    right: 10px;
+  }
+
+  /* A plain HTML <table> can't reflow itself onto a narrow screen the way
+     text can -- it either needs to be redesigned as stacked cards per
+     row (a much bigger change across every table on every page) or given
+     room to scroll sideways without taking the rest of the page with it.
+     Wrapping every table in its own horizontally-scrollable box is the
+     realistic fix here: nothing on the page still gets stretched wide by
+     an oversized table, you just swipe the table itself left/right. */
+  table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Below ~420px (the narrowest common phones), shrink the largest
+   headings/KPI numbers a bit further so they don't force extra
+   scrolling of their own on top of everything above. */
+@media (max-width: 420px) {
+  h1, .cnd-title, .vac-title {
+    font-size: 19px !important;
+  }
+}

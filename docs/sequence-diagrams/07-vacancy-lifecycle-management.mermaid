@@ -1,0 +1,35 @@
+sequenceDiagram
+    actor HR
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+
+    Note over HR,DB: Create
+    HR->>FE: Fill in title, department, description, submit
+    FE->>BE: POST /api/vacancies {title, department, description, ...}
+    BE->>DB: Check for an OPEN/ON_HOLD vacancy with same title+department
+    alt an active duplicate exists
+        BE-->>FE: 409 "An active vacancy with this title and department already exists"
+    else no active duplicate
+        BE->>DB: Create Vacancy (status defaults to OPEN)
+        BE->>DB: writeAuditLog(VACANCY_CREATED)
+        BE-->>FE: 201 created vacancy
+    end
+
+    Note over HR,DB: Edit / change status (close, reopen, put on hold)
+    HR->>FE: Edit fields and/or change status, submit
+    FE->>BE: PATCH /api/vacancies/:id {..., status?}
+    BE->>DB: Fetch current title/department/status
+    BE->>BE: Compute effective title/department/status after this update
+    alt effective status is OPEN or ON_HOLD AND an active duplicate exists elsewhere
+        BE-->>FE: 409 "An active vacancy with this title and department already exists"
+    else no conflict
+        BE->>DB: Update Vacancy
+        alt status changed to CLOSED
+            BE->>DB: writeAuditLog(VACANCY_CLOSED)
+        else other field(s) changed
+            BE->>DB: writeAuditLog(VACANCY_EDITED)
+        end
+        BE-->>FE: 200 updated vacancy
+    end
+    Note over BE,DB: Closing a vacancy does NOT block reposting the same title+department later -- only OPEN/ON_HOLD vacancies count as active duplicates

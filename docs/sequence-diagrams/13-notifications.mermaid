@@ -1,0 +1,28 @@
+sequenceDiagram
+    actor User
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+    participant FE as Frontend (React)
+
+    Note over BE,DB: Creation -- triggered internally by other actions (never a direct user request)
+    Note over BE: e.g. vacancy_interviewer_assigned, interview_scheduled, feedback_reminder, stage_changed
+    BE->>BE: notifyUser(userId, type, payload)
+    BE->>DB: Create Notification {userId, type, payload, isRead: false}
+
+    Note over User,DB: Viewing notifications
+    User->>FE: Open notification bell / panel
+    FE->>BE: GET /api/notifications
+    BE->>DB: findMany Notification where userId = current user, order by createdAt desc
+    BE-->>FE: 200 list of notifications
+    FE-->>User: Render list, unread count badge
+
+    Note over User,DB: Marking as read
+    User->>FE: Click a notification, or "Mark all as read"
+    alt single notification
+        FE->>BE: PATCH /api/notifications/:id/read
+        BE->>DB: Update Notification.isRead = true (only if it belongs to current user)
+    else mark all
+        FE->>BE: PATCH /api/notifications/read-all
+        BE->>DB: Update all of current user's unread Notifications to isRead = true
+    end
+    BE-->>FE: 200 updated

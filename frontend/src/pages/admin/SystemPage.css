@@ -116,18 +116,25 @@
   margin-bottom: 0;
 }
 
+/* Padding/font-size/color aligned to the app's standard gold-pill button
+   (see .cnd-upload-btn) -- this one was previously a slightly different
+   size with no hover state, a small but visible inconsistency across
+   pages using otherwise-identical buttons. */
 .sys-btn {
   background: var(--altrium-gold);
-  color: var(--altrium-black);
+  color: #1a1200;
   border: none;
   border-radius: 999px;
-  padding: 10px 20px;
-  font-size: 13px;
+  padding: 11px 20px;
+  font-size: 14px;
   font-weight: 600;
+  font-family: var(--sans);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  transition: background 0.15s ease;
 }
+.sys-btn:hover:not(:disabled) { background: var(--altrium-gold-dark); }
 
 .sys-btn:disabled {
   opacity: 0.6;

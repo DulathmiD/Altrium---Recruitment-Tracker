@@ -1,0 +1,20 @@
+sequenceDiagram
+    actor Leader as Leadership / Management
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+
+    Note over Leader,DB: Dashboard view
+    Leader->>FE: Open Leadership Dashboard
+    FE->>BE: GET /api/leadership/summary
+    BE->>DB: Aggregate counts -- open vacancies, candidates per stage, time-to-hire, per department
+    BE-->>FE: 200 summary metrics
+    FE-->>Leader: Render charts and KPI tiles
+
+    Note over Leader,DB: Exporting a PDF report
+    Leader->>FE: Click "Export Report"
+    FE->>BE: GET /api/leadership/report.pdf
+    BE->>DB: Re-run the same aggregation queries used for the dashboard
+    BE->>BE: getReportPdf() -- render metrics into a PDF document
+    BE-->>FE: 200 PDF file stream
+    FE-->>Leader: Browser downloads/opens the PDF

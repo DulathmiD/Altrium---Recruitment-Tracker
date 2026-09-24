@@ -114,8 +114,15 @@ model Vacancy {
   stages       VacancyStage[]
   panels       InterviewPanel[]
 
-  // US-04: creating a duplicate vacancy (same title+department) is rejected.
-  @@unique([title, department])
+  // R-10 in the risk register: this used to be a hard DB-level
+  // @@unique([title, department]), which blocked reposting a similar role
+  // even once the earlier vacancy was CLOSED -- a legitimate, expected
+  // business action (a role reopening months later). MySQL has no partial/
+  // filtered unique index (unlike Postgres), so there's no DB-level way to
+  // say "unique only among OPEN/ON_HOLD rows". The check is now done in
+  // application code instead (vacancy.controller.ts's createVacancy/
+  // updateVacancy), scoped to active vacancies only -- see
+  // assertNoActiveDuplicate() there.
 }
 
 // US-05: HR-configurable interview rounds, per vacancy. `order` (1-based) is

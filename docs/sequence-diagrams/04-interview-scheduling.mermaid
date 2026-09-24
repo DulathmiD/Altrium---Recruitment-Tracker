@@ -1,0 +1,41 @@
+sequenceDiagram
+    actor HR
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+    participant Mail as Email Service (SMTP)
+
+    HR->>FE: Pick round, date/time, and panelist(s) for a shortlisted candidate
+    FE->>BE: POST /api/applications/:id/interviews {vacancyStageId, scheduledAt, panelistUserIds}
+    BE->>DB: findUnique CandidateApplication by id
+
+    alt application.stage is not SHORTLISTED
+        BE-->>FE: 400 "Candidate must be shortlisted first"
+    else
+        BE->>DB: Check vacancy status is not ON_HOLD
+        BE->>DB: Confirm vacancyStageId belongs to this vacancy
+        BE->>DB: Check candidate has no other interview at the exact same time (any vacancy)
+        alt candidate double-booked
+            BE-->>FE: 409 "Scheduling conflict" (names candidate + other vacancy)
+        else no candidate conflict
+            BE->>DB: Check each panelist has no other interview at that time
+            BE->>DB: If final round, confirm at least one Management panelist is included
+            alt any check fails
+                BE-->>FE: 400/409 with the specific validation error
+            else all checks pass
+                BE->>DB: Transaction -- create InterviewSlot (+panelists), create Interview
+                BE->>DB: writeAuditLog(INTERVIEW_SCHEDULED)
+                BE-->>FE: 201 created interview
+                opt this is round 1 (order === 1)
+                    par notify each panelist
+                        BE->>Mail: Send "interview_scheduled_panelist" email
+                        BE->>DB: writeAuditLog(NOTIFICATION_SENT) + in-app notification
+                    and notify candidate
+                        BE->>Mail: Send "interview_scheduled_candidate" email
+                        BE->>DB: writeAuditLog(NOTIFICATION_SENT)
+                    end
+                    Note over BE,Mail: Round 2+ invites are a separate manual step from Follow Ups, not automatic
+                end
+            end
+        end
+    end

@@ -1,0 +1,32 @@
+sequenceDiagram
+    actor HR
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+    participant Mail as Email Service
+
+    Note over HR,DB: Viewing what needs follow-up
+    HR->>FE: Open Follow Ups page
+    FE->>BE: GET /api/follow-ups
+    BE->>DB: findMany applications awaiting feedback past due date, or candidates awaiting response
+    BE-->>FE: 200 grouped list (overdue feedback, pending candidate replies)
+
+    Note over HR,Mail: Send an interviewer a feedback reminder
+    HR->>FE: Click "Remind" next to an overdue interview
+    FE->>BE: POST /api/follow-ups/feedback-reminder {interviewId}
+    BE->>DB: Verify interview exists and feedback is still missing
+    alt feedback already submitted
+        BE-->>FE: 400 "Feedback has already been submitted"
+    else still missing
+        BE->>Mail: sendFeedbackReminder(interviewer email)
+        BE->>DB: writeAuditLog(FEEDBACK_REMINDER_SENT)
+        BE-->>FE: 200 sent
+    end
+
+    Note over HR,Mail: Send a candidate an invite / follow-up email
+    HR->>FE: Click "Send Invite" for a shortlisted candidate
+    FE->>BE: POST /api/follow-ups/candidate-invite {candidateId, vacancyId}
+    BE->>DB: Verify candidate application is in an appropriate stage
+    BE->>Mail: sendCandidateInvite(candidate email, vacancy details)
+    BE->>DB: writeAuditLog(CANDIDATE_INVITE_SENT)
+    BE-->>FE: 200 sent

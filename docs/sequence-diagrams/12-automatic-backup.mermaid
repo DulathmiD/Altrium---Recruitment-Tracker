@@ -1,0 +1,45 @@
+sequenceDiagram
+    actor Admin as IT Admin
+    participant Sched as Scheduler (node-cron, in-process)
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as Database (Aiven MySQL via Prisma)
+    participant CS as Cloud Storage (Backblaze B2)
+
+    Note over Sched,CS: Scheduled run -- no user action needed
+    Sched->>BE: Trigger runBackup() on configured schedule
+    BE->>DB: mysqldump({connection: host, port, user, password, database})
+    DB-->>BE: {schema, trigger, data}
+    BE->>BE: Concatenate schema + trigger + data into one SQL file
+    alt BACKUP_ENCRYPTION_KEY is set
+        BE->>BE: AES-256-GCM encrypt (random IV + auth tag prepended), filename gets .sql.enc
+    else no key configured
+        BE->>BE: Keep plaintext .sql
+    end
+    BE->>BE: Write file to local disk with 0600 permissions (owner read/write only)
+    alt Cloud Storage configured
+        BE->>CS: Upload backup file under backups/ prefix
+        BE->>CS: List existing backups, delete any older than 14 days
+    end
+    BE->>BE: Delete local backups older than retention window
+    BE->>DB: writeAuditLog(BACKUP_COMPLETED) or (BACKUP_FAILED) on error
+
+    Note over Admin,CS: Manual run -- password-gated
+    Admin->>FE: Click "Run Backup Now"
+    FE->>Admin: Show PasswordConfirmModal
+    Admin->>FE: Enter own account password
+    FE->>BE: POST /api/auth/verify-password {password}
+    BE-->>FE: 200 verified, or 401
+    FE->>BE: POST /api/system/backup/run
+    BE->>BE: Same runBackup() flow as scheduled run above
+    BE-->>FE: 200 accepted (no success text shown -- history list refreshes instead)
+
+    Note over Admin,CS: Viewing backup history
+    Admin->>FE: Open System Monitoring page
+    FE->>BE: GET /api/system/backups
+    alt Cloud Storage configured
+        BE->>CS: ListObjectsV2 under backups/ prefix
+    else
+        BE->>BE: Read local backups directory
+    end
+    BE-->>FE: List of {filename, size, timestamp}
