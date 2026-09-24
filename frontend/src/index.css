@@ -126,7 +126,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    align-self: flex-end;
+    align-self: flex-start;
     width: 34px;
     height: 34px;
     border: none;
@@ -161,7 +161,7 @@ body {
        hamburger regardless of exact row heights/font sizes. */
     top: 100%;
     margin-top: 8px;
-    right: 12px;
+    left: 12px;
     min-width: 190px;
     background: var(--altrium-white);
     border: 1px solid var(--altrium-line);
@@ -218,13 +218,13 @@ body {
 
   /* The notification bell is fixed-position site-wide (see
      NotificationBell.css) so it isn't inside the sidebar/main flow at
-     all -- its desktop position (top:28/right:40) would otherwise sit
-     directly on top of the hamburger button in the same corner. Moved to
-     the hamburger's left with enough of a gap that the two don't overlap
-     or compete for taps. */
+     all -- its desktop position (top:28/right:40) sits too far right/down
+     for a narrow phone screen. Nudged into the corner. Now that the
+     hamburger lives on its own row on the LEFT side of the header, there's
+     no overlap to avoid here any more. */
   .ntf-bell-container {
-    top: 14px;
-    right: 54px;
+    top: 8px;
+    right: 10px;
   }
 
   /* A plain HTML <table> can't reflow itself onto a narrow screen the way
