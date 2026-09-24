@@ -646,6 +646,38 @@ async function main() {
   const eliasR3 = new Date(Date.now() + 4 * DAY_MS); eliasR3.setHours(15, 0, 0, 0);
   await ensureInterviewAt(eliasApp.id, beStage3.id, eliasR3, [interviewer.id, management.id, jordan.id]);
 
+  // Nikhil reaches the Final Interview with a completed, past-dated round 2
+  // where only the interviewer (Marcus) has submitted feedback -- Management
+  // (Elena) still owes feedback here, and unlike Elias above (deliberately
+  // future-dated for the Follow Ups invite-sending demo) this interview has
+  // already happened, so Elena can actually open "My Candidates" and submit
+  // a real score + comment live during the viva.
+  const nikhil = await ensureCandidate({
+    name: "Nikhil Varma", email: "nikhil.varma@example.com", phoneNumber: "+44 7700 900190",
+    cv: {
+      name: "Nikhil Varma", email: "nikhil.varma@example.com", phone: "+44 7700 900190", location: "Leeds, UK",
+      headline: "Backend Engineer",
+      summary: "Backend engineer with five years' experience building high-throughput APIs and event-driven services.",
+      experience: [{ title: "Backend Engineer", company: "Millgate Systems", period: "2020 – Present", bullets: ["Built a payments reconciliation service processing 1M+ transactions daily.", "Reduced infrastructure cost 30% through right-sizing and caching."] }],
+      education: { degree: "BSc Computer Science", school: "University of Leeds", period: "2016 – 2019" },
+      skills: ["Node.js", "PostgreSQL", "Kafka", "AWS"],
+    },
+    reviewed: { byUserId: hr.id, note: "Strong technical round, advanced to Final Interview." },
+  });
+  const nikhilApp = await ensureApplication(nikhil.id, backendEng.id, hiringManager.id, "SHORTLISTED", beStage3.id, 10);
+  const nikhilR1 = new Date(Date.now() - 6 * DAY_MS); nikhilR1.setHours(9, 30, 0, 0);
+  const nikhilR1Iv = await ensureInterviewAt(nikhilApp.id, beStage1.id, nikhilR1, [interviewer.id], [
+    { userId: interviewer.id, score: 8, comments: "Solid system design fundamentals, good grasp of trade-offs under pressure." },
+  ]);
+  await sendRound1Invites({
+    actorUserId: hr.id, interviewId: nikhilR1Iv.id, candidate: nikhil, vacancyTitle: backendEng.title, stageLabel: beStage1.name, scheduledAt: nikhilR1,
+    panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
+  });
+  const nikhilR3 = new Date(Date.now() - 1 * DAY_MS); nikhilR3.setHours(14, 0, 0, 0);
+  await ensureInterviewAt(nikhilApp.id, beStage3.id, nikhilR3, [interviewer.id, management.id], [
+    { userId: interviewer.id, score: 8, comments: "Consistent with round one -- confident, no red flags." },
+  ]);
+
   // ------------------------------------------------------------ Marketing --
   const marketing = await ensureVacancy("Content Marketing Specialist", "Marketing", "Plan and produce content across blog, social, and email to drive qualified pipeline.");
   const marketingStage1 = await ensureStage(marketing.id, "Portfolio Review", 1);
@@ -752,6 +784,36 @@ async function main() {
   });
   await ensureApplication(freya.id, marketing.id, hiringManager.id, "REJECTED", null, 15);
 
+  // Esme reaches the Final Interview with a completed, past-dated round 2
+  // where only the interviewer has submitted feedback -- Management (Bianca)
+  // still owes feedback here, giving her a genuine, actionable pending item
+  // in "My Candidates" (Baptiste above is already HIRED and decided).
+  const esme = await ensureCandidate({
+    name: "Esme Whitcombe", email: "esme.whitcombe@example.com", phoneNumber: "+44 7700 900191",
+    cv: {
+      name: "Esme Whitcombe", email: "esme.whitcombe@example.com", phone: "+44 7700 900191", location: "Cardiff, UK",
+      headline: "Content Marketing Specialist",
+      summary: "Content marketer with four years' experience running SEO-led editorial programmes for B2B SaaS companies.",
+      experience: [{ title: "Content Marketer", company: "Hollowbrook Media", period: "2021 – Present", bullets: ["Grew organic search traffic 80% year-on-year through a refreshed content strategy.", "Launched a customer-story content series adopted as the team's top-performing format."] }],
+      education: { degree: "BA Marketing", school: "Cardiff Metropolitan University", period: "2017 – 2020" },
+      skills: ["SEO", "Content Strategy", "Email Marketing", "Analytics"],
+    },
+    reviewed: { byUserId: hr.id, note: "Strong portfolio, advanced to Final Interview." },
+  });
+  const esmeApp = await ensureApplication(esme.id, marketing.id, hiringManager.id, "SHORTLISTED", marketingStage2.id, 9);
+  const esmeR1 = new Date(Date.now() - 5 * DAY_MS); esmeR1.setHours(10, 30, 0, 0);
+  const esmeR1Iv = await ensureInterviewAt(esmeApp.id, marketingStage1.id, esmeR1, [interviewer.id], [
+    { userId: interviewer.id, score: 8, comments: "Strong portfolio, clear evidence of channel-mix impact. Fast-track to Final Interview." },
+  ]);
+  await sendRound1Invites({
+    actorUserId: hr.id, interviewId: esmeR1Iv.id, candidate: esme, vacancyTitle: marketing.title, stageLabel: marketingStage1.name, scheduledAt: esmeR1,
+    panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
+  });
+  const esmeR2 = new Date(Date.now() - 1 * DAY_MS); esmeR2.setHours(13, 0, 0, 0);
+  await ensureInterviewAt(esmeApp.id, marketingStage2.id, esmeR2, [interviewer.id, mgmtMarketing.id], [
+    { userId: interviewer.id, score: 8, comments: "Held up well in the final round -- confident, well-prepared." },
+  ]);
+
   // ----------------------------------------------------------------- Sales --
   const sales = await ensureVacancy("Account Executive", "Sales", "Own the full sales cycle for mid-market accounts, from first call to close.");
   const salesStage1 = await ensureStage(sales.id, "Role Play Interview", 1);
@@ -852,6 +914,36 @@ async function main() {
     actorUserId: hr.id, interviewId: naledisSalesIv.id, candidate: naledi, vacancyTitle: sales.title, stageLabel: salesStage1.name, scheduledAt: naledisSalesSlot,
     panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
   });
+
+  // Callan reaches the Final Interview with a completed, past-dated round 2
+  // where only the interviewer has submitted feedback -- Management (Derek)
+  // still owes feedback here, a genuine actionable pending item.
+  const salesStage2 = await ensureStage(sales.id, "Final Interview", 2);
+  const callan = await ensureCandidate({
+    name: "Callan Ibbotson", email: "callan.ibbotson@example.com", phoneNumber: "+44 7700 900192",
+    cv: {
+      name: "Callan Ibbotson", email: "callan.ibbotson@example.com", phone: "+44 7700 900192", location: "Leicester, UK",
+      headline: "Account Executive",
+      summary: "Account executive with five years' experience running full-cycle mid-market sales.",
+      experience: [{ title: "Account Executive", company: "Ridgeline Sales Group", period: "2020 – Present", bullets: ["Closed $1.4M in new-business ARR against a $1M quota.", "Ran a 40-day average sales cycle across a 15-account territory."] }],
+      education: { degree: "BA Business Management", school: "De Montfort University", period: "2016 – 2019" },
+      skills: ["Consultative Selling", "Salesforce", "Negotiation"],
+    },
+    reviewed: { byUserId: hr.id, note: "Confident role play, advanced to Final Interview." },
+  });
+  const callanApp = await ensureApplication(callan.id, sales.id, hiringManager.id, "SHORTLISTED", salesStage2.id, 9);
+  const callanR1 = new Date(Date.now() - 5 * DAY_MS); callanR1.setHours(11, 30, 0, 0);
+  const callanR1Iv = await ensureInterviewAt(callanApp.id, salesStage1.id, callanR1, [interviewer.id], [
+    { userId: interviewer.id, score: 8, comments: "Sharp discovery questions, handled objections smoothly. Fast-track to Final Interview." },
+  ]);
+  await sendRound1Invites({
+    actorUserId: hr.id, interviewId: callanR1Iv.id, candidate: callan, vacancyTitle: sales.title, stageLabel: salesStage1.name, scheduledAt: callanR1,
+    panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
+  });
+  const callanR2 = new Date(Date.now() - 1 * DAY_MS); callanR2.setHours(16, 0, 0, 0);
+  await ensureInterviewAt(callanApp.id, salesStage2.id, callanR2, [interviewer.id, mgmtSales.id], [
+    { userId: interviewer.id, score: 8, comments: "Consistent with round one -- natural closer, no concerns." },
+  ]);
 
   // ------------------------------------------------------- Customer Service --
   const custService = await ensureVacancy("Customer Success Manager", "Customer Service", "Own renewal and expansion relationships for our largest accounts.");
@@ -1002,6 +1094,36 @@ async function main() {
     panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
   });
 
+  // Imani reaches the Final Interview with a completed, past-dated round 2
+  // where only the interviewer has submitted feedback -- Management (Callum)
+  // still owes feedback here, a genuine actionable pending item.
+  const hrStage2 = await ensureStage(hrBp.id, "Final Interview", 2);
+  const imani = await ensureCandidate({
+    name: "Imani Osborne", email: "imani.osborne@example.com", phoneNumber: "+44 7700 900193",
+    cv: {
+      name: "Imani Osborne", email: "imani.osborne@example.com", phone: "+44 7700 900193", location: "Sheffield, UK",
+      headline: "HR Business Partner",
+      summary: "HR professional with five years' experience partnering with department leads on workforce planning and employee relations.",
+      experience: [{ title: "HR Business Partner", company: "Amberley Group", period: "2020 – Present", bullets: ["Partnered with 3 department heads on headcount planning and org design.", "Reduced regrettable attrition 15% through a structured stay-interview programme."] }],
+      education: { degree: "BA Human Resource Management", school: "Sheffield Hallam University", period: "2016 – 2019" },
+      skills: ["Employee Relations", "Workforce Planning", "Stakeholder Management"],
+    },
+    reviewed: { byUserId: hr.id, note: "Strong screening call, advanced to Final Interview." },
+  });
+  const imaniApp = await ensureApplication(imani.id, hrBp.id, hiringManager.id, "SHORTLISTED", hrStage2.id, 9);
+  const imaniR1 = new Date(Date.now() - 5 * DAY_MS); imaniR1.setHours(10, 0, 0, 0);
+  const imaniR1Iv = await ensureInterviewAt(imaniApp.id, hrStage1.id, imaniR1, [interviewer.id], [
+    { userId: interviewer.id, score: 8, comments: "Clear, structured answers on stakeholder management. Fast-track to Final Interview." },
+  ]);
+  await sendRound1Invites({
+    actorUserId: hr.id, interviewId: imaniR1Iv.id, candidate: imani, vacancyTitle: hrBp.title, stageLabel: hrStage1.name, scheduledAt: imaniR1,
+    panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
+  });
+  const imaniR2 = new Date(Date.now() - 1 * DAY_MS); imaniR2.setHours(10, 30, 0, 0);
+  await ensureInterviewAt(imaniApp.id, hrStage2.id, imaniR2, [interviewer.id, mgmtHR.id], [
+    { userId: interviewer.id, score: 8, comments: "Consistent with round one -- calm, structured, no concerns." },
+  ]);
+
   // ------------------------------------------------------------ Operations --
   const operations = await ensureVacancy("Operations Manager", "Operations", "Own day-to-day operational performance across our fulfilment and logistics teams.");
   const opsStage1 = await ensureStage(operations.id, "Initial Interview", 1);
@@ -1068,6 +1190,36 @@ async function main() {
   });
   await ensureApplication(connor.id, operations.id, hiringManager.id, "APPLIED", null, 1);
 
+  // Dariusz reaches the Final Interview with a completed, past-dated round 2
+  // where only the interviewer has submitted feedback -- Management (Owen)
+  // still owes feedback here, a genuine actionable pending item.
+  const opsStage2 = await ensureStage(operations.id, "Final Interview", 2);
+  const dariusz = await ensureCandidate({
+    name: "Dariusz Kowalski", email: "dariusz.kowalski@example.com", phoneNumber: "+44 7700 900194",
+    cv: {
+      name: "Dariusz Kowalski", email: "dariusz.kowalski@example.com", phone: "+44 7700 900194", location: "Nottingham, UK",
+      headline: "Operations Manager",
+      summary: "Operations leader with six years' experience managing fulfilment and logistics teams across multi-site distribution networks.",
+      experience: [{ title: "Operations Manager", company: "Fenwick Logistics", period: "2020 – Present", bullets: ["Cut average order-fulfilment time 22% across a 3-site network.", "Led a 25-person warehouse team through a peak-season volume surge with zero missed SLAs."] }],
+      education: { degree: "BSc Operations Management", school: "Nottingham Trent University", period: "2016 – 2019" },
+      skills: ["Fulfilment", "Logistics", "Team Leadership", "Process Improvement"],
+    },
+    reviewed: { byUserId: hr.id, note: "Strong initial interview, advanced to Final Interview." },
+  });
+  const dariuszApp = await ensureApplication(dariusz.id, operations.id, hiringManager.id, "SHORTLISTED", opsStage2.id, 9);
+  const dariuszR1 = new Date(Date.now() - 5 * DAY_MS); dariuszR1.setHours(9, 0, 0, 0);
+  const dariuszR1Iv = await ensureInterviewAt(dariuszApp.id, opsStage1.id, dariuszR1, [interviewer.id], [
+    { userId: interviewer.id, score: 8, comments: "Strong process instincts, clear examples of leading through a volume surge. Fast-track to Final Interview." },
+  ]);
+  await sendRound1Invites({
+    actorUserId: hr.id, interviewId: dariuszR1Iv.id, candidate: dariusz, vacancyTitle: operations.title, stageLabel: opsStage1.name, scheduledAt: dariuszR1,
+    panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
+  });
+  const dariuszR2 = new Date(Date.now() - 1 * DAY_MS); dariuszR2.setHours(9, 30, 0, 0);
+  await ensureInterviewAt(dariuszApp.id, opsStage2.id, dariuszR2, [interviewer.id, mgmtOps.id], [
+    { userId: interviewer.id, score: 8, comments: "Consistent with round one -- calm under pressure, no concerns." },
+  ]);
+
   // ----------------------------------------------------------------- Legal --
   const legal = await ensureVacancy("Corporate Counsel", "Legal", "Advise the business on commercial contracts, compliance, and risk.");
   const legalStage1 = await ensureStage(legal.id, "Initial Interview", 1);
@@ -1109,6 +1261,36 @@ async function main() {
     },
   });
   await ensureApplication(theo.id, legal.id, hiringManager.id, "APPLIED", null, 1);
+
+  // Saoirse reaches the Final Interview with a completed, past-dated round 2
+  // where only the interviewer has submitted feedback -- Management (Miriam)
+  // still owes feedback here, a genuine actionable pending item.
+  const legalStage2 = await ensureStage(legal.id, "Final Interview", 2);
+  const saoirse = await ensureCandidate({
+    name: "Saoirse Byrne", email: "saoirse.byrne@example.com", phoneNumber: "+44 7700 900195",
+    cv: {
+      name: "Saoirse Byrne", email: "saoirse.byrne@example.com", phone: "+44 7700 900195", location: "Manchester, UK",
+      headline: "Corporate Counsel",
+      summary: "Commercial lawyer with five years' post-qualification experience in contract negotiation and regulatory compliance.",
+      experience: [{ title: "Associate Counsel", company: "Ashworth Legal Partners", period: "2020 – Present", bullets: ["Negotiated and closed vendor and licensing agreements across 4 jurisdictions.", "Built the company's first internal contract-review playbook, cutting turnaround time 30%."] }],
+      education: { degree: "LLB Law", school: "University of Manchester", period: "2015 – 2018" },
+      skills: ["Contract Negotiation", "Compliance", "Regulatory Review"],
+    },
+    reviewed: { byUserId: hr.id, note: "Strong initial interview, advanced to Final Interview." },
+  });
+  const saoirseApp = await ensureApplication(saoirse.id, legal.id, hiringManager.id, "SHORTLISTED", legalStage2.id, 9);
+  const saoirseR1 = new Date(Date.now() - 5 * DAY_MS); saoirseR1.setHours(11, 0, 0, 0);
+  const saoirseR1Iv = await ensureInterviewAt(saoirseApp.id, legalStage1.id, saoirseR1, [interviewer.id], [
+    { userId: interviewer.id, score: 8, comments: "Sharp contract-review instincts, clear examples across multiple jurisdictions. Fast-track to Final Interview." },
+  ]);
+  await sendRound1Invites({
+    actorUserId: hr.id, interviewId: saoirseR1Iv.id, candidate: saoirse, vacancyTitle: legal.title, stageLabel: legalStage1.name, scheduledAt: saoirseR1,
+    panelists: [{ id: interviewer.id, name: interviewer.name, email: interviewer.email }],
+  });
+  const saoirseR2 = new Date(Date.now() - 1 * DAY_MS); saoirseR2.setHours(11, 30, 0, 0);
+  await ensureInterviewAt(saoirseApp.id, legalStage2.id, saoirseR2, [interviewer.id, mgmtLegal.id], [
+    { userId: interviewer.id, score: 8, comments: "Consistent with round one -- thorough, no concerns." },
+  ]);
 
   // -------------------------------------------------- Comparison filler --
   // Every vacancy above already has its own hand-written, story-carrying
@@ -1167,14 +1349,16 @@ async function main() {
   // ("mid-stage"), giving this vacancy a genuine, demonstrable contrast
   // between mid-stage and near-final progress for the Candidates list and
   // Candidate Comparison (which ranks on the LATEST round with feedback, so
-  // her round-1 score of 9 is superseded by this round-2 score).
+  // her round-1 score of 9 is superseded by this round-2 score). Management's
+  // (Nadia's) feedback is deliberately left unsubmitted (interviewer only) so
+  // this also doubles as a genuine, actionable pending item in her "My
+  // Candidates" list -- past-dated, so she can submit real feedback live.
   const financeStage2 = await ensureStage(finance.id, "Final Interview", 2);
   const anyaApp = await ensureApplication(anya.id, finance.id, hiringManager.id, "SHORTLISTED", financeStage1.id, 7);
   await prisma.candidateApplication.update({ where: { id: anyaApp.id }, data: { currentVacancyStageId: financeStage2.id } });
   const anyaSlot2 = new Date(Date.now() - 1 * DAY_MS); anyaSlot2.setHours(11, 0, 0, 0);
   await ensureInterviewAt(anyaApp.id, financeStage2.id, anyaSlot2, [interviewer.id, mgmtFinance.id], [
     { userId: interviewer.id, score: 9, comments: "Just as sharp as round one -- confidently handled pushback on her assumptions." },
-    { userId: mgmtFinance.id, score: 9, comments: "Clear leadership presence already. Easy yes from my side." },
   ]);
 
   // Marketing (Content Marketing Specialist) had 2 (Baptiste, Priya) -- 4 more for 6.
@@ -1264,14 +1448,17 @@ async function main() {
   });
   // Same "one near-final candidate among several mid-stage ones" contrast as
   // Anya on Finance above -- Femi advances to round 2 (Final Interview)
-  // while Yuki/Nora/Ali stay at round 1.
+  // while Yuki/Nora/Ali stay at round 1. Management's (Fatima's) feedback is
+  // deliberately left unsubmitted here (interviewer only) so this doubles as
+  // a genuine, actionable pending item in her "My Candidates" list -- the
+  // interview has already happened (past-dated), so she can open it and
+  // submit a real score + comment live during the viva.
   const csStage2 = await ensureStage(custService.id, "Final Interview", 2);
   const femiApp = await ensureApplication(femi.id, custService.id, hiringManager.id, "SHORTLISTED", csStage1.id, 8);
   await prisma.candidateApplication.update({ where: { id: femiApp.id }, data: { currentVacancyStageId: csStage2.id } });
   const femiSlot2 = new Date(Date.now() - 1 * DAY_MS); femiSlot2.setHours(15, 0, 0, 0);
   await ensureInterviewAt(femiApp.id, csStage2.id, femiSlot2, [interviewer.id, mgmtCustService.id], [
     { userId: interviewer.id, score: 9, comments: "Consistent with round one -- calm, specific, clearly knows the playbook." },
-    { userId: mgmtCustService.id, score: 8, comments: "Strong candidate. A couple of answers were slightly rehearsed, but the substance is real." },
   ]);
   await ensureFillerCandidate({
     actorUserId: hr.id, hrId: hr.id, hiringManagerId: hiringManager.id, ...fillerPanelist,
