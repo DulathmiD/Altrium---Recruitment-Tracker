@@ -772,8 +772,12 @@ function AddCandidateModal({ onClose, onDone }: { onClose: () => void; onDone: (
           <button type="button" className="ivw-modal-close" onClick={onClose} aria-label="Close">
             &#10005;
           </button>
-          <h2>Added</h2>
-          <p>{result.added.length} candidate(s) added to this interview.</p>
+          {/* Heading previously always said "Added" even when 0 candidates
+              were added and every one failed -- read as contradictory right
+              above a red "Could not add" list. Reflect the actual outcome
+              instead. */}
+          <h2>{result.added.length > 0 ? "Added" : "Could Not Add"}</h2>
+          {result.added.length > 0 && <p>{result.added.length} candidate(s) added to this interview.</p>}
           {result.failed.length > 0 && (
             <div>
               <p className="ivw-error">Could not add {result.failed.length}:</p>
